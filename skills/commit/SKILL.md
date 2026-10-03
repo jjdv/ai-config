@@ -160,7 +160,9 @@ After analysis, present a **commit proposal** to the user. Do not stage or commi
 
 **Excludes:** (none | list paths left unstaged per user request)
 
-**Warnings:** (none | e.g. `.env` detected — will not stage)
+**Warnings:** (`none` | items that block or endanger the commit, e.g. `.env` detected — will not stage)
+
+**Notes:** (`none` | key non-blocking context, max 3 one-line bullets)
 
 Reply **go** to commit, or suggest changes (message, scope, split).
 ```
@@ -174,6 +176,9 @@ For each planned commit: **message**, **paths / summary**, brief **why separate*
 - Show the exact **subject line(s)** the user will see in `git log`
 - List **paths or areas** included — not a raw dump of every hunk unless the diff is tiny
 - Call out **exclusions**, **secrets**, and **split rationale**
+- **Warnings** lists only things that block or endanger the commit and need the reader's action or decision: secrets detected and excluded, secrets check not run, risky deletions, files that need isolation. When there are none, write exactly `none`
+- **Notes** lists non-blocking context the reader may want (e.g. diff not reviewed line by line, no test suite covers the change, alternative split considered). Key notes only: at most 3 short bullets, one line each. Omit trivia, restated diff content and clean-check results (e.g. "no secrets found"). When there are none, write `none`
+- **Secrets screening must be executed** before the proposal is presented: check the paths to be staged for secret-like names (`.env`, keys, credentials) and run a quick content scan for tokens. Never relay a subagent's or a skim's claim of "no secrets" as a verified result. If the check was not run, list that under Warnings
 - Keep it scannable; one screenful when possible
 
 ## Workflow
@@ -256,7 +261,7 @@ User: "split commits" → split at clear initiative boundaries (not per layer by
 
 - [ ] Clustered changes by capability (listed in proposal)
 - [ ] Analyzed full diff (`status`, `diff`, recent `log`)
-- [ ] **Commit proposal block sent in chat** (not only in tool output)
+- [ ] **Commit proposal block sent in chat** (not only in tool output), with Warnings (blocking only) and Notes (max 3 bullets) separated
 - [ ] **No `git add` / `git commit` in the same turn as first `/commit`**
 - [ ] User used an **explicit approval phrase** (not `continue` / `ok` / `proceed` alone)
 - [ ] **Proposal presented and user approved** before any `git commit`

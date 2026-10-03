@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bootstrap ai-config on a machine: install the maintenance skills for Claude Code and Cursor,
+# Bootstrap ai-config on a machine: install (render) the maintenance skills for Claude Code and Cursor and verify them,
 # and record the clone path + local exclusions in ~/.ai-config/ (machine-local, never synced).
 set -euo pipefail
 
@@ -23,17 +23,17 @@ for d in skills agents rules; do
   fi
 done
 
-install_to() {
-  local dest="$1"
-  mkdir -p "$dest"
-  for s in "${MAINT[@]}"; do
-    mkdir -p "$dest/$s"
-    cp -R "$REPO_ROOT/skills/$s/." "$dest/$s/"
-  done
-  echo "bootstrap: installed maintenance skills → $dest"
-}
-install_to "$HOME_DIR/.claude/skills"
-install_to "$HOME_DIR/.agents/skills"   # Cursor user skills
+ONLY=()
+for s in "${MAINT[@]}"; do ONLY+=(--only "skills:$s"); done
+SYNC=(python3 "$REPO_ROOT/lib/ai_sync.py")
+
+"${SYNC[@]}" install --repo "$REPO_ROOT" --home "$HOME_DIR" --tool both "${ONLY[@]}" >/dev/null
+echo "bootstrap: installed maintenance skills → $HOME_DIR/.claude/skills, $HOME_DIR/.agents/skills"
+
+for tool in claude cursor; do
+  "${SYNC[@]}" verify --repo "$REPO_ROOT" --home "$HOME_DIR" --tool "$tool" "${ONLY[@]}" \
+    || { echo "bootstrap: error: verify --tool $tool failed" >&2; exit 1; }
+done
 
 mkdir -p "$STATE"
 printf '%s\n' "$REPO_ROOT" > "$STATE/repo-path"

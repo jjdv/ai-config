@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Temp files — ephemeral output location
 
-When running or debugging tests (Playwright e2e, Playwright MCP, Cursor @Browser / Claude browser tools, manual agent exploration, or similar), put **temporary** files only under:
+When running or debugging tests (Playwright e2e, Playwright MCP, {{#cursor}}Cursor @Browser / {{/cursor}}Claude browser tools, manual agent exploration, or similar), put **temporary** files only under:
 
 ```
 <project root>/.tmp/<tool-name>/
@@ -19,7 +19,9 @@ When running or debugging tests (Playwright e2e, Playwright MCP, Cursor @Browser
 |-----------------|-------------|
 | Playwright MCP (interactive agent) | `.tmp/playwright-mcp/` |
 | Playwright test runner (`@playwright/test`, CI e2e) | `.tmp/playwright-e2e/` |
+{{#cursor}}
 | Cursor IDE Browser (`@Browser`) | `.tmp/cursor-browser/` |
+{{/cursor}}
 | Claude browser tools (Chrome / in-app browser) | `.tmp/claude-browser/` |
 | Other tools | `.tmp/<short-tool-id>/` (kebab-case, stable name) |
 

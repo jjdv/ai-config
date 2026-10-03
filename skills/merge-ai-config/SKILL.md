@@ -14,25 +14,26 @@ One pass, all destinations. The **repo** holds one canonical definition per skil
 
 ## Scope — only what is in the repo
 
-ai-config manages **custom harness only**: items that exist in the repo's `skills/`, `agents/`, `rules/`. Everything else is **tool-specific** and **out of scope** — never read, adopted, merged, deleted, or reported as an orphan. That covers items that exist only in one tool's folders (e.g. a hand-made `~/.cursor/agents/foo.md` or `~/.claude/skills/bar/`), tool-managed content (`~/.cursor/skills-cursor/`, plugins), legacy backups (`*.pre-ai-config-*`, `~/.cursor/skills/`, `~/.agents/partials/`, `~/.cursor/rules/`), and `CLAUDE.md`/settings.
+ai-config manages **custom harness only**: items that exist in the repo's `skills/`, `agents/`, `rules/`. Everything else is **tool-specific** and **out of scope** — never read, adopted, merged, deleted, or reported as an orphan. That covers items that exist only in one tool's folders (e.g. a hand-made `~/.claude/skills/bar/`{{#cursor}} or `~/.cursor/agents/foo.md`{{/cursor}}), tool-managed content ({{#cursor}}`~/.cursor/skills-cursor/`, {{/cursor}}plugins), legacy backups (`*.pre-ai-config-*`{{#cursor}}, `~/.cursor/skills/`, `~/.agents/partials/`, `~/.cursor/rules/`{{/cursor}}), and `CLAUDE.md`/settings.
 
 An item joins ai-config only by being added to the repo (authoring there, or naming it to `update-harness`) — never because the merge noticed it on a machine. An item that is in the repo **and** on a machine is managed on both sides, whichever tool it lives in.
 
-Works from Claude Code or Cursor. Everything is plain files except **Cursor User Rules**, which exist only in Cursor's `cursor_dialog` MCP (see § Cursor User Rules).
+Works from Claude Code or Cursor. Everything is plain files except **Cursor User Rules**, which can only be written from Cursor (see § Cursor User Rules).
 
 ## Canonical repo format
 
 | Kind | Repo | Claude Code | Cursor |
 | --- | --- | --- | --- |
 | Skill | `skills/<name>/` (SKILL.md + bundled files) | `~/.claude/skills/<name>/` | `~/.agents/skills/<name>/` |
-| Agent | `agents/<name>.md` | `~/.claude/agents/<name>.md` | `~/.cursor/agents/<name>.md` |
+| Agent | `agents/<name>.md` | `~/.claude/agents/<name>.md` | {{#cursor}}`~/.cursor/agents/<name>.md`{{/cursor}}{{#claude}}Cursor agents dir (path in `inventory` output){{/claude}} |
 | Rule | `rules/<name>.md` | `~/.claude/rules/<name>.md` | User Rule titled `<name>` (MCP) |
 
-- **Skills** are copied verbatim to both tools.
-- **Agents** are canonical with frontmatter `name`, `description`, optional `cursor-model`, `claude-model`, `readonly`, `is_background`, `tools`. `lib/ai_sync.py` renders each tool's dialect (Cursor `model`/`is_background`/`readonly`; Claude `model`/`tools`/`background`).
+- **Skills** are rendered per tool (text files through the template layer, binaries copied unchanged).
+- **Agents** are canonical files in `agents/`; `lib/ai_sync.py` renders each tool's dialect. The canonical frontmatter keys are listed in `$REPO/README.md`; produce canonical agents with `ai_sync.py import`, never by hand-translating a tool's dialect.
+- **Templates.** Repo bodies are shared by both tools and rendered through `\{{#cursor}}…\{{/cursor}}` / `\{{#claude}}…\{{/claude}}` blocks and `\{{placeholder}}`s defined in `$REPO/models.json` (syntax: `$REPO/README.md` § Templating). Machine copies are **rendered output**: never paste a machine copy over a repo file; edit the repo template instead.
 - **Rules** are canonical in Cursor's frontmatter (`description`, `alwaysApply`, `globs`). Claude gets `paths:` from `globs` when not `alwaysApply`.
 - **`targets.json`** (repo root, optional) restricts an item to one tool: `{"agents": {"gpt": ["cursor"]}, "skills": {"x": ["claude"]}}`. Unlisted = both. Use it for tool-specific items (Cursor model-lane agents, skills that call Cursor-only tools).
-- `~/.cursor/skills-cursor/` is Cursor-managed: never read or write it.
+- Tool-managed directories of either tool are never read or written{{#cursor}} (e.g. `~/.cursor/skills-cursor/`){{/cursor}}.
 
 ## Machine-local state (never synced to the repo)
 
@@ -63,9 +64,14 @@ Recent commits record deliberate changes. File names are not enough — read the
 python3 $REPO/lib/ai_sync.py inventory --repo $REPO
 ```
 
-Per skill/agent/rule it reports `repo` (bool) and, for `claude` and `cursor`: `same`, `differs`, `missing` (repo has it, machine does not), `tool-specific` (on the machine only — **ignore**), `not-targeted`/`present-but-not-targeted`. Items in `local.md` are already omitted. "same" means the machine file equals exactly what install would write.
+Per skill/agent/rule it reports `repo` (bool), the machine path (`claude_path`, `cursor_path`) when present, and, for `claude` and `cursor`: `same`, `differs`, `missing` (repo has it, machine does not), `tool-specific` (on the machine only — **ignore**), `not-targeted`/`present-but-not-targeted`. Items in `local.md` are already omitted. "same" means the machine file equals exactly what install would write (the **rendered** output). The `excluded` key lists what `targets.json` keeps off each tool: **print it as "Excluded by targets.json" per tool** (e.g. Cursor-only agents are intentionally absent from Claude Code).
 
-Then list **Cursor User Rules** (MCP `cursor_dialog`, `scope: user`, `action: list`) if available, and consider only titles that match a repo rule; other titles are tool-specific. If MCP is unavailable (e.g. running in Claude Code), say so and skip: Cursor catches up on its next merge.
+{{#cursor}}
+Then list **Cursor User Rules** (MCP `cursor_dialog`, `scope: user`, `action: list`) if available, and consider only titles that match a repo rule; other titles are tool-specific. If MCP is unavailable, say so and skip: Cursor catches up on its next merge.
+{{/cursor}}
+{{#claude}}
+Cursor User Rules cannot be listed or written from Claude Code: report them as pending; Cursor catches up on its next merge.
+{{/claude}}
 
 Ignore every `tool-specific` entry (do not even list them, except as a count in the report). Print a compact table of repo items that are not `same`, then classify:
 
@@ -81,7 +87,7 @@ For each repo item that `differs`, convert the machine copy to canonical before 
 
 ```bash
 python3 $REPO/lib/ai_sync.py import agent-claude ~/.claude/agents/<n>.md
-python3 $REPO/lib/ai_sync.py import agent-cursor ~/.cursor/agents/<n>.md
+python3 $REPO/lib/ai_sync.py import agent-cursor <cursor_path from inventory>
 python3 $REPO/lib/ai_sync.py import rule-claude  ~/.claude/rules/<n>.md
 python3 $REPO/lib/ai_sync.py import rule-cursor  <file-with-user-rule-content>   # strips the "# title" line
 ```
@@ -90,8 +96,8 @@ Then, on every candidate:
 
 1. **Inline references.** Replace `@path` / "see shared file" pointers with the referenced content if it exists. Unresolvable pointers: keep the best inline text from another side; if none, ask.
 2. Drop wrapper cruft (`# Foo (shared)` headings with no content).
-3. Preserve information lost by conversion: Claude rules lack `alwaysApply`; Claude agents lack `cursor-model`. When the repo copy has that field, keep it — never downgrade a canonical field because a tool's dialect cannot express it.
-4. Handle **tool-specific content** (Cursor `Task(subagent_type=…)`, Composer lanes, `cursor_dialog`, Claude-only tools) **without asking**: reword neutrally so it works in both tools; if the item is meaningless in one tool, restrict it with `targets.json`. Never drop content. List each decision in the report.
+3. Preserve information lost by conversion: Claude rules lack `alwaysApply`; Claude agents lack the Cursor model key. When the repo copy has that field, keep it — never downgrade a canonical field because a tool's dialect cannot express it.
+4. Handle **tool-specific content** (one tool's spawn/ask tool names, model ids, MCP names, tool-only paths) **without asking**: translate it through `$REPO/models.json` placeholders (`\{{spawn_tool}}`, `\{{ask_tool}}`, `\{{impl_agent_model}}`, …) or wrap it in a `\{{#cursor}}` / `\{{#claude}}` block. **Never write a Cursor-only model id or name in a shared body outside a `\{{#cursor}}` block**; `verify --tool claude` rejects it. If the item is meaningless in one tool, restrict it with `targets.json`. Never drop content. List each decision in the report.
 
 ## Step 3 — Merge
 
@@ -121,15 +127,23 @@ Only after all asks are resolved.
    python3 $REPO/lib/ai_sync.py install --repo $REPO --tool both
    ```
 
-   Writes skills (verbatim), agents and Claude rules for both tools, honoring `targets.json` and `local.md`. It never deletes and never touches `merge-ai-config/assets/`.
-3. **Cursor User Rules.** `python3 $REPO/lib/ai_sync.py export-rules --repo $REPO` prints `[{title, content}]`. In `cursor_dialog`: `list` first, match by **title**, then `update` (id + title + content) or `add`. Ids are machine-local. Never write `~/.cursor/rules/`.
-4. **Removed/renamed repo items** (from Step 0 git intent, or `targets.json` narrowed): delete the old skill dir / agent file / rule from both tools (User Rule via MCP `remove`) — only items that were in the repo. Just do it and list it. Broken symlinks at `~/.claude/{skills,agents,rules}` block writes: tell the user to run `./bootstrap.sh`.
+   Writes rendered skills, agents and Claude rules for both tools, honoring `targets.json` and `local.md`. It never deletes and never touches `merge-ai-config/assets/`.
+3. **Cursor User Rules.**{{#cursor}} `python3 $REPO/lib/ai_sync.py export-rules --repo $REPO` prints `[{title, content}]`. In `cursor_dialog`: `list` first, match by **title**, then `update` (id + title + content) or `add`. Ids are machine-local. Never write `~/.cursor/rules/`.{{/cursor}}{{#claude}} Not writable from Claude Code: report as pending.{{/claude}}
+4. **Removed/renamed repo items** (from Step 0 git intent, or `targets.json` narrowed): delete the old skill dir / agent file / rule from both tools{{#cursor}} (User Rule via MCP `remove`){{/cursor}} — only items that were in the repo. Just do it and list it. Broken symlinks at `~/.claude/{skills,agents,rules}` block writes: tell the user to run `./bootstrap.sh`.
+5. **Verify — the merge fails on any error:**
+
+   ```bash
+   python3 $REPO/lib/ai_sync.py verify --repo $REPO --tool claude
+   python3 $REPO/lib/ai_sync.py verify --repo $REPO --tool cursor
+   ```
+
+   It checks that no Claude output or source (outside Cursor-only blocks) matches the deny-list in `models.json`, that every targeted item is installed, and that installed files equal the rendered output. Fix the repo templates (never the installed files) and re-run until both pass.
 
 Re-run `inventory` and confirm every non-excluded item is `same` (or `not-targeted`).
 
 ## Step 5 — Report
 
-Repo items merged / written to a machine side (say which tool) · git intent (removed/renamed) · locally excluded · pointers inlined · conflicts asked vs auto-resolved · tool-specific *content* decisions (reworded / `targets.json`) · count of ignored tool-specific machine items · Cursor User Rules synced or **pending** (MCP unavailable) · `git -C $REPO status --short`. Remind the user to commit and push.
+Repo items merged / written to a machine side (say which tool) · git intent (removed/renamed) · locally excluded · pointers inlined · conflicts asked vs auto-resolved · tool-specific *content* decisions (reworded / `targets.json`) · count of ignored tool-specific machine items · Cursor User Rules synced or **pending** · `verify` result for both tools (pass/fail, error lines) · agents/skills intentionally Cursor-only (`Excluded by targets.json`) · `git -C $REPO status --short`. Remind the user to commit and push.
 
 ## Self-merge
 

@@ -9,11 +9,12 @@ Every item is **duplicated in full** into each tool (no references), so agents a
 ## Layout
 
 ```
-skills/<name>/       # → ~/.claude/skills/ and ~/.agents/skills/ (verbatim)
+skills/<name>/       # → ~/.claude/skills/ and ~/.agents/skills/ (text files rendered per tool)
 agents/<name>.md     # canonical frontmatter; rendered per tool
 rules/<name>.md      # canonical = Cursor frontmatter (description, alwaysApply, globs)
 targets.json         # optional: restrict an item to one tool
-lib/ai_sync.py       # converters, install, inventory
+models.json          # model id maps, template placeholders, Claude deny-list
+lib/ai_sync.py       # converters, templating, install, inventory, verify
 bootstrap.sh         # first-time machine setup
 ```
 
@@ -24,7 +25,17 @@ bootstrap.sh         # first-time machine setup
 | Rule | `~/.claude/rules/<n>.md` (`paths:` from globs) | User Rules via `cursor_dialog` MCP |
 
 Agent canonical keys: `name`, `description`, `cursor-model`, `claude-model`, `readonly`, `is_background`, `tools`.
-Tool-specific item: `{"agents": {"gpt": ["cursor"]}}` in `targets.json`.
+Tool-specific item: `{"agents": {"gpt": ["cursor"]}}` in `targets.json`. Excluded items are reported as "intentionally excluded" by `inventory` and `verify`.
+
+## Templating
+
+Rules, agent `description`/body and every text file of a skill are rendered per tool; binaries are copied unchanged.
+
+- `{{#cursor}}…{{/cursor}}` / `{{#claude}}…{{/claude}}`: kept only in that tool's render. Tags alone on their lines drop those lines; otherwise the block is inline. Blocks do not nest.
+- `{{name}}`: placeholder from `models.json` → `placeholders.<tool>` (`impl_agent_model`, `impl_agent_label`, `spawn_tool`, `ask_tool`, `ide_browser`, `browser_tmp_dir`, `agents_dir`, `tool_mapping_note`, …). Unknown names are left as-is.
+- `\{{` writes a literal `{{`.
+- Never write Cursor-only names (`composer-2.5`, `cursor_dialog`, `~/.cursor/`, `@Browser`, `AskQuestion`, …) in a shared body outside a `{{#cursor}}` block. The Claude deny-list lives in `models.json` → `deny.claude`.
+- Model ids: `models.json` → `cursor_to_claude` / `claude_to_cursor`. Claude uses unpinned aliases (`sonnet`, `opus`, `haiku`).
 
 ## New machine
 
@@ -51,4 +62,4 @@ They live only in Cursor's MCP. From Claude Code the merge writes the repo and C
 
 ## lib/ai_sync.py
 
-`inventory`, `install --tool claude|cursor|both [--only kind:name …]`, `export-rules [--only …]`, `import {agent,rule}-{claude,cursor}`. All take `--repo`; `--home` and `--local-file` default to `~` and `~/.ai-config/local.md`. `install` never deletes.
+`inventory` (also lists `excluded` by `targets.json`), `install --tool claude|cursor|both [--only kind:name …]`, `verify --tool claude|cursor [--only …]` (deny-list on rendered output and sources, composer ids in shared source as errors, model ids in cursor blocks as review notes, missing targeted items, installed-vs-rendered drift; exits nonzero on error), `export-rules [--only …]`, `import {agent,rule}-{claude,cursor}`. All take `--repo`; `--home` and `--local-file` default to `~` and `~/.ai-config/local.md`. `install` never deletes.

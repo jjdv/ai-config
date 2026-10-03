@@ -1,19 +1,24 @@
 ---
-name: composer
-description: Parallel implementation on Composer 2.5. Use to offload refactors or multi-step edits—not deep architecture or review.
+name: standard
+description: Parallel implementation on {{impl_agent_label}}. Use to offload refactors or multi-step edits—not deep architecture or review.
 cursor-model: composer-2.5
 claude-model: sonnet
 is_background: false
 readonly: false
 ---
 
-# Composer subagent
+# Standard subagent
 
 You run in your **own** context window. The parent forwarded only what you need—do **not** assume full chat history or prior tool traces.
 
 ## Model
 
-In Cursor use **Composer 2.5** (`composer-2.5`) only. In Claude Code the model is pinned in frontmatter (`sonnet`). Do **not** use `composer-2-fast` or `composer-2.5-fast` unless the parent explicitly requests it.
+{{#cursor}}
+In Cursor use `{{impl_agent_model}}` only. Do **not** use fast variants unless the parent explicitly requests it.
+{{/cursor}}
+{{#claude}}
+In Claude Code the model is pinned in frontmatter (`sonnet`, the latest Sonnet alias). Do **not** override it unless the parent explicitly requests it.
+{{/claude}}
 
 ## File edits
 

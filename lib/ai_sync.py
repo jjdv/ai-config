@@ -5,9 +5,17 @@ Canonical formats (repo):
   rules/<stem>.md   frontmatter: description, alwaysApply, globs   (Cursor-style superset)
   agents/<name>.md  frontmatter: name, description, cursor-model, claude-model,
                     optional: readonly, is_background, tools
-  skills/<name>/    copied verbatim to both tools
+  skills/<name>/    every text file rendered per tool; binaries copied unchanged
+  models.json       model id maps, template placeholders per tool, Claude deny-list
   targets.json      optional {"skills"|"agents"|"rules": {"<name>": ["cursor"] | ["claude"]}};
                     unlisted items go to both tools
+
+Templating (rules, agent description/body, all skill text files):
+  {{#cursor}}...{{/cursor}}  kept only in the Cursor render
+  {{#claude}}...{{/claude}}  kept only in the Claude render
+  {{name}}                   placeholder from models.json "placeholders"[tool]
+A block whose tags sit alone on their lines drops those lines; otherwise it is inline. Blocks do not nest.
+  \\{{ writes a literal {{ (escape for documenting the syntax).
 
 Machine-local state lives in ~/.ai-config/ (repo-path, local.md); see read_local().
 """
@@ -24,20 +32,34 @@ from pathlib import Path
 
 import re
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+MODELS = json.loads((REPO_ROOT / "models.json").read_text(encoding="utf-8"))
+CURSOR_TO_CLAUDE_MODEL: dict[str, str] = MODELS["cursor_to_claude"]
+CLAUDE_TO_CURSOR_MODEL: dict[str, str] = MODELS["claude_to_cursor"]
+TOOLS = ("claude", "cursor")
+
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 DISPLAY_TITLE_RE = re.compile(r"^#\s+([^\n]+)\n\n")
 
-CURSOR_TO_CLAUDE_MODEL = {
-    "claude-opus-5-thinking-high": "opus",
-    "claude-opus-5": "opus",
-    "claude-sonnet-5-5": "sonnet",
-    "composer-2.5": "sonnet",
-}
-CLAUDE_TO_CURSOR_MODEL = {
-    "opus": "claude-opus-5-thinking-high",
-    "sonnet": "composer-2.5",
-    "haiku": "composer-2.5",
-}
+BLOCK_LINE_RE = re.compile(
+    r"^[ \t]*\{\{#(cursor|claude)\}\}[ \t]*\n(.*?)^[ \t]*\{\{/\1\}\}[ \t]*(?:\n|\Z)", re.DOTALL | re.MULTILINE)
+BLOCK_INLINE_RE = re.compile(r"\{\{#(cursor|claude)\}\}(.*?)\{\{/\1\}\}", re.DOTALL)
+PLACEHOLDER_RE = re.compile(r"\{\{(\w+)\}\}")
+ESCAPED_OPEN = "\x00"
+LEFTOVER_TAG_RE = re.compile(r"\{\{[#/](?:cursor|claude)\}\}")
+
+
+def render_text(text: str, tool: str, label: str = "") -> str:
+    def keep(m: re.Match) -> str:
+        return m.group(2) if m.group(1) == tool else ""
+
+    text = text.replace("\\{{", ESCAPED_OPEN)
+    text = BLOCK_INLINE_RE.sub(keep, BLOCK_LINE_RE.sub(keep, text))
+    values = MODELS["placeholders"][tool]
+    text = PLACEHOLDER_RE.sub(lambda m: values.get(m.group(1), m.group(0)), text)
+    if LEFTOVER_TAG_RE.search(text):
+        raise ValueError(f"unbalanced or nested template tag in {label or 'text'}")
+    return text.replace(ESCAPED_OPEN, "{{")
 
 
 @dataclass
@@ -236,19 +258,41 @@ def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def tree_hash(path: Path) -> str:
-    """Hash of a skill dir (file names + contents). machine-local `assets/` is ignored."""
+def skill_files(src: Path, tool: str) -> dict[str, bytes]:
+    """Skill dir as it would be installed for `tool`: text files rendered, binaries unchanged."""
+    out: dict[str, bytes] = {}
+    for f in sorted(p for p in src.rglob("*") if p.is_file()):
+        rel = f.relative_to(src).as_posix()
+        data = f.read_bytes()
+        try:
+            out[rel] = render_text(data.decode("utf-8"), tool, f"{src.name}/{rel}").encode("utf-8")
+        except UnicodeDecodeError:
+            out[rel] = data
+    return out
+
+
+def hash_files(files: dict[str, bytes]) -> str:
+    """Hash of file names + contents. machine-local top-level `assets/` is ignored."""
     h = hashlib.sha256()
-    for f in sorted(p for p in path.rglob("*") if p.is_file() and "assets" not in p.relative_to(path).parts[:1]):
-        h.update(str(f.relative_to(path)).encode())
-        h.update(f.read_bytes())
+    for rel in sorted(r for r in files if r.split("/", 1)[0] != "assets"):
+        h.update(rel.encode())
+        h.update(files[rel])
     return h.hexdigest()
+
+
+def tree_hash(path: Path) -> str:
+    return hash_files({f.relative_to(path).as_posix(): f.read_bytes() for f in path.rglob("*") if f.is_file()})
 
 
 # ---- install (repo -> machine) -------------------------------------------
 
-def read_dir(path: Path, suffix: str = ".md") -> list[Doc]:
-    return [parse(p.read_text(encoding="utf-8"), p.stem) for p in sorted(path.glob(f"*{suffix}"))] if path.is_dir() else []
+def read_dir(path: Path, tool: str | None = None, suffix: str = ".md") -> list[Doc]:
+    """Parse docs in `path`; with `tool`, render templates for that tool first."""
+    def load(p: Path) -> Doc:
+        text = p.read_text(encoding="utf-8")
+        return parse(render_text(text, tool, str(p)) if tool else text, p.stem)
+
+    return [load(p) for p in sorted(path.glob(f"*{suffix}"))] if path.is_dir() else []
 
 
 def wanted(kind: str, name: str, tool: str, targets: dict, skip: dict[str, set[str]],
@@ -277,21 +321,24 @@ def render_agent(d: Doc, tool: str) -> str:
 
 def install(repo: Path, tool: str, home: Path, skip: dict[str, set[str]],
             only: set[str] | None = None) -> dict[str, list[str]]:
-    """Write repo skills/agents (and Claude rules) to the tool's user dirs. Never deletes; `only` limits to named items."""
+    """Write rendered repo skills/agents (and Claude rules) to the tool's user dirs. Never deletes; `only` limits to named items."""
     out: dict[str, list[str]] = {k: [] for k in KINDS}
     dirs, targets = tool_dirs(tool, home), read_targets(repo)
     for s in repo_skills(repo):
         if wanted("skills", s.name, tool, targets, skip, only):
             ensure_dir(dirs["skills"])
-            shutil.copytree(s, dirs["skills"] / s.name, dirs_exist_ok=True)
+            for rel, data in skill_files(s, tool).items():
+                dest = dirs["skills"] / s.name / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(data)
             out["skills"].append(s.name)
-    for d in read_dir(repo / "agents"):
+    for d in read_dir(repo / "agents", tool):
         if wanted("agents", d.name, tool, targets, skip, only):
             ensure_dir(dirs["agents"])
             (dirs["agents"] / f"{d.name}.md").write_text(render_agent(d, tool), encoding="utf-8")
             out["agents"].append(d.name)
     if "rules" in dirs:
-        for d in read_dir(repo / "rules"):
+        for d in read_dir(repo / "rules", tool):
             if wanted("rules", d.name, tool, targets, skip, only):
                 ensure_dir(dirs["rules"])
                 (dirs["rules"] / f"{d.name}.md").write_text(rule_to_claude(d), encoding="utf-8")
@@ -299,16 +346,21 @@ def install(repo: Path, tool: str, home: Path, skip: dict[str, set[str]],
     return out
 
 
+def excluded_by_targets(targets: dict) -> dict[str, list[str]]:
+    return {t: sorted(f"{k}:{n}" for k in KINDS for n in targets.get(k, {}) if t not in targets_for(targets, k, n))
+            for t in TOOLS}
+
+
 def inventory(repo: Path, home: Path, skip: dict[str, set[str]]) -> dict:
     """Per kind/name: which sides have it and whether each machine copy equals what install would write."""
     targets = read_targets(repo)
-    rules_repo = {d.name: d for d in read_dir(repo / "rules")}
-    agents_repo = {d.name: d for d in read_dir(repo / "agents")}
     skills_repo = {s.name: s for s in repo_skills(repo)}
-    repo_items = {"skills": skills_repo, "agents": agents_repo, "rules": rules_repo}
     res: dict[str, dict] = {k: {} for k in KINDS}
-    for tool in ("claude", "cursor"):
+    for tool in TOOLS:
         dirs = tool_dirs(tool, home)
+        rules_repo = {d.name: d for d in read_dir(repo / "rules", tool)}
+        agents_repo = {d.name: d for d in read_dir(repo / "agents", tool)}
+        repo_items = {"skills": skills_repo, "agents": agents_repo, "rules": rules_repo}
         found: dict[str, dict[str, Path]] = {k: {} for k in KINDS}
         for k, base in dirs.items():
             if not base.is_dir():
@@ -322,6 +374,8 @@ def inventory(repo: Path, home: Path, skip: dict[str, set[str]]) -> dict:
                 if name in skip[k]:
                     continue
                 e = res[k].setdefault(name, {"repo": name in repo_items[k]})
+                if name in found[k]:
+                    e[f"{tool}_path"] = str(found[k][name])
                 if name in repo_items[k] and tool not in targets_for(targets, k, name):
                     e[tool] = "not-targeted" if name not in found[k] else "present-but-not-targeted"
                     continue
@@ -330,11 +384,111 @@ def inventory(repo: Path, home: Path, skip: dict[str, set[str]]) -> dict:
                 elif name not in repo_items[k]:
                     e[tool] = "tool-specific"
                 elif k == "skills":
-                    e[tool] = "same" if tree_hash(skills_repo[name]) == tree_hash(found[k][name]) else "differs"
+                    same = hash_files(skill_files(skills_repo[name], tool)) == tree_hash(found[k][name])
+                    e[tool] = "same" if same else "differs"
                 else:
                     want = render_agent(agents_repo[name], tool) if k == "agents" else rule_to_claude(rules_repo[name])
                     e[tool] = "same" if found[k][name].read_text(encoding="utf-8") == want else "differs"
+    res["excluded"] = excluded_by_targets(targets)
     return res
+
+
+# ---- verify ---------------------------------------------------------------
+
+def self_check() -> list[str]:
+    errors = []
+    sample = "a{{#cursor}}C{{/cursor}}{{#claude}}L{{/claude}} {{impl_agent_model}}\n{{#cursor}}\nonly\n{{/cursor}}\nend\n"
+    got = {t: render_text(sample, t) for t in TOOLS}
+    want = {"cursor": f"aC {MODELS['placeholders']['cursor']['impl_agent_model']}\nonly\nend\n",
+            "claude": f"aL {MODELS['placeholders']['claude']['impl_agent_model']}\nend\n"}
+    for t in TOOLS:
+        if got[t] != want[t]:
+            errors.append(f"self-check: template render for {t} gave {got[t]!r}")
+    try:
+        render_text("{{#cursor}}x", "claude")
+        errors.append("self-check: unbalanced tag was not rejected")
+    except ValueError:
+        pass
+    return errors
+
+
+SOURCE_MODEL_ID_RE = re.compile(r"composer-[\w.\[\]=-]+|gpt-5[\w.\[\]=-]*|gemini-[\w.\[\]=-]+|claude-(?:opus|sonnet|haiku)-[\w.\[\]=-]+")
+
+
+def lint_source_model_ids(repo: Path) -> tuple[list[str], list[str]]:
+    errors, notes = [], []
+    files = [p for sub in ("rules", "agents", "skills") for p in sorted((repo / sub).rglob("*")) if p.is_file() and p.suffix in {".md", ".txt", ".json", ".yaml", ".yml"}]
+    for f in files:
+        rel = f.relative_to(repo)
+        text = f.read_text(encoding="utf-8", errors="ignore")
+        text = "\n".join(l for l in text.split("\n") if not re.match(r"\s*(cursor|claude)-model:", l))
+        shared = BLOCK_INLINE_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), BLOCK_LINE_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text))
+        for n, line in enumerate(shared.split("\n"), 1):
+            for m in SOURCE_MODEL_ID_RE.finditer(line):
+                if m.group(0).startswith("composer-"):
+                    errors.append(f"shared-source: {rel}:{n} hardcodes model id {m.group(0)!r} outside a template block")
+        for m in BLOCK_LINE_RE.finditer(text):
+            if m.group(1) == "cursor":
+                base = text.count("\n", 0, m.start())
+                for off, line in enumerate(m.group(0).split("\n")):
+                    for mm in SOURCE_MODEL_ID_RE.finditer(line):
+                        notes.append(f"review: {rel}:{base + off + 1} hardcodes model id {mm.group(0)!r} in a cursor block (prefer a placeholder if the text is shared)")
+    return errors, notes
+
+
+def verify(repo: Path, tool: str, home: Path, skip: dict[str, set[str]],
+           only: set[str] | None = None) -> tuple[list[str], list[str]]:
+    """Return (errors, notes) for `tool`: deny-list on rendered output, missing items, installed-vs-rendered drift."""
+    errors, notes = self_check(), []
+    src_errors, src_notes = lint_source_model_ids(repo)
+    errors += src_errors
+    notes += src_notes
+    targets, dirs = read_targets(repo), tool_dirs(tool, home)
+    deny = [re.compile(p, re.IGNORECASE) for p in MODELS.get("deny", {}).get(tool, [])]
+
+    def lint(label: str, text: str) -> None:
+        for rx in deny:
+            if m := rx.search(text):
+                line = text.count("\n", 0, m.start()) + 1
+                errors.append(f"deny-list: {label}:{line} matches {rx.pattern!r} ({m.group(0)!r})")
+
+    for ident in excluded_by_targets(targets)[tool]:
+        notes.append(f"intentionally excluded from {tool} (targets.json): {ident}")
+
+    expected: dict[tuple[str, str], dict[str, bytes]] = {}
+    try:
+        for s in repo_skills(repo):
+            if wanted("skills", s.name, tool, targets, skip, only):
+                expected[("skills", s.name)] = skill_files(s, tool)
+        for d in read_dir(repo / "agents", tool):
+            if wanted("agents", d.name, tool, targets, skip, only):
+                expected[("agents", d.name)] = {f"{d.name}.md": render_agent(d, tool).encode("utf-8")}
+        if "rules" in dirs:
+            for d in read_dir(repo / "rules", tool):
+                if wanted("rules", d.name, tool, targets, skip, only):
+                    expected[("rules", d.name)] = {f"{d.name}.md": rule_to_claude(d).encode("utf-8")}
+    except ValueError as exc:
+        return errors + [f"template: {exc}"], notes
+
+    for (kind, name), files in sorted(expected.items()):
+        for rel, data in files.items():
+            lint(f"source {kind}/{name}/{rel}", data.decode("utf-8", errors="ignore"))
+        base = dirs[kind]
+        root = base / name if kind == "skills" else base
+        if not (root.is_dir() if kind == "skills" else (base / f"{name}.md").is_file()):
+            errors.append(f"missing: {kind}:{name} is targeted at {tool} but not installed in {base}")
+            continue
+        for rel, data in files.items():
+            f = root / rel
+            if not f.is_file():
+                errors.append(f"missing: {f}")
+                continue
+            if f.read_bytes() != data:
+                errors.append(f"differs: {f} (installed file does not equal rendered output)")
+            lint(f"installed {f}", f.read_text(encoding="utf-8", errors="ignore"))
+    if tool == "cursor":
+        notes.append("Cursor User Rules are not files: verify them from Cursor via export-rules")
+    return errors, notes
 
 
 def main() -> None:
@@ -351,12 +505,16 @@ def main() -> None:
     e = sub.add_parser("export-rules", help="Print repo rules as JSON [{title, content}] for Cursor User Rules (cursor_dialog MCP)")
     common(e)
 
-    i = sub.add_parser("install", help="Write repo skills/agents (and Claude rules) to a tool's user dirs")
+    i = sub.add_parser("install", help="Write rendered repo skills/agents (and Claude rules) to a tool's user dirs")
     common(i)
     i.add_argument("--tool", choices=["claude", "cursor", "both"], required=True)
 
     v = sub.add_parser("inventory", help="JSON: per skill/agent/rule, state on repo vs claude vs cursor machine dirs")
     common(v)
+
+    f = sub.add_parser("verify", help="Fail on deny-listed terms, missing targeted items, or installed files that differ from rendered output")
+    common(f)
+    f.add_argument("--tool", choices=list(TOOLS), required=True)
 
     c = sub.add_parser("import", help="Convert one machine file to canonical form on stdout")
     c.add_argument("kind", choices=["rule-claude", "agent-claude", "agent-cursor", "rule-cursor"])
@@ -374,10 +532,18 @@ def main() -> None:
     if a.cmd == "export-rules":
         t = read_targets(a.repo)
         print(json.dumps([{"title": d.name, "content": rule_to_cursor_user_rule(d)}
-                          for d in read_dir(a.repo / "rules") if wanted("rules", d.name, "cursor", t, skip, only)], indent=2))
+                          for d in read_dir(a.repo / "rules", "cursor") if wanted("rules", d.name, "cursor", t, skip, only)], indent=2))
     elif a.cmd == "install":
         tools = ["claude", "cursor"] if a.tool == "both" else [a.tool]
         print(json.dumps({t: install(a.repo, t, a.home, skip, only) for t in tools}, indent=2))
+    elif a.cmd == "verify":
+        errors, notes = verify(a.repo, a.tool, a.home, skip, only)
+        for n in notes:
+            print(n)
+        for err in errors:
+            print(f"ERROR {err}")
+        print(f"verify {a.tool}: {'FAILED, ' + str(len(errors)) + ' error(s)' if errors else 'OK'}")
+        sys.exit(1 if errors else 0)
     else:
         print(json.dumps(inventory(a.repo, a.home, skip), indent=2))
 

@@ -11,9 +11,9 @@ description: >-
 
 # Create Plan
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
-Produce and maintain plans structured for **`sequential-implementation`** and **`composer`** delegation.
+Produce and maintain plans structured for **`sequential-implementation`** and **`{{impl_agent_name}}`** delegation.
 
 **Contract:** A plan is **handoff-ready** only when a **fresh chat** can run `/sequential-implementation <plan-path>` with **no prior context** — read plan → follow **Fresh chat handoff** → delegate next open task.
 
@@ -53,13 +53,13 @@ Detail lives in linked files — not chat history.
 | Contract piece | create-plan | sequential-implementation |
 | --- | --- | --- |
 | Plan structure | **Required plan structure** | Pre-flight validation |
-| Task IDs | One ID = one `composer` spawn | Delegates in **Implementation order** |
+| Task IDs | One ID = one `{{impl_agent_name}}` spawn | Delegates in **Implementation order** |
 | Implementation order | **Open tasks only** | Order hygiene — fails if ✅ IDs listed |
 | Progress | **Plan maintenance** | Supervisor updates after each task |
 | Fresh chat | **Fresh chat handoff** section | Reads plan only |
 | Autonomy | Plan § **Autonomy & authorization** (when present) | Pause only on plan **User escalation** — not fixed task IDs |
-| Scope | Plan § **Scope boundary** (domain vs global) | Composer respects; global → escalate |
-| Composer-fit | **Composer-fit checklist** per open task | Pre-flight + **Oversized tasks** — blocks delegation until split |
+| Scope | Plan § **Scope boundary** (domain vs global) | Agent respects; global → escalate |
+| Task-fit | **Task-fit checklist** per open task | Pre-flight + **Oversized tasks** — blocks delegation until split |
 
 If pre-flight fails or a fresh chat needs history, **re-run this skill** on the plan — do not patch ad hoc.
 
@@ -83,9 +83,9 @@ Add when the plan needs autonomous multi-session execution or domain-vs-global b
 | --- | --- |
 | **User intent** | Autonomous within domain scope; escalate only per rules below |
 | **Pre-approved operations** | Dev server, Playwright/parity scripts, prod compare (read-only), plan-scoped edits, plan-authorized CMS import, etc. |
-| **Auto-decisions** | When supervisor/composer proceeds without user (e.g. clear majority target, S/M gap fixes in domain scope) |
+| **Auto-decisions** | When supervisor/implementation subagent proceeds without user (e.g. clear majority target, S/M gap fixes in domain scope) |
 | **User escalation required** | Non-obvious choices, ties, global/shared scope, Tier D last resort, commit/deploy unless pre-approved |
-| **Composer delegation template** | **Authorization** block copied into every `composer` prompt |
+| **Delegation template** | **Authorization** block copied into every `{{impl_agent_name}}` prompt |
 
 Override **External environment boundary** below when the user pre-approves operations in this section (e.g. Sanity MCP import).
 
@@ -151,7 +151,7 @@ Run **after every create or structural update** and before `status: ready` / rec
 | **Initiative refs** | `.local/<slug>/decisions.md` and `architecture.md` exist when referenced |
 | **Task files** | Every linked `.local/<slug>/tasks/<id>.md` exists for non-`—` Details rows |
 | **Plan folder** | Supporting files under `.local/<slug>/`; entry point at `.local/<slug>-plan.md` — no shared flat `.local/tasks/` |
-| **Composer-fit** | Every **open** task passes **Composer-fit checklist** (§ below); no mega-tasks or investigate+implement bundles |
+| **Task-fit** | Every **open** task passes **Task-fit checklist** (§ below); no mega-tasks or investigate+implement bundles |
 | **Target vs code** | Migration/refactor plans banner or note where docs ≠ code |
 | **Out-of-band** | Done work removed from **Implementation order**; task files `**Status:**` synced |
 | **Open questions** | **Blocks** column empty or only truly blocked IDs |
@@ -250,20 +250,20 @@ Move elsewhere:
 - Durable human reference → `docs/` (update `README.md`)
 - Repeated background duplicated across tasks → one `.local/<slug>/` or `.context/` file, link from each task
 
-## Task sizing for composer (mandatory)
+## Task sizing (mandatory)
 
-**One task ID = one `composer` spawn** (`model="composer-2.5"`, foreground). A task must be finishable in a **single subagent session** with one primary verification path — not a multi-hour epic, not a sequence of follow-up spawns.
+**One task ID = one `{{impl_agent_name}}` spawn** ({{#cursor}}`model="{{impl_agent_model}}"`, {{/cursor}}foreground). A task must be finishable in a **single subagent session** with one primary verification path — not a multi-hour epic, not a sequence of follow-up spawns.
 
 When drafting or extending a plan, **split until every open task passes** the checklist below. Re-run after scope grows mid-initiative.
 
-## Composer-fit checklist (mandatory per open task)
+## Task-fit checklist (mandatory per open task)
 
 Apply to **each open task** (read linked `.local/<slug>/tasks/<id>.md` when present). **Fail any row → split** the task into new IDs (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
 
 | # | Criterion | Pass when | Fail → split when |
 | --- | --- | --- | --- |
 | 1 | **One outcome** | Summary is one concrete deliverable a reviewer can sign off | Summary joins unrelated outcomes with “and” (e.g. tokens **and** layout **and** CMS seed **and** parity) |
-| 2 | **One session** | Reasonable for one `composer` spawn without a planned follow-up spawn to finish the same ID | Would need multiple composer runs, or supervisor already expects a follow-up for the same ID |
+| 2 | **One session** | Reasonable for one `{{impl_agent_name}}` spawn without a planned follow-up spawn to finish the same ID | Would need multiple implementation runs, or supervisor already expects a follow-up for the same ID |
 | 3 | **Bounded scope** | ≤8 primary paths in **In scope** / task spec, or one cohesive subsystem (e.g. all under `SanityCmsService` footer paths) | >8 primary paths, or 3+ **unrelated** subsystems (e.g. Studio schema + React layout + MCP content import) |
 | 4 | **Acceptance cap** | ≤7 acceptance criteria, all serving the same outcome | >7 criteria, or criteria that clearly belong in separate tasks |
 | 5 | **Single verify track** | One primary **Verification** command or one manual check path | Multiple independent verify tracks (e.g. full parity suite **and** CMS import **and** schema deploy) |
@@ -379,9 +379,9 @@ Use `—` in Details when the summary is sufficient (no task file).
 - Subagents do **not** edit the plan — the supervisor or implementing agent does.
 - Prefer updating the plan over leaving progress in chat only.
 
-### Composer delegation template (include when § Autonomy present)
+### Delegation template (include when § Autonomy present)
 
-Every `composer` `prompt` in sequential-implementation should copy the plan’s **Authorization** block: project root, allowed operations, forbidden global scope, “do not update the plan”, autonomy/escalation pointer.
+Every `{{impl_agent_name}}` `prompt` in sequential-implementation should copy the plan’s **Authorization** block: project root, allowed operations, forbidden global scope, “do not update the plan”, autonomy/escalation pointer.
 
 ### Fresh chat handoff
 
@@ -396,7 +396,7 @@ Every `composer` `prompt` in sequential-implementation should copy the plan’s 
 5. Load initiative refs from Context references.
 6. **Next task:** `<id>` only — open `.local/<slug>/tasks/<id>.md`.
 7. Load task-specific skills listed in task spec or phase (e.g. `~/.agents/skills/improve-parity/SKILL.md`, `sanity-best-practices`, `sanity-data-handling`).
-8. Delegate `composer` (`model="composer-2.5"`) with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
+8. Delegate `{{impl_agent_name}}`{{#cursor}} (`model="{{impl_agent_model}}"`){{/cursor}} with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
 9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required** (not fixed task IDs).
 10. Prerequisites: …
 ```
@@ -440,7 +440,7 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 2. Check `<project-root>/.agents/skills/project-best-practices/SKILL.md`; map open tasks to **Conventions coverage** refs.
 3. Write `.local/<slug>/` decisions/architecture as needed; durable conventions to agent `references/` or `docs/` when the initiative defines long-term rules.
 4. Write task detail files for non-trivial tasks (paths, **Out of scope**, **Verification** when spawn-sized but not obvious).
-5. Run **Composer-fit checklist** on every open task; split and add task files until all pass.
+5. Run **Task-fit checklist** on every open task; split and add task files until all pass.
 6. Write `.local/<slug>-plan.md` last.
 7. **Handoff readiness checklist** — fix all failures (or run **`check-plan`** to verify).
 8. Tell user: `/check-plan <plan-path>` then `/sequential-implementation <plan-path>` in a fresh chat.
@@ -448,7 +448,7 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 ## Authoring rules
 
 1. **Task IDs:** `<phase>.<sequence>` (e.g. `2.3`). Unique across the plan.
-2. **One spawn per task:** Each ID is one `composer` delegation — see **Task sizing for composer**.
+2. **One spawn per task:** Each ID is one `{{impl_agent_name}}` delegation — see **Task sizing**.
 3. **Implementation order = open tasks only** — mandatory re-sync when tasks complete.
 4. **Independence:** Each task should be delegatable alone; split mixed work into separate IDs.
 5. **Phases are labels:** Tasks are delegatable units; never one umbrella task per whole phase unless truly one spawn.
@@ -461,7 +461,7 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 12. **Re-sync before handoff:** If conventions or docs change after the plan was drafted, update the plan before telling the user to run `sequential-implementation`.
 13. Re-run checklist after any structural edit.
 14. **Conventions coverage:** Source-editing plans list project-best-practices (+ task-relevant references and Sanity siblings) and call out **code** user rule in **Fresh chat handoff**.
-15. **Composer-fit:** No open task fails **Composer-fit checklist** — split before `status: ready`.
+15. **Task-fit:** No open task fails **Task-fit checklist** — split before `status: ready`.
 
 ## Do not
 

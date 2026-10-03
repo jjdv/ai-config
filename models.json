@@ -1,0 +1,65 @@
+{
+  "cursor_to_claude": {
+    "claude-opus-5-thinking-high": "opus",
+    "claude-opus-5": "opus",
+    "claude-sonnet-5-5": "sonnet",
+    "composer-2.5": "sonnet",
+    "composer-2.5-fast": "sonnet"
+  },
+  "claude_to_cursor": {
+    "opus": "claude-opus-5-thinking-high",
+    "sonnet": "composer-2.5",
+    "haiku": "composer-2.5"
+  },
+  "cursor_only_models": [
+    "gpt-5.6-sol[effort=high]",
+    "gemini-3.8-flash[effort=high]"
+  ],
+  "placeholders": {
+    "cursor": {
+      "tool_name": "Cursor",
+      "spawn_tool": "Task",
+      "ask_tool": "AskQuestion",
+      "impl_agent_name": "standard",
+      "impl_agent_model": "composer-2.5",
+      "impl_agent_label": "the standard implementation model",
+      "impl_agent_desc": "the standard implementation agent (composer-2.5)",
+      "ide_browser": "@Browser",
+      "browser_tmp_dir": "cursor-browser",
+      "agents_dir": "~/.cursor/agents/",
+      "skills_dir": "~/.agents/skills/",
+      "tool_mapping_note": "> **Tool mapping (Cursor):** subagent spawn `Task(subagent_type=…, model=…)`; ask the user `AskQuestion`; browser `@Browser` (`cursor-ide-browser`); file tools `Write`/`StrReplace`/`Shell`. The `standard` agent runs `composer-2.5` — always pass `model=\"composer-2.5\"`. User skills live in `~/.agents/skills/`."
+    },
+    "claude": {
+      "tool_name": "Claude Code",
+      "spawn_tool": "Agent",
+      "ask_tool": "AskUserQuestion",
+      "impl_agent_name": "standard",
+      "impl_agent_model": "sonnet",
+      "impl_agent_label": "the standard implementation model",
+      "impl_agent_desc": "the standard implementation agent (sonnet)",
+      "ide_browser": "Claude browser tools",
+      "browser_tmp_dir": "claude-browser",
+      "agents_dir": "~/.claude/agents/",
+      "skills_dir": "~/.claude/skills/",
+      "tool_mapping_note": "> **Tool mapping (Claude Code):** subagent spawn `Agent(subagent_type=…)`; ask the user `AskUserQuestion`; browser via the Claude browser tools; file tools `Write`/`Edit`/`Bash`. The `standard` agent is pinned to `sonnet` — do not pass `model`. User skills live in `~/.claude/skills/`."
+    }
+  },
+  "deny": {
+    "claude": [
+      "\\bcomposer\\b",
+      "standard-fast",
+      "fast-implementer",
+      "cursor_dialog",
+      "\\.cursor",
+      "cursor-model",
+      "cursor-browser",
+      "cursor-ide-browser",
+      "is_background",
+      "@Browser",
+      "\\bAskQuestion\\b",
+      "\\bStrReplace\\b",
+      "Task\\(subagent_type"
+    ]
+  }
+}

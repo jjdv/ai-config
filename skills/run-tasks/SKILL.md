@@ -1,8 +1,8 @@
 ---
 name: run-tasks
 description: >-
-  Split a large goal or task list into composer-sized subtasks and delegate each
-  to a dedicated composer subagent — sequentially when scope overlaps, in parallel
+  Split a large goal or task list into task-sized subtasks and delegate each
+  to a dedicated implementation subagent — sequentially when scope overlaps, in parallel
   when completely separate. Use when the user asks to run tasks, execute a backlog,
   batch work via subagents, or /run-tasks. Not for formal .local plan files —
   use sequential-implementation instead.
@@ -11,9 +11,9 @@ disable-model-invocation: true
 
 # Run tasks
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
-Act as **supervisor**: decompose work into **one composer spawn per subtask**, then delegate. Do not implement task work in the main thread unless the user explicitly overrides.
+Act as **supervisor**: decompose work into **one implementation spawn per subtask**, then delegate. Do not implement task work in the main thread unless the user explicitly overrides.
 
 ## When to use
 
@@ -33,7 +33,7 @@ Act as **supervisor**: decompose work into **one composer spawn per subtask**, t
 ## Workflow
 
 ```
-intake → decompose → schedule (parallel vs sequential) → composer per subtask → report → next batch or stop
+intake → decompose → schedule (parallel vs sequential) → implementation spawn per subtask → report → next batch or stop
 ```
 
 ### 1 — Intake
@@ -48,7 +48,7 @@ If scope or acceptance criteria are ambiguous, ask **one** focused question befo
 
 ### 2 — Decompose (mandatory)
 
-Split until **every** subtask fits **one** `composer` spawn. Apply the **Composer-fit checklist** in **`create-plan`** (read that section when splitting — do not delegate oversized chunks).
+Split until **every** subtask fits **one** `{{impl_agent_name}}` spawn. Apply the **Task-fit checklist** in **`create-plan`** (read that section when splitting — do not delegate oversized chunks).
 
 Quick fail signals → split further:
 
@@ -74,21 +74,28 @@ When in doubt → **sequential**.
 
 ### 4 — Delegate each subtask
 
-Every subtask → **one** `composer` spawn:
+Every subtask → **one** `{{impl_agent_name}}` spawn:
 
 ```text
-Task(
-  subagent_type="composer",
-  model="composer-2.5",
+{{spawn_tool}}(
+  subagent_type="{{impl_agent_name}}",
+{{#cursor}}
+  model="{{impl_agent_model}}",
+{{/cursor}}
   run_in_background=false,
   description="…",
   prompt="…"
 )
 ```
 
-**Model (mandatory):** always `model="composer-2.5"`. Never fast variants; never omit `model`.
+{{#cursor}}
+**Model (mandatory):** always `model="{{impl_agent_model}}"`. Never fast variants; never omit `model`.
+{{/cursor}}
+{{#claude}}
+**Model (mandatory):** the `{{impl_agent_name}}` agent is pinned to `sonnet`; do not pass `model`. Never fast variants.
+{{/claude}}
 
-**Parallel spawns:** launch all tasks in the same wave in **one** parent message (multiple `Task` calls). **Sequential:** wait for completion before the next spawn.
+**Parallel spawns:** launch all tasks in the same wave in **one** parent message (multiple `{{spawn_tool}}` calls). **Sequential:** wait for completion before the next spawn.
 
 ### 5 — Prompt template
 
@@ -173,7 +180,7 @@ Subagents cannot talk to the user. You are the only bridge.
 
 | Skill | Role |
 | --- | --- |
-| **`create-plan`** | Composer-fit rules and task sizing — read when decomposing |
+| **`create-plan`** | Task-fit rules and task sizing — read when decomposing |
 | **`sequential-implementation`** | Formal plan files with IDs, linked task specs, plan maintenance |
 | **`long-chat-mode`** | Interactive supervisor; pauses between chunks by default |
 
@@ -181,11 +188,16 @@ Subagents cannot talk to the user. You are the only bridge.
 
 ## Anti-patterns
 
-- One mega `composer` prompt for an entire multi-area goal
+- One mega `{{impl_agent_name}}` prompt for an entire multi-area goal
 - Parallel spawns when subtasks may edit the same files
-- Delegating a subtask that fails **Composer-fit** without splitting first
+- Delegating a subtask that fails **Task-fit** without splitting first
 - Implementing subtask work in the main thread
-- Omitting `model="composer-2.5"` or using fast composer variants
+{{#cursor}}
+- Omitting `model="{{impl_agent_model}}"` or using fast variants
+{{/cursor}}
+{{#claude}}
+- Passing a `model` override or using fast variants
+{{/claude}}
 - Asking "continue?" after each task when the user said run all
 - Using `run-tasks` for `.local/*-plan.md` execution (use **`sequential-implementation`**)
 - Answering subagent product questions without asking the user

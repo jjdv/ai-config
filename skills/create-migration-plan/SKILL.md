@@ -10,7 +10,7 @@ description: >-
 
 # Create migration plan
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
 **Upstream:** analysis + user agreement → **downstream:** [`create-plan`](../create-plan/SKILL.md) plan file + `.local/<slug>/` artifacts.
 
@@ -29,7 +29,7 @@ Not for: one-line bug fixes, parity-only passes on already-agreed architecture (
 | Skill | When |
 | --- | --- |
 | `project-best-practices` | When `<project-root>/.agents/skills/project-best-practices/SKILL.md` exists — **mandatory** for that repo's migrations |
-| [`create-plan`](../create-plan/SKILL.md) | Phase 4 only — plan shape, checklist, composer-fit |
+| [`create-plan`](../create-plan/SKILL.md) | Phase 4 only — plan shape, checklist, task-fit |
 | [`improve-parity`](../improve-parity/SKILL.md) | Phase 1 analysis + Phase 4 parity task design |
 | [`documentation`](../documentation/SKILL.md) | Durable docs vs `.local/` split |
 | [`ask-questions`](../ask-questions/SKILL.md) | Phase 2 — structured choices for open points |
@@ -66,7 +66,7 @@ Extract and confirm:
 | **Constraints** | Tier, redirects, out-of-scope (header, forms), deadline |
 | **Parent plan** | Link if child of `existing-website-migration-plan.md` or similar |
 
-If scope is ambiguous, **one** `AskQuestion` round — do not guess route lists or source repo.
+If scope is ambiguous, **one** `{{ask_tool}}` round — do not guess route lists or source repo.
 
 ### 1.2 Load conventions and references
 
@@ -88,7 +88,7 @@ Survey reference material for the scoped routes:
 - CMS shapes (if any), images/assets, redirects
 - Production vs source-repo inconsistencies (flag for parity policy)
 
-Use `composer` or `explore` subagent when scope spans **>3 routes** or multiple source files — **one** investigation spawn per domain slug.
+Use `{{impl_agent_name}}` or `explore` subagent when scope spans **>3 routes** or multiple source files — **one** investigation spawn per domain slug.
 
 ### 1.4 Architecture analysis dimensions
 
@@ -136,7 +136,7 @@ Present **only**:
 4. **CMS & data** — schemas, migrator/import approach (high level)
 5. **Phases sketch** — 3–6 phase names with one-line outcomes (not task IDs yet)
 6. **Parity approach** — fixture URLs, viewports, **5 iterations per phase** (max 5 per scope)
-7. **Open points** — numbered; use `AskQuestion` for decisions that change implementation
+7. **Open points** — numbered; use `{{ask_tool}}` for decisions that change implementation
 
 **Do not** dump full file trees or every route unless asked.
 
@@ -199,7 +199,7 @@ Include when applicable (patterns from `create-plan` optional sections):
 
 ### 4.3 Typical phase pattern
 
-Adapt to scope size; split until **composer-fit** passes:
+Adapt to scope size; split until **task-fit** passes:
 
 | Phase | Typical tasks |
 | --- | --- |
@@ -224,7 +224,7 @@ Adapt to scope size; split until **composer-fit** passes:
 
 Do **not** embed full CSS probe checklists — reference the skill.
 
-### 4.4 Composer-fit and parity
+### 4.4 Task-fit and parity
 
 - One parity task = one route batch finishable in one spawn (e.g. listing + one story, not entire domain unless ≤3 URLs)
 - Investigation-only work → separate report task ID before implementation tasks

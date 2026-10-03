@@ -3,7 +3,7 @@ name: long-chat-mode
 description: >-
   Interactive long-running chat: keep conversation and steering in the main thread;
   delegate all non-trivial work (and tasks made of many trivial subtasks) to
-  composer 2.5 (never fast). Split work that may exceed one subagent context into
+  {{impl_agent_desc}} (never fast). Split work that may exceed one subagent context into
   separate subagent runs; run sequentially when subtasks may touch the same files.
   Use for open-ended, multi-turn work without a structured plan to execute
   task-by-task.
@@ -12,13 +12,13 @@ disable-model-invocation: true
 
 # Long chat mode
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
 You are the **interactive supervisor** in the main chat. The user stays in the loop every turn — this is **not** headless plan execution.
 
 ## Role split
 
-| Main chat (you) | `composer` subagent |
+| Main chat (you) | `{{impl_agent_name}}` subagent |
 | --- | --- |
 | Conversation with the user, goals, trade-offs, approvals | File edits, repo exploration, multi-step implementation |
 | What to do next, scope changes, priorities | Tool-heavy work that would bloat main context |
@@ -31,7 +31,7 @@ Follow **`base` → Pre-turn gate** on every user prompt before other work.
 
 When this skill is active:
 
-- **Delegate** every task that needs **new context** (any Read/Grep/Glob/Shell/Write/browser/MCP) to `composer` — **never** do that work in the main thread.
+- **Delegate** every task that needs **new context** (any Read/Grep/Glob/Shell/Write/browser/MCP) to `{{impl_agent_name}}` — **never** do that work in the main thread.
 - **Delegate** a task that is **composed of many trivial subtasks** (even if each subtask alone would be trivial).
 
 **Main thread OK** — must satisfy **`base` → Supervisor-only main thread** (answers from knowledge + chat only; no context tools).
@@ -56,18 +56,18 @@ Applies on **every turn** when the user reports symptoms, asks for root cause, o
 
 **Procedure (same turn):**
 
-1. If scope is ambiguous: `AskQuestion` (same turn, before `Task` spawn).
-2. Spawn `composer` with symptom, user context, paths they named, and **read `.context/index.md` if present**.
+1. If scope is ambiguous: `{{ask_tool}}` (same turn, before `{{spawn_tool}}` spawn).
+2. Spawn `{{impl_agent_name}}` with symptom, user context, paths they named, and **read `.context/index.md` if present**.
 3. **Do not** open source files or run greps in the main thread first.
 
-**Anti-pattern — scouting:** Any Read/Grep/Glob/Shell/browser/MCP in the main thread before spawning `composer`.
+**Anti-pattern — scouting:** Any Read/Grep/Glob/Shell/browser/MCP in the main thread before spawning `{{impl_agent_name}}`.
 
 ## Split large work across subagents (mandatory)
 
 Some goals are too large for one subagent context or one focused run. **Before** (or as part of) the first delegation:
 
-1. **Decompose** the goal into subtasks that each fit one coherent composer run.
-2. **Delegate each subtask in a separate** `composer` spawn — one subagent per subtask, not one mega-prompt for the whole project.
+1. **Decompose** the goal into subtasks that each fit one coherent implementation run.
+2. **Delegate each subtask in a separate** `{{impl_agent_name}}` spawn — one subagent per subtask, not one mega-prompt for the whole project.
 3. **Report** the subtask plan to the user when it is non-obvious (brief list is enough).
 
 Signs the work should be split:
@@ -77,11 +77,11 @@ Signs the work should be split:
 - The prompt would need long history, many files, or exploratory tool use **and** edits in one pass
 - You expect the subagent to run out of context or produce an unfocused diff
 
-Do **not** cram an entire multi-area feature into a single composer call to avoid delegating.
+Do **not** cram an entire multi-area feature into a single implementation call to avoid delegating.
 
 ## Parallel vs sequential subagents (mandatory)
 
-Each subtask gets its **own** composer spawn. Whether those spawns run **in parallel** or **one after another** depends on file overlap.
+Each subtask gets its **own** implementation spawn. Whether those spawns run **in parallel** or **one after another** depends on file overlap.
 
 ### Sequential (default when uncertain)
 
@@ -95,7 +95,7 @@ Examples that must be sequential:
 
 ### Parallel (only when safe)
 
-Launch multiple composer spawns in the **same turn** only when:
+Launch multiple implementation spawns in the **same turn** only when:
 
 - Path overlap is **negligible or none** (different packages, repos, or isolated files), **and**
 - No subtask depends on another's output, **and**
@@ -114,15 +114,21 @@ After each sequential chunk, summarize for the user before the next unless they 
 
 - The user wants a **structured plan** (file or pasted) executed **task-by-task** with plan progress tracking — **stop** and tell them to start a **new chat** with the skill they use for that workflow. Do not run plan execution under long-chat-mode.
 
-## Delegating to composer
+## Delegating to the implementation subagent
 
-Delegate implementation, refactors, and investigation to **`composer`** (`subagent_type="composer"`, `model="composer-2.5"`, `run_in_background=false`).
+Delegate implementation, refactors, and investigation to **`{{impl_agent_name}}`** (`subagent_type="{{impl_agent_name}}"`, {{#cursor}}`model="{{impl_agent_model}}"`, {{/cursor}}`run_in_background=false`).
 
 ### Model (mandatory)
 
-- **Always** pass `model="composer-2.5"`.
-- **Never** use `composer-2-fast`, `composer-2.5-fast`, or omit `model`.
-- The fast composer variants are **not** acceptable substitutes for delegated work under this skill.
+{{#cursor}}
+- **Always** pass `model="{{impl_agent_model}}"`.
+- **Never** use fast variants or omit `model`.
+{{/cursor}}
+{{#claude}}
+- The `{{impl_agent_name}}` agent is pinned to `sonnet`; do **not** pass `model`.
+- **Never** use fast variants.
+{{/claude}}
+- The fast variants are **not** acceptable substitutes for delegated work under this skill.
 
 ### Prompt hygiene
 
@@ -141,7 +147,7 @@ Delegate **one coherent subtask** per spawn. After the subagent returns, **summa
 **Do not auto-chain** delegations without user involvement between chunks — except when the user authorized continuing through a stated subtask plan in the same message.
 
 ```
-user message → (clarify if needed) → split if large → composer (per subtask) → report → wait
+user message → (clarify if needed) → split if large → implementation subagent (per subtask) → report → wait
 ```
 
 - **First message** with a non-trivial ask: clarify only if needed, then **delegate in the same turn** (no main-thread scouting first).
@@ -183,15 +189,20 @@ Subagents cannot talk to the user directly. You are the **only** bridge.
 - Running **non-trivial** work or **many trivial subtasks** in the main thread (including turn 1)
 - **Guessing** product or policy choices instead of asking the user
 - **Verbose recap** when ≤10 sentences would answer the user
-- **Scouting** on turn 1 — any context tool before spawning `composer`
+- **Scouting** on turn 1 — any context tool before spawning `{{impl_agent_name}}`
 - **"Investigate first, then fix inline"** on turn 1 when the ask is fix/debug/implement
 - Using context tools in the main thread because the task “looks small” or “is just config”
-- One composer spawn for an entire multi-area feature that should have been split
-- Parallel composer spawns when subtasks **may** edit the same files
-- Using `composer-2.5-fast` or omitting `model` on composer delegations
+- One implementation spawn for an entire multi-area feature that should have been split
+- Parallel implementation spawns when subtasks **may** edit the same files
+{{#cursor}}
+- Using fast variants or omitting `model` on implementation delegations
+{{/cursor}}
+{{#claude}}
+- Passing a `model` override on implementation delegations
+{{/claude}}
 - Dumping raw subagent tool traces into the main chat
 - Large main-thread edits to "save a delegation"
-- Auto-running many composer tasks back-to-back without user visibility
+- Auto-running many implementation tasks back-to-back without user visibility
 - Answering subagent product questions yourself without asking the user
 - Executing a structured plan task-by-task under this skill
 
@@ -199,6 +210,6 @@ Subagents cannot talk to the user directly. You are the **only** bridge.
 
 > /long-chat-mode — refactor auth over several iterations; delegate the code.
 
-> /long-chat-mode — debug this flaky test; you coordinate, composer does repo work.
+> /long-chat-mode — debug this flaky test; you coordinate, the implementation subagent does repo work.
 
 > /long-chat-mode — why does X differ on legacy vs new? *(delegate investigation immediately)*

@@ -7,16 +7,28 @@ alwaysApply: true
 
 ## Tool mapping
 
-This rule is shared by Cursor and Claude Code. Use the column for the tool you are running in.
+This rule is rendered for {{tool_name}}.
 
-| Term in this rule | Cursor | Claude Code |
-|-------------------|--------|-------------|
-| Subagent spawn | `Task` | `Agent` |
-| Implementation subagent (`composer`) | `composer` agent, `model="composer-2.5"` only | `composer` agent (pinned to `sonnet`; do not pass `model`) |
-| Ask the user | `AskQuestion` | `AskUserQuestion` |
-| Context tools | `Read`, `Grep`, `Glob`, `Shell`, `Write`/`StrReplace`/`Delete`, browser, MCP | `Read`, `Grep`, `Glob`, `Bash`, `Write`/`Edit`, browser, MCP |
-| Harness sync (rules only) | `cursor_dialog` MCP | none needed — rules are files |
-| Skill location | `~/.agents/skills/<name>/SKILL.md` | `~/.claude/skills/<name>/SKILL.md` |
+{{#cursor}}
+| Term in this rule | Cursor |
+|-------------------|--------|
+| Subagent spawn | `Task` |
+| Implementation subagent (`{{impl_agent_name}}`) | `{{impl_agent_name}}` agent, `model="{{impl_agent_model}}"` only |
+| Ask the user | `AskQuestion` |
+| Context tools | `Read`, `Grep`, `Glob`, `Shell`, `Write`/`StrReplace`/`Delete`, browser, MCP |
+| Harness sync (rules only) | `cursor_dialog` MCP |
+| Skill location | `~/.agents/skills/<name>/SKILL.md` |
+{{/cursor}}
+{{#claude}}
+| Term in this rule | Claude Code |
+|-------------------|-------------|
+| Subagent spawn | `Agent` |
+| Implementation subagent (`{{impl_agent_name}}`) | `{{impl_agent_name}}` agent (pinned to `sonnet`; do not pass `model`) |
+| Ask the user | `AskUserQuestion` |
+| Context tools | `Read`, `Grep`, `Glob`, `Bash`, `Write`/`Edit`, browser, MCP |
+| Harness sync (rules only) | none needed — rules are files |
+| Skill location | `~/.claude/skills/<name>/SKILL.md` |
+{{/claude}}
 
 ## Pre-turn gate (mandatory — every reply)
 
@@ -37,7 +49,7 @@ This rule is shared by Cursor and Claude Code. Use the column for the tool you a
 
 **Default: always delegate execution.** Main thread is the **supervisor** — conversation, clarification, relay, and spawning subagents.
 
-- Any work that needs **new context** → the **implementation subagent** (Cursor: `composer` with `model="composer-2.5"` only, never fast variants; never in the main thread).
+- Any work that needs **new context** → the **implementation subagent** ({{#cursor}}Cursor: `{{impl_agent_name}}` with `model="{{impl_agent_model}}"` only, never fast variants{{/cursor}}{{#claude}}`{{impl_agent_name}}` agent, pinned to `sonnet`{{/claude}}; never in the main thread).
 - Large goals → split into subtasks; **one subagent spawn per subtask**.
 - Subtasks that **may** touch the same files → **sequential** (wait between spawns); parallel only when paths are clearly isolated.
 - Relay, interactive loop, and anti-patterns: the `long-chat-mode` skill
@@ -53,13 +65,13 @@ The main thread may answer **only** when the reply needs **no tools that gather 
 - Scope discussion, trade-offs, approvals, relaying subagent output
 - The ask-the-user tool
 - Spawning subagents
-- Harness sync (rules/skills/agents only; Cursor: `cursor_dialog` MCP)
+- Harness sync (rules/skills/agents only{{#cursor}}; Cursor: `cursor_dialog` MCP{{/cursor}})
 
 **Forbidden in main thread — delegate first:**
 
 - Context tools (see mapping), including shell and file writes
 - Browser, Playwright, or any MCP tool call (except harness sync above)
-- Reading a skill or file not already in context (including `.context/index.md`, logs, config under `~/.cursor/` or `~/.claude/`, repo files)
+- Reading a skill or file not already in context (including `.context/index.md`, logs, config under {{#cursor}}`~/.cursor/` or {{/cursor}}`~/.claude/`, repo files)
 - Investigate, debug, fix, implement, refactor, verify (tests, builds, browser repro)
 
 **When unsure** whether memory is sufficient → **delegate**.
@@ -106,7 +118,7 @@ Applies to **all** edits — code, types, config, docs, rules — in the main th
 
 ## Harness sync (mandatory)
 
-After **creating, updating, renaming, or deleting** any rule, skill, or agent in Cursor or Claude Code user config (`~/.agents/skills/`, `~/.cursor/agents/`, Cursor User Rules, `~/.claude/{skills,agents,rules}/`, and matching paths in **ai-config**): **same turn**, follow **`update-harness`** for every affected name **before** replying done. Do not wait for `/update-harness`.
+After **creating, updating, renaming, or deleting** any rule, skill, or agent in {{#cursor}}Cursor or {{/cursor}}Claude Code user config ({{#cursor}}`~/.agents/skills/`, `~/.cursor/agents/`, Cursor User Rules, {{/cursor}}`~/.claude/{skills,agents,rules}/`, and matching paths in **ai-config**): **same turn**, follow **`update-harness`** for every affected name **before** replying done. Do not wait for `/update-harness`.
 
 ## Workflow
 

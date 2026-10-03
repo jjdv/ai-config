@@ -2,7 +2,7 @@
 name: sequential-implementation
 description: >-
   Supervise sequential plan implementation by delegating one task at a time to
-  the composer subagent. Supports .local plan files (with create-plan structure)
+  the implementation subagent. Supports .local plan files (with create-plan structure)
   or plans pasted in the prompt. Use when the user asks to implement, execute,
   or continue a plan step-by-step.
 disable-model-invocation: true
@@ -10,9 +10,9 @@ disable-model-invocation: true
 
 # Sequential implementation
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
-Act as **supervisor**: do not implement task work yourself unless the user explicitly overrides. Delegate each task to **`composer`** (`subagent_type="composer"`, `model="composer-2.5"`), then **update progress as the last action** before starting the next task.
+Act as **supervisor**: do not implement task work yourself unless the user explicitly overrides. Delegate each task to **`{{impl_agent_name}}`** (`subagent_type="{{impl_agent_name}}"`{{#cursor}}, `model="{{impl_agent_model}}"`{{/cursor}}), then **update progress as the last action** before starting the next task.
 
 **Keep going through open tasks** until a stop condition applies — do not stop after each task to ask whether to continue.
 
@@ -44,21 +44,21 @@ Read the plan. **Do not delegate** until all checks pass. Prefer running **`chec
 | Order hygiene | **Implementation order** lists **only** open task IDs — if any `✅` ID remains, re-sync plan per **`create-plan`** checklist before delegating |
 | Context references | Linked paths exist; purposes match disk (flag stale “to update” or missing target/current banner on migrations) |
 | Plan maintenance | **Plan maintenance** section present with per-task update rules |
-| Composer-fit | **Next open task** (and linked task spec) passes **Composer-fit checklist** in **`create-plan`** — see **Oversized tasks** below |
+| Task-fit | **Next open task** (and linked task spec) passes **Task-fit checklist** in **`create-plan`** — see **Oversized tasks** below |
 
 Flag **blocked** tasks (⏸ or open question blocking that ID) to the user before delegating.
 
 ### Oversized tasks (mandatory)
 
-Before **every** delegation, evaluate the **next open task** against the **Composer-fit checklist** in **`create-plan`** (read task spec when linked).
+Before **every** delegation, evaluate the **next open task** against the **Task-fit checklist** in **`create-plan`** (read task spec when linked).
 
 | Result | Supervisor action |
 | --- | --- |
-| **Pass** | Delegate to `composer` as usual |
+| **Pass** | Delegate to `{{impl_agent_name}}` as usual |
 | **Fail** | **Do not delegate.** Report failing criteria and task ID(s). Require **`create-plan`** (or user-approved split): new task IDs, updated **Implementation order**, task files, **Fresh chat handoff**. Re-run **`check-plan`** before resuming |
 | **Borderline** (one criterion marginal) | Prefer split if marginal on **One session** or **Bounded scope**; otherwise delegate and watch for follow-up spawn — if follow-up needed for same ID, treat as fail and split before next plan task |
 
-If a `composer` spawn **cannot finish** the task without a follow-up for the **same ID** (not lint/typecheck fix), stop after that task, mark plan for **create-plan** split, and do not continue **Implementation order** until the plan is re-synced.
+If a `{{impl_agent_name}}` spawn **cannot finish** the task without a follow-up for the **same ID** (not lint/typecheck fix), stop after that task, mark plan for **create-plan** split, and do not continue **Implementation order** until the plan is re-synced.
 
 Pasted plans without task files: apply the same checklist from inline task text in the plan.
 
@@ -68,9 +68,9 @@ Resolve **project root** from the plan (`**Project root:**` line, plan path pare
 
 `<project-root>/.agents/skills/project-best-practices/SKILL.md`
 
-| Exists | Supervisor | Composer `prompt` |
+| Exists | Supervisor | Implementation `prompt` |
 | --- | --- | --- |
-| **Yes** | Treat **project-best-practices** as mandatory for every delegation. All code for that repo **must comply** with the skill (placement, naming, styling, CMS/blocks, and anything else it requires). Reject a “done” that ignores it — follow-up composer before the next plan task. | Include a **Conventions** block (see delegation template). Require the composer to **write code in compliance**, not only to read the skill. |
+| **Yes** | Treat **project-best-practices** as mandatory for every delegation. All code for that repo **must comply** with the skill (placement, naming, styling, CMS/blocks, and anything else it requires). Reject a “done” that ignores it — follow-up implementation spawn before the next plan task. | Include a **Conventions** block (see delegation template). Require the implementation subagent to **write code in compliance**, not only to read the skill. |
 | **No** | Do not mention project-best-practices | Omit **Conventions** — use `.context/` paths only if the plan lists them |
 
 This check is **per project root**, not global. Plans under `.local/` are project-specific; the global **sequential-implementation** skill stays conditional on `.agents/` in that root. Do not invent a stand-in skill when the file is missing.
@@ -103,12 +103,14 @@ Follow the plan's **Plan maintenance** section when present. Default checklist a
 
 ## Delegating tasks
 
-Delegate every implementation task to **`composer`** with **Composer 2.5 only**:
+Delegate every implementation task to **`{{impl_agent_name}}`** with **{{impl_agent_label}} only**:
 
 ```text
-Task(
-  subagent_type="composer",
-  model="composer-2.5",
+{{spawn_tool}}(
+  subagent_type="{{impl_agent_name}}",
+{{#cursor}}
+  model="{{impl_agent_model}}",
+{{/cursor}}
   run_in_background=false,
   description="…",
   prompt="…"
@@ -117,9 +119,15 @@ Task(
 
 ### Model (mandatory)
 
-- **Always** pass `model="composer-2.5"`. Subagents do **not** inherit the correct model unless you set it explicitly.
-- **Never** use `composer-2-fast`, `composer-2.5-fast`, or omit `model`.
-- If `composer-2.5` is not in the Task tool's allowed model list, stop and report — do not substitute silently.
+{{#cursor}}
+- **Always** pass `model="{{impl_agent_model}}"`. Subagents do **not** inherit the correct model unless you set it explicitly.
+- **Never** use fast variants or omit `model`.
+- If `{{impl_agent_model}}` is not in the Task tool's allowed model list, stop and report — do not substitute silently.
+{{/cursor}}
+{{#claude}}
+- The `{{impl_agent_name}}` agent is pinned to `sonnet`; do **not** pass `model`.
+- **Never** use fast variants.
+{{/claude}}
 
 ### Spawn hygiene
 
@@ -169,7 +177,7 @@ When a task finishes, decide the next action using **only** the result — never
 ### Decision rule (apply in order)
 
 1. **Pause** — if **any extra input from the user** is required per the plan § **User escalation required** (or subagent `ESCALATE` / `ESCALATE: global-scope`). **Not** because a task title says “user gate” when plan auto-decisions apply.
-2. **Follow-up subagent** — if a **follow-up** is needed that does **not** require user input (e.g. fix typecheck/lint from the same task). Run a separate `composer` subagent, then re-apply this decision rule.
+2. **Follow-up subagent** — if a **follow-up** is needed that does **not** require user input (e.g. fix typecheck/lint from the same task). Run a separate `{{impl_agent_name}}` subagent, then re-apply this decision rule.
 3. **Next plan task** — **otherwise**, go to the **next open task** in the plan. This is the **default** when the task succeeded with no blockers.
 
 Walk tasks in plan order; the first still-open item is always next.
@@ -187,13 +195,13 @@ Walk tasks in plan order; the first still-open item is always next.
 
 - Asking "Want me to continue with T02?" after T01 succeeded
 - Stopping because the pasted plan says "one task per session" — when **this skill** is active, **these continuation rules override** unless the user also said to limit scope
-- Starting the next plan task in the parent context instead of delegating to `composer`
-- Using any model other than `composer-2.5` for implementation subagents
+- Starting the next plan task in the parent context instead of delegating to `{{impl_agent_name}}`
+- Using any model other than `{{impl_agent_model}}` for implementation subagents
 - Omitting the **Conventions** block when `project-best-practices` exists in the project's `.agents/skills/`
 - Shipping code that does not **comply** with `project-best-practices` when that skill exists in the project root
 - Shipping source edits without applying the **code** user rule checklist when the task touched source files
 - Delegating an oversized task instead of pausing for **`create-plan`** split
-- Continuing **Implementation order** after a task needed a second composer spawn for the same ID without re-splitting the plan
+- Continuing **Implementation order** after a task needed a second implementation spawn for the same ID without re-splitting the plan
 - Omitting the plan **Authorization** block when § Autonomy is present
 
 ## Supervisor loop
@@ -201,10 +209,10 @@ Walk tasks in plan order; the first still-open item is always next.
 Repeat until a stop condition applies:
 
 ```
-pick next task → build prompt → delegate to composer → review result → update plan → (pause | follow-up | next task)
+pick next task → build prompt → delegate to implementation subagent → review result → update plan → (pause | follow-up | next task)
 ```
 
-- **Sequential only** — one `composer` task at a time unless the user explicitly requests parallel runs.
+- **Sequential only** — one `{{impl_agent_name}}` task at a time unless the user explicitly requests parallel runs.
 - **No plan edits by subagent** — only the supervisor updates the plan.
 - **Preserve parent context** — rely on subagent summaries, not full task file dumps.
 
@@ -218,7 +226,7 @@ Subagents cannot talk to the user directly. The **supervisor** (you) is the only
 
 1. **Surface** the question(s) to the user — what decision is needed.
 2. **Wait** for the user's answer. Do not guess product or policy choices.
-3. **Resume** with a new `composer` delegation that includes the user's answer.
+3. **Resume** with a new `{{impl_agent_name}}` delegation that includes the user's answer.
 4. Mark the plan task `⏸ Blocked` with the question in **Open questions** until answered (file mode).
 
 ### When you need user input (supervisor)

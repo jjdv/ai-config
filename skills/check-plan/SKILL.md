@@ -10,7 +10,7 @@ disable-model-invocation: false
 
 # Check plan
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
 Answer: **Is this plan file a single entry point for `/sequential-implementation` in a fresh chat?**
 
@@ -69,14 +69,14 @@ Optional: if `status: complete` and implementation order empty, verdict can be `
 | B5 | **Task status sync** | Open tasks in order are not `✅ Complete` in linked task file `**Status:**` |
 | B6 | **Target artifacts** | Rows marked **Target (task)** — optional fail if task is next open and file missing |
 
-### C — Composer / execution fit
+### C — Task / execution fit
 
-Apply **Composer-fit checklist** (`create-plan`) to **each open task** (read linked task spec). **Fail** the task's row if any criterion fails.
+Apply **Task-fit checklist** (`create-plan`) to **each open task** (read linked task spec). **Fail** the task's row if any criterion fails.
 
 | ID | Check | Pass when |
 | --- | --- | --- |
 | C1 | **One outcome** | No open task summary bundles unrelated deliverables (tokens + layout + CMS + parity in one ID) |
-| C2 | **One session** | Each open task is reasonable for one `composer` spawn without a planned second spawn for the same ID |
+| C2 | **One session** | Each open task is reasonable for one `{{impl_agent_name}}` spawn without a planned second spawn for the same ID |
 | C3 | **Bounded scope** | Each open task ≤8 primary in-scope paths or one cohesive subsystem; not 3+ unrelated subsystems |
 | C4 | **Acceptance cap** | Each open task has ≤7 acceptance criteria serving one outcome |
 | C5 | **Single verify track** | Each open task has one primary verification path (not independent parity + import + deploy tracks) |
@@ -88,7 +88,7 @@ Apply **Composer-fit checklist** (`create-plan`) to **each open task** (read lin
 
 | ID | Check | Pass when |
 | --- | --- | --- |
-| D1 | **Autonomy** | If plan says “autonomous” or has auto-decisions: § **Autonomy & authorization** with pre-approved ops, auto-decisions, user escalation, composer **Authorization** template |
+| D1 | **Autonomy** | If plan says “autonomous” or has auto-decisions: § **Autonomy & authorization** with pre-approved ops, auto-decisions, user escalation, delegation **Authorization** template |
 | D2 | **Scope boundary** | If parity/migration touches theme or shared architecture: § **Scope boundary** with domain vs global paths |
 | D3 | **Plan lineage** | If banner says “continues in child plan”: parent `status: complete`, child path exists and linked |
 | D4 | **Operator handoff** | Commit/deploy/import either in **Operator handoff** or pre-approved in § Autonomy |

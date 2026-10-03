@@ -11,7 +11,7 @@ description: >-
 
 # Improve parity
 
-> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+{{tool_mapping_note}}
 
 Repeatable **CSS-first, then visual** compare → fix loop between an **implemented page** (local dev) and a **reference page** (production URL and/or reference repo source).
 
@@ -365,7 +365,7 @@ Run **N** compare→fix iterations (default **2**, same N as Phase A unless user
 - Resize to target viewport(s) — default **1250px**; when user names breakpoints (e.g. **1250 / 900 / 320**), run B1 at **each** width before B2.
 - Load local and production side by side (or capture both).
 - Visual diff + DOM structure; confirm CMS content present (no empty fixture fallbacks unless user scoped that).
-- Screenshots → `.tmp/playwright-mcp/` or `.tmp/cursor-browser/` only.
+- Screenshots → `.tmp/playwright-mcp/` or `.tmp/{{browser_tmp_dir}}/` only.
 - Output: **≤10 visual issues**, ranked by impact; **type** per issue; likely fix paths.
 - For each failing region, note whether residual gap is **CSS-fixable**, **Structural**, or **Original-inconsistency** (use height Δ + A1 classification).
 - When body/chrome Tier B is sub-99% but § Vertical rhythm spacing probes pass, report **probe pass** separately — do not imply margins are still wrong.
@@ -437,7 +437,7 @@ Domain foundation docs may mirror notes; the **plan scoreboard** is the migratio
 
 - **Subtype:** `fixable` (domain component/block/layout) · `divergent` (needs global scope or Tier D)
 - **Scope:** `domain` · `global` — **global → escalate; do not implement in parity invocation**
-- **Effort:** S (&lt;1 composer spawn) · M (1 spawn) · L (plan task / schema+migrator)
+- **Effort:** S (&lt;1 implementation spawn) · M (1 spawn) · L (plan task / schema+migrator)
 - **Blocks Tier B:** yes = do not spend more B2 on margin-chasing until fixable path implemented or user accepts divergence
 
 When **Subtype = fixable** for most of a region’s gap, **Recommended next steps** must **not** say stop pixel-chasing for that region — say **plan task / fix slice** with gap matrix reference instead.
@@ -499,11 +499,11 @@ One coherent chunk per spawn (~15min). **Do not bundle multiple full invocations
 
 | Step | Subagent | Model |
 | --- | --- | --- |
-| A1 CSS compare + inconsistency cross-check | `playwright` or `composer` | `composer-2.5` for composer |
-| A2 CSS fix | `composer` | `composer-2.5` |
+| A1 CSS compare + inconsistency cross-check | `playwright` or `{{impl_agent_name}}` | `{{impl_agent_model}}` for the implementation subagent |
+| A2 CSS fix | `{{impl_agent_name}}` | `{{impl_agent_model}}` |
 | B1 Visual compare | `playwright` (prefer headless script) | — |
-| B2 Visual fix | `composer` | `composer-2.5` |
-| Structural report synthesis | supervisor or `composer` read-only | `composer-2.5` |
+| B2 Visual fix | `{{impl_agent_name}}` | `{{impl_agent_model}}` |
+| Structural report synthesis | supervisor or `{{impl_agent_name}}` read-only | `{{impl_agent_model}}` |
 
 Supervisor relays **product choices** (approved divergence, plan extension) to the user — agents propose, user accepts.
 
