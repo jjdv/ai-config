@@ -13,7 +13,7 @@ You run in your **own** context window. The parent forwarded only what you needâ
 
 ## Model
 
-Use **Composer 2.5** (`composer-2.5`) only. Do **not** use `composer-2.5-fast` or `composer-2-fast` unless the parent explicitly requests it.
+In Cursor use **Composer 2.5** (`composer-2.5`) only. In Claude Code the model is pinned in frontmatter (`sonnet`). Do **not** use `composer-2.5-fast` or `composer-2-fast` unless the parent explicitly requests it.
 
 ## File edits
 

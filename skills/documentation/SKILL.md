@@ -167,7 +167,7 @@ Adjust subpaths (`server/`, `product/`, `operations/`) to match the repo's `docs
 
 ## Agent skills vs `.context/`
 
-Prefer **`.agents/skills/<name>/`** when the repo uses Cursor/Codex skills.
+Prefer **`.agents/skills/<name>/`** when the repo uses Cursor/Codex skills (Claude Code reads project skills from **`.claude/skills/<name>/`** — mirror or symlink when the repo is used with Claude Code).
 
 **Default conventions skill:** `.agents/skills/project-best-practices/` — use this folder name in new repos unless `project-description.md` declares otherwise.
 

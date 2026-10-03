@@ -1,0 +1,21 @@
+{
+  "agents": {
+    "gpt": [
+      "cursor"
+    ],
+    "gemini": [
+      "cursor"
+    ],
+    "grok": [
+      "cursor"
+    ],
+    "claude": [
+      "cursor"
+    ]
+  },
+  "skills": {
+    "consult-other-models": [
+      "cursor"
+    ]
+  }
+}

@@ -12,7 +12,7 @@ alwaysApply: false
 - **After reading**, run through the **Checklist** before considering the edit done.
 - **Workspace scope:** When a change spans **multiple packages or repos**, run the checklist on **every file path you touched for that feature**.
 - **Comments:** see **`base`** (always on) — this rule does not repeat that policy.
-- **Project conventions:** if `<repo>/.agents/skills/project-best-practices/SKILL.md` exists, **read it before editing** and write code that **complies** with it and its linked `references/` (and sibling skills it names). If it is absent, skip — do not invent a stand-in.
+- **Project conventions:** if the `project-best-practices` skill (`<repo>/.agents/skills/project-best-practices/SKILL.md` or `<repo>/.claude/skills/project-best-practices/SKILL.md`) exists, **read it before editing** and write code that **complies** with it and its linked `references/` (and sibling skills it names). If it is absent, skip — do not invent a stand-in.
 
 ## Naming
 

@@ -5,29 +5,42 @@ alwaysApply: true
 
 # Base (mandatory)
 
+## Tool mapping
+
+This rule is shared by Cursor and Claude Code. Use the column for the tool you are running in.
+
+| Term in this rule | Cursor | Claude Code |
+|-------------------|--------|-------------|
+| Subagent spawn | `Task` | `Agent` |
+| Implementation subagent (`composer`) | `composer` agent, `model="composer-2.5"` only | `composer` agent (pinned to `sonnet`; do not pass `model`) |
+| Ask the user | `AskQuestion` | `AskUserQuestion` |
+| Context tools | `Read`, `Grep`, `Glob`, `Shell`, `Write`/`StrReplace`/`Delete`, browser, MCP | `Read`, `Grep`, `Glob`, `Bash`, `Write`/`Edit`, browser, MCP |
+| Harness sync (rules only) | `cursor_dialog` MCP | none needed — rules are files |
+| Skill location | `~/.agents/skills/<name>/SKILL.md` | `~/.claude/skills/<name>/SKILL.md` |
+
 ## Pre-turn gate (mandatory — every reply)
 
-**Trigger:** you have just received a **user prompt** (new message). Before any other tool call (including `Task` / subagent spawn), run **in order**:
+**Trigger:** you have just received a **user prompt** (new message). Before any other tool call (including subagent spawn), run **in order**:
 
 | Step | What to do | If threshold met |
 |------|------------|-------------------|
-| **1. Classify** | Does answering need **new context**? (see **Supervisor-only**) | Spawn `composer` (`model="composer-2.5"`) **in this turn** before Read/Grep/Glob/Shell/Write/browser/MCP |
-| **2. Main-thread only** | Answerable from **agent knowledge + this chat** only, with **no** context tools | Main thread OK — conversation, `AskQuestion`, spawn subagents, relay |
+| **1. Classify** | Does answering need **new context**? (see **Supervisor-only**) | Spawn the implementation subagent **in this turn** before Read/Grep/Glob/Shell/Write/browser/MCP |
+| **2. Main-thread only** | Answerable from **agent knowledge + this chat** only, with **no** context tools | Main thread OK — conversation, ask-the-user tool, spawn subagents, relay |
 
 ## Chat start (first turn)
 
 1. This rule is in context — follow it without re-fetching.
-2. **Always use long-chat mode** — follow **Delegation** below and read `~/.agents/skills/long-chat-mode/SKILL.md` for full workflow. Do not wait for the user to invoke `/long-chat-mode`.
-3. Do **not** read `.context/index.md` in the main thread — include it in the first `composer` prompt when project context is needed.
+2. **Always use long-chat mode** — follow **Delegation** below and read the `long-chat-mode` skill for full workflow. Do not wait for the user to invoke `/long-chat-mode`.
+3. Do **not** read `.context/index.md` in the main thread — include it in the first implementation-subagent prompt when project context is needed.
 
 ## Delegation (mandatory)
 
 **Default: always delegate execution.** Main thread is the **supervisor** — conversation, clarification, relay, and spawning subagents.
 
-- Any work that needs **new context** → **`composer`** with **`model="composer-2.5"`** only (never fast variants; never in the main thread).
-- Large goals → split into subtasks; **one composer spawn per subtask**.
+- Any work that needs **new context** → the **implementation subagent** (Cursor: `composer` with `model="composer-2.5"` only, never fast variants; never in the main thread).
+- Large goals → split into subtasks; **one subagent spawn per subtask**.
 - Subtasks that **may** touch the same files → **sequential** (wait between spawns); parallel only when paths are clearly isolated.
-- Relay, interactive loop, and anti-patterns: `~/.agents/skills/long-chat-mode/SKILL.md`
+- Relay, interactive loop, and anti-patterns: the `long-chat-mode` skill
 - **First message with a non-trivial ask:** delegate in the **same turn** — no main-thread scouting first.
 
 ### Supervisor-only main thread (mandatory)
@@ -38,15 +51,15 @@ The main thread may answer **only** when the reply needs **no tools that gather 
 
 - Answers from **general knowledge** or **this chat’s history** (including code/snippets the user pasted in the message)
 - Scope discussion, trade-offs, approvals, relaying subagent output
-- `AskQuestion`
-- Spawning subagents (`Task`)
-- Harness `cursor_dialog` sync (rules/skills/agents only)
+- The ask-the-user tool
+- Spawning subagents
+- Harness sync (rules/skills/agents only; Cursor: `cursor_dialog` MCP)
 
 **Forbidden in main thread — delegate first:**
 
-- `Read`, `Grep`, `Glob`, `Shell`, `Write`/`StrReplace`/`Delete`
-- Browser, Playwright, or any MCP tool call (except harness `cursor_dialog` above)
-- Reading a skill or file not already in context (including `.context/index.md`, logs, config under `~/.cursor/`, repo files)
+- Context tools (see mapping), including shell and file writes
+- Browser, Playwright, or any MCP tool call (except harness sync above)
+- Reading a skill or file not already in context (including `.context/index.md`, logs, config under `~/.cursor/` or `~/.claude/`, repo files)
 - Investigate, debug, fix, implement, refactor, verify (tests, builds, browser repro)
 
 **When unsure** whether memory is sufficient → **delegate**.
@@ -57,8 +70,8 @@ The main thread may answer **only** when the reply needs **no tools that gather 
 
 When the user invokes or attaches a harness skill whose procedure includes **repo exploration, multi-file edits, deletes, or tests** (e.g. `cleanup-plans`, `sequential-implementation`, `improve-parity`, `debug-in-browser`):
 
-1. **Supervisor (main thread):** eligibility gates, `AskQuestion`, relay — not the skill’s tool-heavy steps.
-2. **Delegate execution** to `composer` with the full skill text + user inputs in the prompt.
+1. **Supervisor (main thread):** eligibility gates, ask-the-user, relay — not the skill’s tool-heavy steps.
+2. **Delegate execution** to the implementation subagent with the full skill text + user inputs in the prompt.
 3. **Forbidden:** Running the skill’s inventory/delete/implement loop entirely in the main thread because the steps are “documented.”
 
 ## Clarify before acting (mandatory)
@@ -69,7 +82,7 @@ When the user invokes or attaches a harness skill whose procedure includes **rep
 - Product or policy choice not fixed in repo docs or the current message
 - Ambiguous “fix”, “improve”, or “like X” without a concrete target
 
-**Procedure:** one focused question (or `AskQuestion` with 2–4 options) → **wait** → then delegate.
+**Procedure:** one focused question (or ask-the-user tool with 2–4 options) → **wait** → then delegate.
 
 **Forbidden:** picking a default and proceeding when the user should choose. **Forbidden:** using a context tool to “check first” before delegating.
 
@@ -81,7 +94,7 @@ Applies to **all** edits — code, types, config, docs, rules — in the main th
 - Do **not** add comments that only restate what the code already says. Prefer clear names and structure over inline narration for the obvious.
 - Comment only when something is **non-obvious** without context (domain invariant, external API quirk, performance tradeoff, security edge case).
 - If something needs a long comment to be understood, **prefer refactoring** (naming, extraction, structure) so it reads first; use comments as a last resort.
-- When delegating, include this constraint in the composer prompt.
+- When delegating, include this constraint in the subagent prompt.
 - After delegation, review the diff for redundant comments before reporting done.
 
 ## Replies — hard limit
@@ -93,7 +106,7 @@ Applies to **all** edits — code, types, config, docs, rules — in the main th
 
 ## Harness sync (mandatory)
 
-After **creating, updating, renaming, or deleting** any User Rule, skill under `~/.agents/skills/`, or agent under `~/.cursor/agents/` (and matching paths in **cursor-config**): **same turn**, follow **`update-harness`** for every affected name **before** replying done. Do not wait for `/update-harness`.
+After **creating, updating, renaming, or deleting** any rule, skill, or agent in Cursor or Claude Code user config (`~/.agents/skills/`, `~/.cursor/agents/`, Cursor User Rules, `~/.claude/{skills,agents,rules}/`, and matching paths in **ai-config**): **same turn**, follow **`update-harness`** for every affected name **before** replying done. Do not wait for `/update-harness`.
 
 ## Workflow
 

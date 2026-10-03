@@ -11,6 +11,8 @@ description: >-
 
 # Improve parity
 
+> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+
 Repeatable **CSS-first, then visual** compare → fix loop between an **implemented page** (local dev) and a **reference page** (production URL and/or reference repo source).
 
 **One invocation** = a **single pass**: **Phase A (CSS)** → **Phase B (visual)**. There is no outer “improvement rounds” loop — do not run Phase A→B multiple times in one invocation.

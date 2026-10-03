@@ -10,6 +10,8 @@ description: >-
 
 # Create migration plan
 
+> **Tool mapping (Cursor / Claude Code):** subagent spawn `Task(subagent_type=…, model=…)` → `Agent(subagent_type=…)`; `AskQuestion` → `AskUserQuestion`; `@Browser` / `cursor-ide-browser` → Claude browser tools; `Write`/`StrReplace`/`Shell` → `Write`/`Edit`/`Bash`. The `composer` agent exists in both tools (Cursor runs `composer-2.5` — always pass `model="composer-2.5"`; in Claude Code it is pinned to `sonnet` — do not pass `model`). User skills live in `~/.agents/skills/` (Cursor) or `~/.claude/skills/` (Claude Code).
+
 **Upstream:** analysis + user agreement → **downstream:** [`create-plan`](../create-plan/SKILL.md) plan file + `.local/<slug>/` artifacts.
 
 **Do not** write the plan until the user explicitly agrees the proposed solution (Phase 3 gate).

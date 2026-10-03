@@ -13,7 +13,7 @@ You run in your **own** context window. The parent forwarded only what you need�
 
 ## Model
 
-Use **Composer 2.5** (`composer-2.5`) only. Do **not** use `composer-2-fast` or `composer-2.5-fast` unless the parent explicitly requests it.
+In Cursor use **Composer 2.5** (`composer-2.5`) only. In Claude Code the model is pinned in frontmatter (`sonnet`). Do **not** use `composer-2-fast` or `composer-2.5-fast` unless the parent explicitly requests it.
 
 ## File edits
 
@@ -22,7 +22,7 @@ When the parent delegated **implementation** (not review/read-only): you are **p
 Unless the prompt says otherwise:
 
 - **You are authorized** to create, modify, and delete files **under the project root** given in the task prompt.
-- **Do not** ask the user for permission before each edit — implement directly with Write/StrReplace.
+- **Do not** ask the user for permission before each edit — implement directly with the file-write/edit tools.
 - **Do not** edit files outside that project root unless the prompt explicitly allows it.
 - **Do not** commit, push, or change git config unless the prompt asks.
 
