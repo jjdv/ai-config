@@ -50,6 +50,7 @@ This rule is rendered for {{tool_name}}.
 **Default: always delegate execution.** Main thread is the **supervisor** — conversation, clarification, relay, and spawning subagents.
 
 - Any work that needs **new context** → the **implementation subagent** ({{#cursor}}Cursor: `{{impl_agent_name}}` with `model="{{impl_agent_model}}"` only, never fast variants{{/cursor}}{{#claude}}`{{impl_agent_name}}` agent, pinned to `sonnet`{{/claude}}; never in the main thread).
+- Default tier is `{{impl_agent_name}}`; escalate by agent name only when needed: `senior` (trickier multi-step edits), `principal` (complex cross-cutting work), `expert` (hardest problems: deep debugging, architecture, review). Each tier pins its own model and effort.
 - Large goals → split into subtasks; **one subagent spawn per subtask**.
 - Subtasks that **may** touch the same files → **sequential** (wait between spawns); parallel only when paths are clearly isolated.
 - Relay, interactive loop, and anti-patterns: the `long-chat-mode` skill

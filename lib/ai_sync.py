@@ -4,7 +4,7 @@
 Canonical formats (repo):
   rules/<stem>.md   frontmatter: description, alwaysApply, globs   (Cursor-style superset)
   agents/<name>.md  frontmatter: name, description, cursor-model, claude-model,
-                    optional: readonly, is_background, tools
+                    optional: claude-effort, readonly, is_background, tools
   skills/<name>/    every text file rendered per tool; binaries copied unchanged
   models.json       model id maps, template placeholders per tool, Claude deny-list
   targets.json      optional {"skills"|"agents"|"rules": {"<name>": ["cursor"] | ["claude"]}};
@@ -179,6 +179,8 @@ def agent_to_claude(d: Doc) -> str:
     fm = {"name": d.fm.get("name", d.name), "description": d.fm.get("description", "")}
     model = d.fm.get("claude-model") or CURSOR_TO_CLAUDE_MODEL.get(d.fm.get("cursor-model", ""), "inherit")
     fm["model"] = model
+    if d.fm.get("claude-effort"):
+        fm["effort"] = d.fm["claude-effort"]
     if "tools" in d.fm:
         fm["tools"] = d.fm["tools"]
     elif is_true(d.fm.get("readonly")):
@@ -208,6 +210,8 @@ def agent_from_claude(d: Doc) -> Doc:
         fm["claude-model"] = model
         if model in CLAUDE_TO_CURSOR_MODEL:
             fm["cursor-model"] = CLAUDE_TO_CURSOR_MODEL[model]
+    if d.fm.get("effort"):
+        fm["claude-effort"] = d.fm["effort"]
     if "tools" in d.fm:
         fm["tools"] = d.fm["tools"]
     if is_true(d.fm.get("background")):

@@ -1,7 +1,7 @@
 ---
 name: claude
-description: Second view on Claude Opus 5 (thinking, high). Use for hard analysis, alternative implementations, or cross-checking another agent's work—not routine edits.
-cursor-model: claude-opus-5-thinking-high
+description: Second view on Claude Opus 5.5 (thinking, high). Use for hard analysis, alternative implementations, or cross-checking another agent's work—not routine edits.
+cursor-model: claude-opus-5-5[effort=high,fast=false]
 claude-model: opus
 is_background: true
 readonly: false
@@ -14,7 +14,7 @@ You run in your **own** context window. The parent forwarded only what you need�
 
 ## Model
 
-Use **Claude Opus 5** with **thinking, high** (`claude-opus-5-thinking-high`) only. Do **not** use fast variants unless the parent explicitly requests it.
+Use **Claude Opus 5.5** with **thinking, high** (`claude-opus-5-5[effort=high,fast=false]`) only. Do **not** use fast variants unless the parent explicitly requests it.
 
 ## File edits
 

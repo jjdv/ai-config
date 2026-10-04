@@ -1,7 +1,7 @@
 ---
 name: gpt
 description: Second view on GPT-5.6 Sol (high effort). Use for hard analysis, alternative implementations, or cross-checking another agent's workâ€”not routine edits.
-cursor-model: gpt-5.6-sol[effort=high]
+cursor-model: gpt-5.6-sol[effort=high,fast=false]
 is_background: true
 readonly: false
 ---
@@ -12,7 +12,7 @@ You run in your **own** context window. The parent forwarded only what you needâ
 
 ## Model
 
-Use **GPT-5.6 Sol** with **high effort** (`gpt-5.6-sol[effort=high]`) only. Do **not** use fast variants unless the parent explicitly requests it.
+Use **GPT-5.6 Sol** with **high effort** (`gpt-5.6-sol[effort=high,fast=false]`) only. Do **not** use fast variants unless the parent explicitly requests it.
 
 ## File edits
 

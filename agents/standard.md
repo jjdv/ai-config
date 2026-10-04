@@ -1,8 +1,9 @@
 ---
 name: standard
-description: Parallel implementation on {{impl_agent_label}}. Use to offload refactors or multi-step edits—not deep architecture or review.
-cursor-model: composer-2.5
+description: Routine implementation on {{impl_agent_label}} (medium effort). Use for well-scoped edits and refactors—not deep architecture or review.
+cursor-model: composer-2.5[fast=false]
 claude-model: sonnet
+claude-effort: medium
 is_background: false
 readonly: false
 ---
