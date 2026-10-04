@@ -1,6 +1,6 @@
 # Migration analysis brief (Phase 1–2)
 
-Use this structure for Phase 2 chat output. Expand sections only when the user asks.
+Structure for Phase 2 chat output; expand sections only on request.
 
 ```markdown
 ## Migration scope
@@ -45,8 +45,7 @@ Use this structure for Phase 2 chat output. Expand sections only when the user a
 ## Parity
 
 - **Fixture URLs:** …
-- **Viewports:** 1250 / 900 / 320 (or …)
-- **Iterations per phase:** 5 (max 5)
+- **Viewports / iterations:** defaults from migration-workflow § Parity defaults (or …)
 - **In scope regions:** main content, …
 - **Excluded:** global header/footer, …
 - **Structural risks:** …

@@ -5,8 +5,11 @@ description: >-
   every plan create or structural update — enforces handoff-ready structure,
   open-only implementation order, fresh-chat entry point, and linked task files.
   Use when drafting a plan, extending phases, re-syncing after completed tasks,
-  or before telling the user to run sequential-implementation. After authoring,
-  run check-plan on the plan path to confirm READY.
+  or before telling the user to run sequential-implementation. Also use for
+  planning a website/page-group migration (routes, domains, blocks or page types
+  from a reference repo; "plan a migration", "create migration plan", migration
+  scope) — load references/migration-workflow.md. After authoring, run
+  check-plan on the plan path to confirm READY.
 ---
 
 # Create Plan
@@ -17,6 +20,12 @@ Produce and maintain plans structured for **`sequential-implementation`** and **
 
 **Contract:** A plan is **handoff-ready** only when a **fresh chat** can run `/sequential-implementation <plan-path>` with **no prior context** — read plan → follow **Fresh chat handoff** → delegate next open task.
 
+## Execution
+
+Main thread is a supervisor: author and maintain plans via `{{spawn_tool}}(subagent_type="{{senior_agent_name}}"{{#cursor}}, model="{{senior_agent_model}}"{{/cursor}})`, passing this skill's text, project root and scope. Already running as `{{senior_agent_name}}` → author directly. The subagent cannot ask the user: it returns questions; the supervisor relays them with `{{ask_tool}}` and re-spawns with the answers. Task execution later uses `{{impl_agent_name}}`.
+
+**Migration planning** (website/page-group migration, "plan a migration of these pages"): read `references/migration-workflow.md` and follow it; it authors through this skill. Do not load it for other plans.
+
 ## Mandatory triggers (run this skill)
 
 Read and follow this skill **before finishing** when **any** of:
@@ -25,57 +34,41 @@ Read and follow this skill **before finishing** when **any** of:
 | --- | --- |
 | **New plan** | Full **Workflow** + **Handoff readiness checklist** |
 | **Plan extended** (new phase/task, parity round, scope change) | **Plan update workflow** + checklist on affected sections |
-| **Batch completion** (many tasks marked ✅ outside sequential-implementation) | **Out-of-band completion** + prune **Implementation order** |
-| **Before** user runs `sequential-implementation` | Run **`check-plan`** on the plan path; fix gaps with this skill |
-| **sequential-implementation pre-flight failed** | Re-sync per checklist — or run **`check-plan`** and fix reported fails |
+| **Batch completion** (many tasks marked ✅ outside sequential-implementation) | **Out-of-band completion** |
+| **Before** user runs `sequential-implementation`, or its **pre-flight failed** | Run **`check-plan`**; fix gaps with this skill |
 | **Conventions/docs changed** after plan was `ready` | Re-run checklist; update **Context references** and task specs |
 
-**After every plan file edit** that touches structure (phases, order, context refs, fresh chat handoff): run the **Handoff readiness checklist** before replying done.
-
-`sequential-implementation` **authors** execution; **this skill** **authors and maintains** plan shape.
+**After every structural edit** (phases, order, context refs, fresh chat handoff): run the **Handoff readiness checklist** before replying done. If a fresh chat needs history, re-run this skill on the plan — do not patch ad hoc.
 
 ## Self-contained entry point
 
-A plan must work as the **sole starting context** at start and throughout execution. It **must**:
+A plan is the **sole starting context** for a fresh chat and throughout execution. It **must** have: **Project root** (absolute git root), **Context references** (every file an implementer needs), **Implementation order** (open task IDs only), **Fresh chat handoff** (numbered steps naming the next task ID, skills, prerequisites), **Plan maintenance**. Detail lives in linked files, not chat history.
 
-1. **`**Project root:**`** absolute path to git root.
-2. **Context references** — every file an implementer needs (initiative refs, task specs, skills, `docs/`, sibling repos).
-3. **Implementation order** — **only open task IDs** (see checklist).
-4. **Fresh chat handoff** — numbered steps naming **next task ID**, required skills, prerequisites.
-5. **Plan maintenance** — how to update progress after each task.
-
-Detail lives in linked files — not chat history.
-
-**Ready gate:** `status: ready` or `in_progress` only when **Handoff readiness checklist** passes (for `complete`, all tasks ✅ and scoreboard/acceptance met if applicable).
+**Ready gate:** `status: ready` or `in_progress` only when the **Handoff readiness checklist** passes (`complete`: all tasks ✅ and scoreboard/acceptance met if applicable).
 
 ## Alignment with sequential-implementation
 
 | Contract piece | create-plan | sequential-implementation |
 | --- | --- | --- |
-| Plan structure | **Required plan structure** | Pre-flight validation |
+| Structure | **Required plan structure** | Pre-flight validation |
 | Task IDs | One ID = one `{{impl_agent_name}}` spawn | Delegates in **Implementation order** |
-| Implementation order | **Open tasks only** | Order hygiene — fails if ✅ IDs listed |
+| Order | **Open tasks only** | Fails if ✅ IDs listed |
 | Progress | **Plan maintenance** | Supervisor updates after each task |
-| Fresh chat | **Fresh chat handoff** section | Reads plan only |
-| Autonomy | Plan § **Autonomy & authorization** (when present) | Pause only on plan **User escalation** — not fixed task IDs |
-| Scope | Plan § **Scope boundary** (domain vs global) | Agent respects; global → escalate |
-| Task-fit | **Task-fit checklist** per open task | Pre-flight + **Oversized tasks** — blocks delegation until split |
-
-If pre-flight fails or a fresh chat needs history, **re-run this skill** on the plan — do not patch ad hoc.
+| Autonomy | § **Autonomy & authorization** (when present) | Pauses only on plan **User escalation** |
+| Scope | § **Scope boundary** | Agent respects; global → escalate |
+| Task-fit | **Task-fit checklist** | Pre-flight + **Oversized tasks** block delegation until split |
 
 ## Plan lineage (parent → child)
 
-When a plan’s goal is **shipped** but follow-on work remains (e.g. migration shell complete, parity continues):
+When a plan's goal **shipped** but follow-on work remains (e.g. migration shell complete, parity continues):
 
-1. Mark parent `status: complete`; remove open IDs from **Implementation order**.
-2. Cancel or supersede closure tasks that no longer match intent (note in phase table).
-3. Create **child plan** (e.g. `<domain>-parity-plan.md`) with link from parent **Context references**.
-4. Child references parent artifacts (audits, architecture) — do not duplicate history.
-5. Update parent index (e.g. `existing-website-migration-plan.md`) entry point to child.
+1. Mark parent `status: complete`; remove open IDs from **Implementation order**; cancel or supersede closure tasks that no longer match intent (note in phase table).
+2. Create **child plan** (e.g. `<domain>-parity-plan.md`) linked from parent **Context references**; child references parent artifacts — do not duplicate history.
+3. Update the parent index (e.g. `existing-website-migration-plan.md`) entry point to the child.
 
 ## Optional sections (migration / parity plans)
 
-Add when the plan needs autonomous multi-session execution or domain-vs-global boundaries. **Patterns only** — thresholds and paths live in the plan, not in this skill.
+Add when the plan needs autonomous multi-session execution or domain-vs-global boundaries. **Patterns only** — thresholds and paths live in the plan.
 
 ### `## Autonomy & authorization`
 
@@ -83,11 +76,11 @@ Add when the plan needs autonomous multi-session execution or domain-vs-global b
 | --- | --- |
 | **User intent** | Autonomous within domain scope; escalate only per rules below |
 | **Pre-approved operations** | Dev server, Playwright/parity scripts, prod compare (read-only), plan-scoped edits, plan-authorized CMS import, etc. |
-| **Auto-decisions** | When supervisor/implementation subagent proceeds without user (e.g. clear majority target, S/M gap fixes in domain scope) |
+| **Auto-decisions** | When the supervisor/subagent proceeds without user (clear majority target, S/M gap fixes in domain scope) |
 | **User escalation required** | Non-obvious choices, ties, global/shared scope, Tier D last resort, commit/deploy unless pre-approved |
-| **Delegation template** | **Authorization** block copied into every `{{impl_agent_name}}` prompt |
+| **Delegation template** | **Authorization** block copied into every `{{impl_agent_name}}` prompt: project root, allowed operations, forbidden global scope, "do not update the plan", escalation pointer |
 
-Override **External environment boundary** below when the user pre-approves operations in this section (e.g. Sanity MCP import).
+Overrides **External environment boundary** for operations pre-approved here (e.g. Sanity MCP import).
 
 ### `## Scope boundary` (domain migration plans)
 
@@ -101,7 +94,7 @@ Reference project `references/website-structure.md` or equivalent when listing p
 
 ### Phase retrospectives
 
-On multi-phase plans with analysis → implementation → verify, add **report-only** retro tasks after major transitions:
+On multi-phase plans (analysis → implementation → verify) add **report-only** retro tasks:
 
 | When | Task ID pattern | Output |
 | --- | --- | --- |
@@ -109,15 +102,11 @@ On multi-phase plans with analysis → implementation → verify, add **report-o
 | After gap analysis, before fixes | `N.4` **recommended** | Replan implementation order |
 | After fix slices, before final pass | `N.R` **recommended** | Trim or extend final verify scope |
 
-Retro deliverable sections: **Went well** · **Didn't work** · **Plan changes** · **Policy notes** (if any). Supervisor updates **Implementation order** from retro before next delegation.
+Sections: **Went well** · **Didn't work** · **Plan changes** · **Policy notes** (if any). Supervisor updates **Implementation order** from the retro before the next delegation.
 
 ## Conventions coverage (mandatory for source-editing plans)
 
-When the plan's tasks edit **source files**, ensure implementers get both **repo conventions** and **code quality** — not only task-specific paths.
-
-### When `project-best-practices` exists
-
-Check `<project-root>/.agents/skills/project-best-practices/SKILL.md` during **Before writing** and **Handoff readiness**.
+Implementers need **repo conventions** and **code quality**, not only task paths. Check `<project-root>/.agents/skills/project-best-practices/SKILL.md` during **Before writing** and **Handoff readiness**.
 
 | Plan touches | **Context references** must include |
 | --- | --- |
@@ -127,11 +116,9 @@ Check `<project-root>/.agents/skills/project-best-practices/SKILL.md` during **B
 | CMS blocks, GROQ, page builders | `references/cms-blocks.md` |
 | Sanity schemas, Studio, CMS content | `sanity-best-practices` + `sanity-data-handling` (per project-best-practices § Sanity) |
 
-List only refs the plan actually needs — but **do not omit** a ref when any open task matches the row. Note which task IDs use each ref in the Purpose column when helpful.
+List only refs the plan needs, but **never omit** one when any open task matches the row; note task IDs per ref in the Purpose column when helpful.
 
-### `code` user rule (all source edits)
-
-Plans that change source must call out the **code** user rule in **Fresh chat handoff** (apply + run checklist before marking tasks done). The rule covers general quality (naming, structure, KISS/DRY/SOLID-lite); **project-best-practices** covers repo-specific placement and architecture — both apply when present.
+Plans that change source must call out the **code** user rule in **Fresh chat handoff** (apply + run its checklist before marking tasks done). It covers general quality (naming, structure, KISS/DRY/SOLID-lite); **project-best-practices** covers repo placement and architecture — both apply when present.
 
 ## Handoff readiness checklist
 
@@ -144,51 +131,41 @@ Run **after every create or structural update** and before `status: ready` / rec
 | **Implementation order** | Lists **only** task IDs that still need work — **no** `✅ Complete` IDs |
 | **Phase table vs order** | Every ID in **Implementation order** appears in **Phases**; completed tasks stay in **Phases** with `✅` |
 | **Fresh chat handoff** | Section present; step names **next task ID**; lists skills (e.g. `improve-parity`, `project-best-practices`) and **code** user rule when plan edits source |
-| **Project conventions** | When `project-best-practices` exists: SKILL.md in **Context references**; task-relevant `references/` and Sanity siblings listed per **Conventions coverage** |
+| **Project conventions** | When `project-best-practices` exists: SKILL.md + task-relevant `references/` and Sanity siblings in **Context references** per **Conventions coverage** |
 | **Code quality** | **Fresh chat handoff** requires **code** user rule checklist for source-editing tasks |
 | **Single entry point** | Handoff includes exact `sequential-implementation` invocation with plan path |
-| **Context references** | Every linked path exists; purposes accurate (no stale “to update” for done work) |
+| **Context references** | Every linked path exists; purposes accurate (no stale "to update" for done work) |
 | **Initiative refs** | `.local/<slug>/decisions.md` and `architecture.md` exist when referenced |
 | **Task files** | Every linked `.local/<slug>/tasks/<id>.md` exists for non-`—` Details rows |
 | **Plan folder** | Supporting files under `.local/<slug>/`; entry point at `.local/<slug>-plan.md` — no shared flat `.local/tasks/` |
-| **Task-fit** | Every **open** task passes **Task-fit checklist** (§ below); no mega-tasks or investigate+implement bundles |
-| **Target vs code** | Migration/refactor plans banner or note where docs ≠ code |
+| **Task-fit** | Every **open** task passes **Task-fit checklist**; no mega-tasks or investigate+implement bundles |
+| **Target vs code** | Migration/refactor plans: banner under title (**target** docs vs **current** code) wherever docs ≠ code; canonical specs in **Context references**; prefer verify tasks over duplicate doc writes when docs already landed |
 | **Out-of-band** | Done work removed from **Implementation order**; task files `**Status:**` synced |
 | **Open questions** | **Blocks** column empty or only truly blocked IDs |
-| **Operator handoff** | External steps (import, deploy) in **Operator handoff** — not hidden plan tasks unless user requested or **Autonomy** pre-approves |
+| **Operator handoff** | External steps (import, deploy) in **Operator handoff** — not plan tasks unless user requested or **Autonomy** pre-approves |
 | **Autonomy** (parity/migration) | § **Autonomy & authorization** present when plan claims autonomous execution; escalation rules explicit |
 | **Scope boundary** (domain migration) | Domain vs global/shared paths listed when edits touch theme or shared architecture |
 | **Plan lineage** | Child plan linked from parent when parent marked complete with open follow-on |
 
-**Report:** List any failed checks and fix them in the plan before marking done.
+**Report:** list failed checks and fix them in the plan before marking done.
 
 ## Out-of-band completion
 
 When work finishes outside sequential-implementation:
 
 1. Mark task `✅` in **Phases** + task file `**Status:**`.
-2. **Remove** ID from **Implementation order** (do not leave with “skip” comments — remove the line).
-3. Update **Context references** purposes.
-4. Rewrite later task specs if outcomes changed.
-5. Re-run **Handoff readiness checklist**.
+2. **Remove** the ID from **Implementation order** (no "skip" comments).
+3. Update **Context references** purposes; rewrite later task specs if outcomes changed.
+4. Re-run **Handoff readiness checklist**.
 
 ## Plan update workflow (extend / re-sync)
 
-When adding a phase, parity round, or new tasks to an existing plan:
-
-1. Read current plan end-to-end.
-2. Add phase row + task row(s) in **Phases**; create `.local/<slug>/tasks/<id>.md` for non-trivial work.
-3. Append **only new open IDs** to **Implementation order** (never re-add completed IDs).
-4. Update **Progress summary**, header `(next: …)`, **Context references**.
-5. If parity/migration: add scoreboard or invocation spec inline or link skill (`improve-parity`).
-6. Update **Fresh chat handoff** for the new next task.
-7. Run **Handoff readiness checklist**; bump `last_updated` and `version` if structure changed materially.
-
-## Target vs current state (migration plans)
-
-- Banner under title: **target** (docs) vs **current** (code).
-- Canonical specs in **Context references**.
-- Prefer verify tasks over duplicate doc writes when docs already landed.
+1. Read the current plan end-to-end.
+2. Add phase/task rows in **Phases**; create `.local/<slug>/tasks/<id>.md` for non-trivial work.
+3. Append **only new open IDs** to **Implementation order**.
+4. Update **Progress summary**, header `(next: …)`, **Context references**, **Fresh chat handoff** for the new next task.
+5. Parity/migration: add scoreboard or invocation spec inline, or link `improve-parity`.
+6. Run **Handoff readiness checklist**; bump `last_updated` and `version` if structure changed materially.
 
 ## Before writing (new plan)
 
@@ -199,11 +176,11 @@ When adding a phase, parity round, or new tasks to an existing plan:
 
 ## External environment boundary (mandatory)
 
-No tasks mutating GitHub, remote deploy, hosted datasets, etc. unless the user **explicitly** asked **or** the plan § **Autonomy & authorization** pre-approves them (e.g. CMS import via MCP/CLI). Prefer **Operator handoff** + runbook when autonomy is silent.
+No tasks mutating GitHub, remote deploy, hosted datasets, etc. unless the user **explicitly** asked **or** plan § **Autonomy & authorization** pre-approves them (e.g. CMS import via MCP/CLI). Prefer **Operator handoff** + runbook when autonomy is silent.
 
 ## Plan directory layout (mandatory)
 
-**Every plan gets a dedicated support folder; the entry point stays at `.local/` root.** Task IDs (`1.1`, `2.3`, …) live only inside that folder so they never collide across plans.
+**Every plan gets a dedicated support folder; the entry point stays at `.local/` root.** Task IDs live only inside that folder so they never collide across plans.
 
 ```
 .local/
@@ -213,87 +190,39 @@ No tasks mutating GitHub, remote deploy, hosted datasets, etc. unless the user *
     architecture.md         # Target layout, inventory (optional)
     tasks/
       1.1.md
-      2.1.md
 ```
 
-| Rule | Detail |
-|------|--------|
-| **Slug** | Short kebab-case name (e.g. `date-input-migration`, `session-context-perf`) |
-| **Entry point** | `.local/<slug>-plan.md` — pass this path to `sequential-implementation` |
-| **Support folder** | `.local/<slug>/` — decisions, architecture, `tasks/`, runbooks; **not** the main plan file |
-| **Task files** | `.local/<slug>/tasks/<task-id>.md` only — **never** a repo-wide `.local/tasks/` |
-| **Phase links** | From the main plan, link tasks as `[1.1.md](<slug>/tasks/1.1.md)` |
-| **Legacy** | Plans with `plan.md` inside `<slug>/` or flat `.local/tasks/` — migrate when touching the plan |
+| Content | Path |
+|---------|------|
+| Main plan (lean **entry point**: phases, task index, progress) | `.local/<slug>-plan.md` — slug is short kebab-case (e.g. `date-input-migration`) |
+| Task details (large or multi-file specs) | `.local/<slug>/tasks/<task-id>.md` — **never** a repo-wide `.local/tasks/` |
+| Initiative reference (short-term decisions, design targets, runbooks) | `.local/<slug>/decisions.md`, `architecture.md`, … |
+| Long-term agent knowledge (stable architecture, conventions) | `.context/` (+ `index.md`) |
+| Long-term human docs | `docs/` (+ `README.md`) |
 
-## Output locations
+Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slug>/tasks/1.1.md)`. Legacy plans with `plan.md` inside `<slug>/` or flat `.local/tasks/`: migrate when touching them. Create `.local/<slug>/` and `tasks/` when authoring; write `.local/<slug>-plan.md` last; add `.local/` to `.gitignore` when not already ignored.
 
-Follow the **`documentation`** skill. For plans:
+**Content placement:** the plan or task file holds only what the executor needs for that task. Locked decisions, design targets, epic architecture, and background repeated across tasks → one `.local/<slug>/` file linked from each task; stable conventions → `.context/`; durable human reference → `docs/`.
 
-| Content | Path | Purpose |
-|---------|------|---------|
-| Main plan | `.local/<slug>-plan.md` | Phases, task index, progress — keep lean; **entry point** |
-| Task details | `.local/<slug>/tasks/<task-id>.md` | Large or multi-file task specs |
-| Initiative reference | `.local/<slug>/decisions.md`, `architecture.md`, … | Short-term decisions, design targets |
-| Long-term agent knowledge | `.context/` (+ `index.md`) | Stable architecture, conventions — not epic-specific |
-| Long-term human docs | `docs/` (+ `README.md`) | Durable documentation for people |
+## Task sizing and task-fit (mandatory)
 
-Create `.local/<slug>/` and `.local/<slug>/tasks/` when authoring a new plan; write `.local/<slug>-plan.md` last. Add `.local/` to `.gitignore` when the repo does not already ignore it.
-
-## Content placement
-
-Put in the **plan or task file** only what the executor needs for that task.
-
-Move elsewhere:
-
-- Locked decisions, design targets, epic-specific architecture → `.local/<slug>/` (link from plan)
-- Stable project conventions agents reuse → `.context/` (update `index.md`)
-- Durable human reference → `docs/` (update `README.md`)
-- Repeated background duplicated across tasks → one `.local/<slug>/` or `.context/` file, link from each task
-
-## Task sizing (mandatory)
-
-**One task ID = one `{{impl_agent_name}}` spawn** ({{#cursor}}`model="{{impl_agent_model}}"`, {{/cursor}}foreground). A task must be finishable in a **single subagent session** with one primary verification path — not a multi-hour epic, not a sequence of follow-up spawns.
-
-When drafting or extending a plan, **split until every open task passes** the checklist below. Re-run after scope grows mid-initiative.
-
-## Task-fit checklist (mandatory per open task)
-
-Apply to **each open task** (read linked `.local/<slug>/tasks/<id>.md` when present). **Fail any row → split** the task into new IDs (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
+**One task ID = one `{{impl_agent_name}}` spawn** ({{#cursor}}`model="{{impl_agent_model}}"`, {{/cursor}}foreground), finishable in a **single subagent session** with one primary verification path — not an epic, not a sequence of follow-up spawns. When drafting or extending a plan (and after scope grows mid-initiative), apply the checklist to **each open task** (read its linked task file). **Fail any row → split** (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
 
 | # | Criterion | Pass when | Fail → split when |
 | --- | --- | --- | --- |
-| 1 | **One outcome** | Summary is one concrete deliverable a reviewer can sign off | Summary joins unrelated outcomes with “and” (e.g. tokens **and** layout **and** CMS seed **and** parity) |
-| 2 | **One session** | Reasonable for one `{{impl_agent_name}}` spawn without a planned follow-up spawn to finish the same ID | Would need multiple implementation runs, or supervisor already expects a follow-up for the same ID |
-| 3 | **Bounded scope** | ≤8 primary paths in **In scope** / task spec, or one cohesive subsystem (e.g. all under `SanityCmsService` footer paths) | >8 primary paths, or 3+ **unrelated** subsystems (e.g. Studio schema + React layout + MCP content import) |
-| 4 | **Acceptance cap** | ≤7 acceptance criteria, all serving the same outcome | >7 criteria, or criteria that clearly belong in separate tasks |
-| 5 | **Single verify track** | One primary **Verification** command or one manual check path | Multiple independent verify tracks (e.g. full parity suite **and** CMS import **and** schema deploy) |
-| 6 | **No investigate + build** | Implementation only, or analysis is a separate report-only task ID | Same ID mixes spike/audit/gap analysis with production code changes |
-| 7 | **Sequenced deps only** | Depends on prior tasks only where **Implementation order** already sequences them; **Out of scope** defers adjacent work | Acceptance requires unfinished work from a later ID, or overlaps another open task's scope |
-| 8 | **Vertical slice OK** | Multi-file / multi-package edits are one GROQ→props→UI slice, token+SCSS for one surface, or deletion sweep | Unrelated packages or layers bundled without a single user-visible slice |
+| 1 | **One outcome** | Summary is one concrete deliverable a reviewer can sign off | Summary joins unrelated outcomes with "and" (tokens **and** layout **and** CMS seed **and** parity) |
+| 2 | **One session** | One `{{impl_agent_name}}` spawn, no planned follow-up for the same ID | Needs multiple runs, or supervisor already expects a follow-up |
+| 3 | **Bounded scope** | ≤8 primary paths, or one cohesive subsystem | >8 primary paths, or 3+ **unrelated** subsystems (Studio schema + React layout + MCP import) |
+| 4 | **Acceptance cap** | ≤7 criteria, all serving the same outcome | >7 criteria, or criteria belonging to separate tasks |
+| 5 | **Single verify track** | One primary **Verification** command or manual check | Multiple independent tracks (full parity suite **and** CMS import **and** schema deploy) |
+| 6 | **No investigate + build** | Implementation only, or analysis is a separate report-only ID | Same ID mixes spike/audit/gap analysis with production code changes |
+| 7 | **Sequenced deps only** | Depends only on prior tasks already sequenced; **Out of scope** defers adjacent work | Acceptance requires a later ID's work, or overlaps another open task |
+| 8 | **Vertical slice OK** | Multi-file edits are one GROQ→props→UI slice, token+SCSS for one surface, or a deletion sweep | Unrelated packages or layers bundled without a single user-visible slice |
 
-### When to split (patterns)
+**Split:** schema + React UI + CMS seed + visual parity verify; phase umbrellas ("implement footer", "fix customers parity"); research + fix in one ID; global shared refactor + feature work (unless § **Scope boundary** pre-approves).
+**Keep together:** one vertical slice (GROQ → normalize → props → component); token palette + SCSS map for one chrome surface; cleanup/deletion grep + build for one retirement manifest; CMS content patch (OAuth MCP) kept separate from code layout.
 
-**Split** into separate task IDs:
-
-- Schema + React UI + CMS seed + visual parity verify
-- Phase umbrella (“implement footer”, “fix customers parity”)
-- Research task + fix task in one ID
-- Global shared refactor + feature work (unless plan § **Scope boundary** pre-approves)
-
-**Keep together**:
-
-- One vertical slice (GROQ → normalize → props → component)
-- Token palette + SCSS map for the same chrome surface
-- Cleanup/deletion grep + build for one retirement manifest
-- CMS content patch only (OAuth MCP) separate from code layout
-
-### Splitting procedure
-
-1. Add new rows in **Phases** with new IDs; create `.local/<slug>/tasks/<id>.md` for non-trivial splits.
-2. Move scope, acceptance, and verify from the oversized task into new tasks; tighten **Out of scope** on each.
-3. Insert new IDs in **Implementation order** in dependency order; remove the oversized ID or replace with the first slice.
-4. Update **Fresh chat handoff** `(next: …)` and **Context references** if new artifacts appear.
-5. Re-run **Handoff readiness checklist**.
+**Splitting procedure:** add new rows in **Phases** (+ task files for non-trivial splits); move scope, acceptance and verify from the oversized task and tighten **Out of scope** on each; insert new IDs in **Implementation order** in dependency order (remove or replace the oversized ID); update **Fresh chat handoff** `(next: …)` and **Context references**; re-run the checklist.
 
 ## Required plan structure
 
@@ -332,9 +261,7 @@ Complete manifest — every file to consult during this initiative. Group by kin
 | `.agents/skills/sanity-data-handling/SKILL.md` | When plan patches or imports CMS content |
 | *convention / docs paths* | Canonical spec — note **target** vs **current** if code lags |
 
-Use accurate purpose text (date, “target architecture”, “legacy — replace in task X”) — not unverified “to update”.
-
-Tasks with `—` in **Phases** rely on initiative refs above, not extra task files.
+Use accurate purpose text (date, "target architecture", "legacy — replace in task X").
 
 ## Implementation order
 
@@ -366,22 +293,18 @@ Use `—` in Details when the summary is sufficient (no task file).
 ### After each task
 
 1. Set the task row in **Phases** to `✅ Complete` (or `⏸ Blocked` with reason).
-2. If the task has a linked `.local/<slug>/tasks/<id>.md`, update its `**Status:**` line to match.
-3. Recompute **Progress summary** phase rows (`✅` when all phase tasks complete; `🔄` when any in progress; `⬜` otherwise).
+2. If the task has a linked task file, update its `**Status:**` line to match.
+3. Recompute **Progress summary** phase rows (`✅` all complete; `🔄` any in progress; `⬜` otherwise).
 4. Update header `**Last updated:**` and frontmatter `last_updated` (today's date).
 5. Set frontmatter `status: in_progress` on first completed task; `status: complete` when all tasks are `✅`.
 6. Resolve or add **Open questions** if the task surfaced new blockers or decisions.
-7. If new files were created that future tasks need, add them to **Context references** immediately.
+7. Add newly created files that future tasks need to **Context references** immediately.
 
 ### During execution
 
 - Do **not** start the next task until the plan is updated.
 - Subagents do **not** edit the plan — the supervisor or implementing agent does.
 - Prefer updating the plan over leaving progress in chat only.
-
-### Delegation template (include when § Autonomy present)
-
-Every `{{impl_agent_name}}` `prompt` in sequential-implementation should copy the plan’s **Authorization** block: project root, allowed operations, forbidden global scope, “do not update the plan”, autonomy/escalation pointer.
 
 ### Fresh chat handoff
 
@@ -401,7 +324,7 @@ Every `{{impl_agent_name}}` `prompt` in sequential-implementation should copy th
 10. Prerequisites: …
 ```
 
-Adjust steps for initiative; **never** omit single entry point or next task ID.
+Adjust steps for the initiative; **never** omit the single entry point or next task ID.
 
 ## Task file template (`.local/<slug>/tasks/<task-id>.md`)
 
@@ -437,50 +360,35 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 ## Workflow (new plan)
 
 1. Draft phases/tasks; agree order if ambiguous.
-2. Check `<project-root>/.agents/skills/project-best-practices/SKILL.md`; map open tasks to **Conventions coverage** refs.
+2. Check `project-best-practices`; map open tasks to **Conventions coverage** refs.
 3. Write `.local/<slug>/` decisions/architecture as needed; durable conventions to agent `references/` or `docs/` when the initiative defines long-term rules.
-4. Write task detail files for non-trivial tasks (paths, **Out of scope**, **Verification** when spawn-sized but not obvious).
-5. Run **Task-fit checklist** on every open task; split and add task files until all pass.
+4. Write task files for non-trivial tasks (paths, **Out of scope**, **Verification** when not obvious).
+5. Run **Task-fit checklist** on every open task; split until all pass.
 6. Write `.local/<slug>-plan.md` last.
-7. **Handoff readiness checklist** — fix all failures (or run **`check-plan`** to verify).
-8. Tell user: `/check-plan <plan-path>` then `/sequential-implementation <plan-path>` in a fresh chat.
+7. **Handoff readiness checklist** — fix all failures (or run **`check-plan`**).
+8. Tell the user: `/check-plan <plan-path>` then `/sequential-implementation <plan-path>` in a fresh chat.
 
 ## Authoring rules
 
-1. **Task IDs:** `<phase>.<sequence>` (e.g. `2.3`). Unique across the plan.
-2. **One spawn per task:** Each ID is one `{{impl_agent_name}}` delegation — see **Task sizing**.
-3. **Implementation order = open tasks only** — mandatory re-sync when tasks complete.
-4. **Independence:** Each task should be delegatable alone; split mixed work into separate IDs.
-5. **Phases are labels:** Tasks are delegatable units; never one umbrella task per whole phase unless truly one spawn.
-6. **Progress:** Plan owns the summary table and per-task status columns — single source of truth.
-7. **Lean plan:** Move specs to linked files; keep the plan as the **index** — never orphan detail outside **Context references** or task links.
-8. **Self-contained:** **Context references** enumerates all files for a fresh chat; **Plan maintenance** defines how to keep progress current.
-9. Fresh chat handoff **required** — not optional.
-10. **Ready gate:** Set frontmatter `status: ready` only when **Handoff readiness checklist** passes.
-11. **External environments:** Never add PR/deploy/import/hosting tasks by default; hand off to the user in decisions or runbook text instead.
-12. **Re-sync before handoff:** If conventions or docs change after the plan was drafted, update the plan before telling the user to run `sequential-implementation`.
-13. Re-run checklist after any structural edit.
-14. **Conventions coverage:** Source-editing plans list project-best-practices (+ task-relevant references and Sanity siblings) and call out **code** user rule in **Fresh chat handoff**.
-15. **Task-fit:** No open task fails **Task-fit checklist** — split before `status: ready`.
+1. **Task IDs:** `<phase>.<sequence>` (e.g. `2.3`), unique across the plan; phases are labels, never umbrella tasks.
+2. **One spawn per task**, independently delegatable — see **Task sizing**.
+3. **Implementation order = open tasks only** — re-sync when tasks complete.
+4. **Progress:** the plan owns the summary table and per-task status columns (single source of truth).
+5. **Lean plan:** specs live in linked files; the plan is the **index** — never orphan detail outside **Context references** or task links.
+6. **Self-contained:** **Context references** enumerates all files for a fresh chat; **Plan maintenance** keeps progress current; **Fresh chat handoff** is required.
+7. **External environments:** no PR/deploy/import/hosting/commit tasks by default (not even "ship"/"done" phases); hand off to the user in decisions or runbook text and use local verify. Exceptions per **External environment boundary**.
+8. **Re-sync before handoff:** if conventions or docs changed after drafting, update the plan before telling the user to run `sequential-implementation`; re-run the checklist after any structural edit.
+9. **Ready gate:** `status: ready` only when the checklist passes and no open question blocks specific tasks (list them in **Open questions** with **Blocks**).
+10. **Conventions coverage:** source-editing plans list project-best-practices (+ task-relevant references and Sanity siblings) and the **code** user rule in **Fresh chat handoff**.
+11. **Task-fit:** no open task fails the checklist — split first.
 
 ## Do not
 
-- Put task files in a shared `.local/tasks/` directory — **always** `.local/<slug>/tasks/`.
-- Put the main plan inside `.local/<slug>/` — **always** `.local/<slug>-plan.md` at `.local/` root.
-- Leave `✅ Complete` IDs in **Implementation order**.
-- Fresh chat handoff that says “start at 1.1” when only `8.1` is open.
-- Mark ready without checklist.
-- Plan tasks for PR/deploy/commit unless user requested or plan § Autonomy pre-approves.
+- Put task files in a shared `.local/tasks/`, or the main plan inside `.local/<slug>/`.
+- Leave `✅ Complete` IDs in **Implementation order**, or a handoff saying "start at 1.1" when only `8.1` is open.
+- Mark ready without the checklist.
 - Embed full product briefs in the plan when `.local/<slug>/` is more appropriate.
-- Leave implementation-relevant files unlisted in **Context references**.
-- Omit project-best-practices references when the plan touches blocks, components, styling, tokens, or CMS — or omit **code** user rule from **Fresh chat handoff** when tasks edit source.
-- Create tasks without IDs or without an **Implementation order** section.
-- Mark `status: ready` while open questions block specific tasks (list them in Open questions with **Blocks** column).
-- Context reference purposes that say “to update” when that work is already done.
-- One mega-task spanning schema + UI + docs, or multiple independent areas in one ID.
-- Merging investigation and implementation when exploration scope is still unclear.
-- Phase-level umbrella tasks ("implement frontend") without spawn-sized task breakdown.
-- Tasks whose acceptance criteria require another open task — reorder **Implementation order** or split.
-- Tasks that open/close/merge PRs, push to remote, deploy, or mutate hosted services **unless the user explicitly requested that action**.
-- “Ship” or “done” phases that auto-include GitHub/CI/deploy work without a direct user ask — use local verify + handoff instead.
-- Structural plan edits without re-running this skill's checklist.
+- Leave implementation-relevant files unlisted in **Context references**, or use "to update" purposes for finished work.
+- Create tasks without IDs, or a plan without **Implementation order**.
+- Write tasks whose acceptance criteria require another open task — reorder or split.
+- Merge investigation and implementation when exploration scope is unclear.
