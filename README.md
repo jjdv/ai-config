@@ -4,7 +4,7 @@ The custom harness config: the single source of truth for the whole custom harne
 
 ## New machine
 
-Clone the repo, open the tool, and ask its agent to read `BOOTSTRAP.md` and bootstrap the tool. This runs once per tool and writes per-machine state to `~/.config/ai/<tool-id>/`. Then run `merge-ai-config` for the remaining items.
+Clone the repo, open the tool, and ask its agent to read `BOOTSTRAP.md` and bootstrap the tool. This runs once per tool and writes per-machine state to `~/.config/ai/<tool-id>/`. The bootstrap backs up the tool's config first, brings over the approved items in the same run, and writes a migration report; later runs use `merge-ai-config`.
 
 ## Daily flow
 
@@ -19,7 +19,7 @@ Edit, then `merge-ai-config` or `update-harness`, then commit and push. On anoth
 
 ## Per-machine state
 
-`~/.config/ai/repo-path` plus `~/.config/ai/<tool-id>/{placeholders.json,profile.md,registry.json}`: placeholder values, model choices, local exclusions and sync registry. Never committed. Model changes are local edits handled by `update-harness`.
+`~/.config/ai/repo-path` plus `~/.config/ai/<tool-id>/{placeholders.json,profile.md,registry.json,migration-report.md}`: placeholder values, model choices, local exclusions, sync registry and the bootstrap report. The bootstrap backup lives in `~/.config/ai/backups/<tool-id>-<timestamp>/`. Never committed. Model changes are local edits handled by `update-harness`.
 
 ## Layout (current items)
 

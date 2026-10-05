@@ -28,7 +28,7 @@ Full reconcile between the repo and the **current tool**. Narrower runs of the s
 
 ## 3. Step 1: inventory
 
-1. Compute `S`, `I`, `M` for every registry item with the recipes in `formats.md` § 3 (`sha256sum`, `find`, `jq`; no script) and compare with the registry's `S0`, `I0`, `M0`.
+1. Compute `S`, `I`, `M` for every registry item with the recipes in `formats.md` § 3 (`sha256sum`, `find`, `jq`; a throwaway scratch helper is allowed under `adaptation.md` § 2, no maintained script) and compare with the registry's `S0`, `I0`, `M0`.
 2. List repo items missing from the registry (respecting Excluded items), registry items whose repo source is gone, and repo items whose name already exists unmanaged in the tool.
 3. Count foreign tool items. Do not list them by name.
 4. Print a compact table: kind, name, state. Non-file items (rules stored by a mechanism that `profile.md` § Targets describes) are read through that mechanism; if it is unreachable, mark them pending and continue with the rest.
@@ -46,13 +46,13 @@ Classify each item with the state table in `formats.md` § 4 and act as follows:
 | both changed (`S!=S0` and `I!=I0`) | three-way merge from the `S0` version (`adaptation.md` § 4), ask on conflict, write after yes |
 | installed missing | ask: restore or drop the entry |
 | new (in repo, not registered, name free) | list; install and register after the user confirms scope |
-| collision (in repo, not registered, name exists in tool) | ask per item: skip, adopt after diff, or replace after backup; never silent |
+| collision (in repo, not registered, name exists in tool) | decide by the rule in `formats.md` § 4 (Collisions): identical is adopted; equal to the previous render is replaced after the backup, no question; local edits or an unknown previous render go into one grouped question (default replace after backup); always reported |
 | removal candidate (registered, not in repo) | list with installed path; delete installed item and drop entry only after yes |
 | foreign | never touched; count only |
 
-Show the plan, then batch the ownership questions into as few asks as possible: scope of new items, collisions, removals, restores, reverse imports and merge conflicts. One focused ask per decision type, 2-4 concrete options, naming each item and showing the diff or list the answer is about. Ask with the tool's ask-user mechanism in the main thread. Do not ask about hash refreshes or about re-adapting after a repo or map change.
+Show the plan, then batch the ownership questions into as few asks as possible: scope of new items, collisions with local edits, removals, restores, reverse imports and merge conflicts. One focused ask per decision type, 2-4 concrete options with a recommended default, naming each item. The diff summary and the grouping by cause go in the same message as the question, never in a later one. Wording follows `adaptation.md` § 8 (plain language, no step or item numbers, nothing compressed). Ask with the tool's ask-user mechanism in the main thread. Do not ask about hash refreshes, about re-adapting after a repo or map change, or about collisions the rule decides.
 
-No tool equivalent for something an item needs: ask (skip or how to emulate); never pick a fallback.
+No tool equivalent for a capability an item needs: record `null`, report the affected items (`adaptation.md` § 5); ask only when two or more plausible tools exist.
 
 ## 5. Step 3: reverse-adapt and merge
 
@@ -83,7 +83,7 @@ Run the verify checklist in `adaptation.md` § 7 over every registry item. Any e
 
 ## 9. Step 7: report
 
-- Counts per sync state and per action taken; new, collision, removal and import decisions; items left pending (non-file); local overrides; excluded items; foreign item count.
+- Counts per sync state and per action taken; new, collision, removal and import decisions; every replacement per cause with the backup path (`formats.md` § 4); items left pending (non-file); local overrides; excluded items; foreign item count.
 - Verify checklist result (each item).
 - `git -C <repo> status --short`.
 - Remind the user to commit and push so other tools can catch up through their own `merge-ai-config`.

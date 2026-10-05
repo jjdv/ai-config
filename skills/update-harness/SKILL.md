@@ -28,7 +28,7 @@ Targeted sync of **named** harness items (rules, skills, agents) between the rep
 ### Named items with no registry entry
 
 - No installed counterpart in this tool: `new`. Adapt, install and register only after the scope confirmation of `references/formats.md` § 4, asked in the same turn with the item names listed (not a "should I sync?" question).
-- Unmanaged installed counterpart of the same name: `collision`; the question of `references/formats.md` § 4, never silent.
+- Unmanaged installed counterpart of the same name: `collision`; decided by the rule in `references/formats.md` § 4 (Collisions): identical is adopted, equal to the previous render is replaced after the backup, and only local edits or an unknown previous render are asked, in one grouped question shaped by `references/adaptation.md` § 8. Replacements are always reported.
 - In `profile.md` § Excluded items: skipped, listed as "excluded". Not in the repo and not named by the user: foreign, skipped.
 - Create then sync: an item created in the repo this chat is `new`. An item created in the tool this chat and named is an import (`references/adaptation.md` § 4): canonical diff and checks first, repo written after confirmation, then registered with the installed copy.
 
@@ -39,7 +39,7 @@ Targeted sync of **named** harness items (rules, skills, agents) between the rep
 
 ## Per-item procedure
 
-1. **Hash.** Compute `S` (canonical source), `I` (installed) and `M` (map hash) with the recipes in `references/formats.md` § 3, using `sha256sum`, `find` and `jq`; no script is used or required.
+1. **Hash.** Compute `S` (canonical source), `I` (installed) and `M` (map hash) with the recipes in `references/formats.md` § 3, using `sha256sum`, `find` and `jq`; no maintained script is required (a throwaway scratch helper is allowed under `references/adaptation.md` § 2).
 2. **State.** Compare with the registry's `S0`, `I0`, `M0` and read the state and action from the table in `references/formats.md` § 4.
 3. **Direction.** The edit made in this chat wins. Repo or map changed: adapt repo to tool. Installed edited: reverse-adapt tool to repo. Both changed, or map changed and installed edited: merge per `references/adaptation.md` § 4 (including the fallback when `S0` cannot be recovered), ask on conflict or doubt.
 4. **Adapt** per `references/adaptation.md` §§ 2-3. Capability keys come from the `tool:*` entries of `placeholders.json` (exact values) and nowhere else. A capability or placeholder without an entry follows the unmapped protocol (`references/adaptation.md` § 5): stop, propose, write only after approval and log it in `profile.md` § Confirmed decisions. A confirmed capability change re-adapts every affected item through the map hash.
@@ -54,11 +54,12 @@ Rename and delete: apply the same change to the repo item, the installed item an
 
 ## Confirmation rules
 
-- Ask before every ownership change: adopting an item, importing an installed item into the repo, replacing a colliding unmanaged item, deleting an installed item or dropping its entry, restoring a locally deleted item, and any write to the repo that comes from an installed edit (the clean merge of `map changed, installed edited` is applied and reported instead, `references/formats.md` § 4).
+- Ask before every ownership change: adopting an item, importing an installed item into the repo, replacing a colliding unmanaged item that has local edits, deleting an installed item or dropping its entry, restoring a locally deleted item, and any write to the repo that comes from an installed edit (the clean merge of `map changed, installed edited` is applied and reported instead, `references/formats.md` § 4).
 - Do not ask for hash refreshes: re-adapting after a repo or map change, refreshing hashes, updating registry entries for items you just wrote.
 - Never silently overwrite an installed edit: states with `I!=I0` are shown first.
 - Ask with the tool's ask-user mechanism, one focused question per decision, in the main thread. Show the diff or the list that the answer is about.
-- No tool equivalent for something the item needs: ask (skip, or how to emulate it); never pick a fallback.
+- No tool equivalent for a capability the item needs: record `null` for it and report the affected items (`references/adaptation.md` § 5); ask only when two or more plausible tools exist. Never pick an emulation silently.
+- Wording of every question and report follows `references/adaptation.md` § 8: plain language, no step or item numbers, data shown in full, a safe default.
 
 ## Removal candidates
 

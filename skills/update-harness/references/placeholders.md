@@ -7,7 +7,7 @@ Canonical rules, skills and agents contain placeholders only where the text must
 - Form: `{{kind:name}}`. `kind` is one of `agent`, `model`, `effort`, `tool`, `path`, `block`; `name` is kebab-case. Kind `tool` carries the capability vocabulary below.
 - `\{{` writes a literal `{{`. No block tags, no nesting, no conditionals.
 - The key in `placeholders.json` is the text inside the braces (for example `agent:senior`).
-- Every placeholder used by a canonical item needs an entry in the map. An unmapped placeholder stops the run (protocol in `adaptation.md`).
+- Every placeholder used by a canonical item needs an entry in the map. This file and its siblings in `skills/update-harness/references/` are installed verbatim and are exempt from the placeholder lints (`formats.md` § 1). An unmapped placeholder stops the run (protocol in `adaptation.md`).
 
 ## Vocabulary (closed set)
 
@@ -45,14 +45,14 @@ Tool keys and ids are tool-specific and never appear in canonical items: no tool
 | `{{tool:pencil-read-variables}}` | read design variables | read the variables of a Pencil design document |
 | `{{tool:pencil-open-document}}` | reload the design document from disk | open or reload a Pencil document |
 
-Product capabilities use `tool:<product>-<action>`: the product is named, its tool ids never are. Capability sets: `readonly` (agent frontmatter) means the capabilities `read-files`, `search-files`, `search-code` and `run-shell`; the keys come from the `tool:*` entries of those four capabilities in `placeholders.json` (an entry that is `null` contributes no key), and `profile.md` § Frontmatter rules says only how the tool lays them out (allowlist, permission keys, a native read-only flag). A capability that has no entry in `placeholders.json` is unmapped (stop, propose, approve, `adaptation.md`). A capability the tool lacks is never replaced by a fallback: ask the user, record `null` in `placeholders.json` and the decision in `profile.md` § Confirmed decisions.
+Product capabilities use `tool:<product>-<action>`: the product is named, its tool ids never are. Capability sets: `readonly` (agent frontmatter) means the capabilities `read-files`, `search-files`, `search-code` and `run-shell`; the keys come from the `tool:*` entries of those four capabilities in `placeholders.json` (an entry that is `null` contributes no key), and `profile.md` § Frontmatter rules says only how the tool lays them out (allowlist, permission keys, a native read-only flag). A capability that has no entry in `placeholders.json` is unmapped (stop, propose, approve, `adaptation.md`). A capability the tool lacks is never replaced by a fallback: it is `null` in `placeholders.json` with the reason in `profile.md` § Confirmed decisions, and the report names the items that use it (ask only when two or more plausible tools exist; `formats.md` § 2).
 
 ### Block contracts
 
-A `block:*` value is multi-line text the adapting agent authors from the tool's discovered facts and the user's confirmed decisions, shown at the bootstrap confirmation gate. It must be accurate for the tool and contain no model identifiers.
+A `block:*` value is multi-line text the adapting agent authors from the tool's discovered facts and the user's confirmed decisions, shown in full in the bootstrap setup preview. It must be accurate for the tool and contain no model identifiers.
 
 - `block:tool-note`: one paragraph placed under a skill title. It maps the generic terms the skill uses (spawn a subagent, ask the user, browser, skills location) to the tool's own names, and says how the tool selects a model when spawning.
-- `block:tool-mapping`: a table `| Term in this rule | <tool> |` with one row per term the rest of the rule text uses (subagent spawn, implementation subagent, ask the user, context tools, harness sync, skill location, and any other term the rule defines), each cell the tool-native equivalent; the context-tools row lists the tool keys of the capabilities read, search, write, edit, delete, shell, browser, taken from the `tool:*` entries of `placeholders.json`. A term with no equivalent is not filled with a fallback: ask the user.
+- `block:tool-mapping`: a table `| Term in this rule | <tool> |` with one row per term the rest of the rule text uses (subagent spawn, implementation subagent, ask the user, context tools, harness sync, skill location, and any other term the rule defines), each cell the tool-native equivalent; the context-tools row lists the tool keys of the capabilities read, search, write, edit, delete, shell, browser, taken from the `tool:*` entries of `placeholders.json`. A term with no equivalent is not filled with a fallback: the cell states that the tool has no equivalent and the report names the term.
 - `block:spawn-rule`: how to treat the model when spawning an agent in this tool: whether the agent definition pins the model (do not pass one) or the call must carry it, which model variants are never allowed, and what to do when a requested model is not permitted (stop and report). Includes any user policy recorded in `profile.md`.
 
 ## Authoring rules

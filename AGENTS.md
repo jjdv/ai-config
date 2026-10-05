@@ -15,10 +15,10 @@ This repo is the custom harness config: the single source of truth for the custo
 
 Banned anywhere in the repo, described by category: tool names, vendor names, model names and ids, tool-native tool names, tool keys and ids, permission keys, allowlists, tool-specific paths, a `tools:` key.
 
-Exceptions (exact list, by category):
+Allowed anywhere in the repo (exact list):
 
-- the shared per-machine path `~/.config/ai`, only in `skills/update-harness/`, `skills/merge-ai-config/`, `skills/pull-ai-config/`, `skills/set-local/`, `BOOTSTRAP.md`, `AGENTS.md`, `README.md`;
-- the project convention path `.agents/skills/project-best-practices` in `create-plan` and `check-plan`;
+- `~/.config/ai`, the shared per-machine path;
+- `.agents/skills/project-best-practices`, the tool-agnostic project convention path;
 - third-party products that are not harness tools may be named as products, never by tool key or id.
 
 Capabilities are written semantically (read files, run shell commands, browser automation) or as `{{tool:<capability>}}`. Never write tool keys, MCP tool ids, permission keys or allowlists in a canonical item.
@@ -47,22 +47,48 @@ Model and effort are tool-local. A model change is a local edit of the installed
 
 ## 6. Lint
 
-Structural (run from the repo root, expect no output):
+Run every block from the repo root, in `zsh` or `bash`. "Expect no output" is the pass criterion; the exit status of `xargs` (123 when `grep` matches nothing) is irrelevant.
+
+`skills/update-harness/references/*` is installed verbatim (`formats.md` section 1): it is exempt from every placeholder lint below and subject to the name lint.
+
+Structural:
 
 ```
-grep -RnE '\{\{#|\{\{/' skills rules agents
-grep -RnoE '\{\{[^}]*\}\}' skills rules agents | sed -E 's/.*(\{\{[^}]*\}\}).*/\1/' | sort -u
+CANON=$(git ls-files -co --exclude-standard skills rules agents | grep -v '^skills/update-harness/references/')
+echo "$CANON" | xargs grep -nE '\{\{#|\{\{/'
+echo "$CANON" | xargs grep -ohE '\{\{[^}]*\}\}' | sort -u | grep -vE '^\{\{(agent|model|effort):[a-z-]+\}\}$' | grep -vxFf <(grep -ohE '\{\{(tool|path|block):[a-z-]+\}\}' skills/update-harness/references/placeholders.md | sort -u)
+echo "$CANON" | grep -v '^agents/' | xargs grep -nE '\{\{(model|effort):'
 ```
 
-The last command lists every placeholder in use; each must be in the vocabulary of `placeholders.md`, and `{{model:` and `{{effort:` appear only under `agents/`. Run `grep -rnE '\{\{|Adapt for tool'` over the installed locations listed in each `profile.md` (Targets); expect no output. Canonical frontmatter keys are those of `formats.md` section 1.
+The second command passes only when every placeholder in use is in the vocabulary of `placeholders.md` (the allowed `tool`, `path` and `block` tokens are read from that file); the third when `{{model:` and `{{effort:` appear only under `agents/`. Canonical frontmatter keys are those of `formats.md` section 1.
+
+Installed locations (the directories listed in each `profile.md` under Targets; expect no output):
+
+```
+grep -rnE '\{\{|Adapt for tool' <installed dirs> | grep -v '/update-harness/references/'
+```
 
 Name lint (machine-local; never write the tokens into a repo file):
 
-1. Build a token list in a scratch file from this machine: tool ids and display names from `~/.config/ai/*/profile.md`; keys and ids from the `tool:*` entries of `~/.config/ai/*/placeholders.json` (string, list and `null` values); model and vendor words you know.
-2. Run `FILES=$(git ls-files -co --exclude-standard | grep -v '^\.gitignore$')`, then `echo "$FILES" | xargs grep -niwFf <tokens>` and `echo "$FILES" | xargs grep -nE '~/\.[a-z]' | grep -v '~/\.config/ai'`; expect no output.
-3. Run `echo "$FILES" | grep -vE '^(skills/(update-harness|merge-ai-config|pull-ai-config|set-local)/|BOOTSTRAP\.md$|AGENTS\.md$|README\.md$)' | xargs grep -nF '~/.config/ai'`; expect no output.
+```
+S=$(mktemp -d)
+FILES=$(git ls-files -co --exclude-standard | grep -v '^\.gitignore$')
+for d in ~/.config/ai/*/; do t=$(basename "$d"); [ "$t" = backups ] || echo "$t"; done > $S/ids
+jq -r '.entries|to_entries[]|select(.key|startswith("tool:"))|.value|if type=="array" then .[] else . end|select(. != null and . != "")' ~/.config/ai/*/placeholders.json | sort -u > $S/keys
+grep -E '^[A-Z][a-z]+$' $S/keys | sed 's/.*/`&`/' > $S/plain
+grep -vE '^[A-Z][a-z]+$' $S/keys > $S/exact
+```
 
-`README.md` and `AGENTS.md` pass the name lint with no allowed hit other than `~/.config/ai`.
+then add to `$S/ids`, one per line, the display names from the Tool section of each `~/.config/ai/*/profile.md` and the model and vendor words you know, and run:
+
+```
+echo "$FILES" | xargs grep -niwFf $S/ids
+echo "$FILES" | xargs grep -nwFf $S/exact
+echo "$FILES" | xargs grep -nFf $S/plain
+echo "$FILES" | xargs grep -nE '~/\.[a-z]' | grep -v '~/\.config/ai'
+```
+
+Single capitalized plain words (for example a tool key that is also an English word) are matched only inside backticks, so ordinary prose does not produce hits; every other key is matched as a case-sensitive whole word. Any path under the home directory other than `~/.config/ai` is flagged as tool-specific; `.agents/skills/project-best-practices` is allowed everywhere.
 
 ## 7. Comments
 
