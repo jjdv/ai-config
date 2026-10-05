@@ -52,7 +52,7 @@ Adjust directory names (`designs/`, `scripts/`) to match the repo; keep **one ca
 
 ## Pencil MCP vs files on disk
 
-- If `.pen` files are **encrypted / MCP-only**, use Pencil tools (`batch_get`, `batch_design`, `get_variables`)—do not read them as plain text.
+- If `.pen` files are **encrypted / MCP-only**, use Pencil tools (read design nodes, apply design operations, read design variables)—do not read them as plain text.
 - If the repo stores `.pen` as **JSON**, agents may edit on disk and run scripts—still prefer Pencil MCP when the user works in the Pencil app (disk vs unsaved buffer can diverge until **Save**).
 
 ## Anti-patterns

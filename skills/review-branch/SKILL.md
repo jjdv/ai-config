@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 # review-branch
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
 Structured, **read-only** review of a git branch before merge. Produce a report the user can act on; do not implement fixes unless they ask separately.
 
@@ -303,7 +303,7 @@ Split **before** spawning when a single domain lane would touch too many paths �
 
 **Sub-lane time budget:** If a sub-lane cannot finish its allowlist, return partial candidates with `paths_not_reviewed: [...]` — orchestrator spawns a follow-up sub-lane for the remainder or completes on main thread before synthesis (§ Lane failure / abortion).
 
-Use `{{senior_agent_name}}`{{#cursor}} (`model="{{senior_agent_model}}"`){{/cursor}} for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
+Use `senior` for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
 
 **Lane failure / abortion (mandatory):** If a domain lane subagent **times out, aborts, or returns incomplete output**, the orchestrator must either (a) finish that lane’s scope on the main thread before synthesis, or (b) record the gap in **Open questions** (e.g. “Domain 4 incomplete — global-blast table not fully verified”). Do **not** publish a complete-looking report when an activated lane did not finish.
 
@@ -320,10 +320,10 @@ At spawn time, record `lanes_spawned` (count + IDs/descriptions). **Do not start
 | Check | Pass when |
 |-------|-----------|
 | **All lanes finished** | `lanes_finished === lanes_spawned` — each subagent returned **successfully** (candidate findings delivered), or that lane’s scope was completed on the main thread per § Lane failure / abortion |
-| **None still running** | No in-flight Task/Await; no subagent status “still running” |
+| **None still running** | No in-flight subagent; no subagent status “still running” |
 | **No aborted lane unhandled** | Timed-out or incomplete lanes were either re-run, finished on main thread, or their gap is recorded for **Open questions** — not folded into a partial report |
 
-If **any** check fails → **remain in wait mode**. Forbidden: synthesizing, spot-checking findings for the report, or publishing because “most lanes are done,” an `Await` timer elapsed, or a system follow-up prompt arrived.
+If **any** check fails → **remain in wait mode**. Forbidden: synthesizing, spot-checking findings for the report, or publishing because “most lanes are done,” a wait timer elapsed, or a system follow-up prompt arrived.
 
 #### Delivery rules
 
@@ -334,7 +334,7 @@ If **any** check fails → **remain in wait mode**. Forbidden: synthesizing, spo
 | **No partial or follow-up reports** | Forbidden: publishing before the checklist passes; addendum messages; “report already stands”; “one gap to add mentally”; lane status updates to the user. |
 | **Lanes complete in a later turn** | Normal when subagents outlive the spawn turn: **still wait** until the checklist passes, then Phase 2 → **one** report in that turn. Late lane output is input to synthesis, not a reason to append to an earlier message. |
 | **System / follow-up prompts** | e.g. “perform follow-up actions in response to subagent completion” — means **continue waiting** until the checklist passes, then deliver the **first and only** report. Not permission to publish early or add to a prior message. |
-| **Await / timeout** | Expired `Await` is **not** lane completion. On timeout: wait again, poll until all lanes finish, complete remaining scope on main thread, or end with **Open questions** only (no report) if a lane cannot be completed. |
+| **Wait timeout** | An expired wait is **not** lane completion. On timeout: wait again, poll until all lanes finish, complete remaining scope on main thread, or end with **Open questions** only (no report) if a lane cannot be completed. |
 | **No subagents spawned** | Branches reviewed entirely on the main thread may publish in the same turn after Phase 0–2 complete. |
 
 The disposition ledger and lane merge happen **before** the single publish.
@@ -681,7 +681,7 @@ Add after Should fix (continuous numbering):
 - **Refactor-equivalent SCSS as regression** — typography moved to mixin/level class without computed-style change on named route
 - **Publishing before all lanes finish** — running Phase 2 or publishing § Report template before the § Lane-completion checklist passes
 - **Partial or follow-up reports** — addendum messages, “report already stands,” “one gap to add mentally,” or any second user-facing report chunk for the same review
-- **Await timeout treated as done** — proceeding after `Await` expires while lanes are still in flight
+- **Wait timeout treated as done** — proceeding after a wait expires while lanes are still in flight
 - **Premature synthesis** — spot-checking or verifying findings for the report while spawned lanes have not all finished successfully
 - **Follow-up prompt misread** — treating subagent-completion system messages as permission to publish before the checklist passes
 - **Subagent status to user** — “Domain 3 is running…”, lane IDs, or “I’ll synthesize when they complete” instead of waiting silently and delivering one report

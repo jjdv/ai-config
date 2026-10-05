@@ -3,7 +3,7 @@ name: long-chat-mode
 description: >-
   Interactive long-running chat: keep conversation and steering in the main thread;
   delegate all non-trivial work (and tasks made of many trivial subtasks) to
-  {{impl_agent_desc}} (never fast). Split work that may exceed one subagent context into
+  the standard implementation agent. Split work that may exceed one subagent context into
   separate subagent runs; run sequentially when subtasks may touch the same files.
   Use for open-ended, multi-turn work without a structured plan to execute
   task-by-task.
@@ -12,13 +12,13 @@ disable-model-invocation: true
 
 # Long chat mode
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
 You are the **interactive supervisor** in the main chat. The user stays in the loop every turn — this is **not** headless plan execution.
 
 ## Role split
 
-| Main chat (you) | `{{impl_agent_name}}` subagent |
+| Main chat (you) | `standard` subagent |
 | --- | --- |
 | Conversation with the user, goals, trade-offs, approvals | File edits, repo exploration, multi-step implementation |
 | What to do next, scope changes, priorities | Tool-heavy work that would bloat main context |
@@ -31,7 +31,7 @@ Follow **`base` → Pre-turn gate** on every user prompt before other work.
 
 When this skill is active:
 
-- **Delegate** every task that needs **new context** (any Read/Grep/Glob/Shell/Write/browser/MCP) to `{{impl_agent_name}}` — **never** do that work in the main thread.
+- **Delegate** every task that needs **new context** (reading files, searching code, finding files, running shell commands, writing files, browser automation, or any integration call) to `standard` — **never** do that work in the main thread.
 - **Delegate** a task that is **composed of many trivial subtasks** (even if each subtask alone would be trivial).
 
 **Main thread OK** — must satisfy **`base` → Supervisor-only main thread** (answers from knowledge + chat only; no context tools).
@@ -40,7 +40,7 @@ When this skill is active:
 
 - Investigation (root cause, compare repos/environments, CMS/DOM/styles, data flow)
 - More than one file, package, or repo touched
-- Substantial tool use (many reads/greps, browser/Playwright, MCP, builds/tests for verification)
+- Substantial tool use (many file reads or code searches, browser automation, integration calls, builds/tests for verification)
 - Implementation, refactor, or migration slice
 - **Any ask to fix, debug, or explain runtime/UI behavior** — delegate on turn 1 even if it "looks small"
 
@@ -56,18 +56,18 @@ Applies on **every turn** when the user reports symptoms, asks for root cause, o
 
 **Procedure (same turn):**
 
-1. If scope is ambiguous: `{{ask_tool}}` (same turn, before `{{spawn_tool}}` spawn).
-2. Spawn `{{impl_agent_name}}` with symptom, user context, paths they named, and **read `.context/index.md` if present**.
+1. If scope is ambiguous: `{{tool:ask-user}}` (same turn, before spawning).
+2. Spawn `standard` with symptom, user context, paths they named, and **read `.context/index.md` if present**.
 3. **Do not** open source files or run greps in the main thread first.
 
-**Anti-pattern — scouting:** Any Read/Grep/Glob/Shell/browser/MCP in the main thread before spawning `{{impl_agent_name}}`.
+**Anti-pattern — scouting:** Any file read, code search, file lookup, shell command, browser or integration call in the main thread before spawning `standard`.
 
 ## Split large work across subagents (mandatory)
 
 Some goals are too large for one subagent context or one focused run. **Before** (or as part of) the first delegation:
 
 1. **Decompose** the goal into subtasks that each fit one coherent implementation run.
-2. **Delegate each subtask in a separate** `{{impl_agent_name}}` spawn — one subagent per subtask, not one mega-prompt for the whole project.
+2. **Delegate each subtask in a separate** `standard` spawn — one subagent per subtask, not one mega-prompt for the whole project.
 3. **Report** the subtask plan to the user when it is non-obvious (brief list is enough).
 
 Signs the work should be split:
@@ -116,19 +116,20 @@ After each sequential chunk, summarize for the user before the next unless they 
 
 ## Delegating to the implementation subagent
 
-Delegate implementation, refactors, and investigation to **`{{impl_agent_name}}`** (`subagent_type="{{impl_agent_name}}"`, {{#cursor}}`model="{{impl_agent_model}}"`, {{/cursor}}`run_in_background=false`).
+Delegate implementation, refactors, and investigation to **`standard`**, foreground:
+
+```text
+{{tool:spawn-agent}}(
+  {{agent:standard}},
+  run_in_background=false,
+  description="…",
+  prompt="…"
+)
+```
 
 ### Model (mandatory)
 
-{{#cursor}}
-- **Always** pass `model="{{impl_agent_model}}"`.
-- **Never** use fast variants or omit `model`.
-{{/cursor}}
-{{#claude}}
-- The `{{impl_agent_name}}` agent is pinned to `sonnet`; do **not** pass `model`.
-- **Never** use fast variants.
-{{/claude}}
-- The fast variants are **not** acceptable substitutes for delegated work under this skill.
+{{block:spawn-rule}}
 
 ### Prompt hygiene
 
@@ -189,17 +190,12 @@ Subagents cannot talk to the user directly. You are the **only** bridge.
 - Running **non-trivial** work or **many trivial subtasks** in the main thread (including turn 1)
 - **Guessing** product or policy choices instead of asking the user
 - **Verbose recap** when ≤10 sentences would answer the user
-- **Scouting** on turn 1 — any context tool before spawning `{{impl_agent_name}}`
+- **Scouting** on turn 1 — any context tool before spawning `standard`
 - **"Investigate first, then fix inline"** on turn 1 when the ask is fix/debug/implement
 - Using context tools in the main thread because the task “looks small” or “is just config”
 - One implementation spawn for an entire multi-area feature that should have been split
 - Parallel implementation spawns when subtasks **may** edit the same files
-{{#cursor}}
-- Using fast variants or omitting `model` on implementation delegations
-{{/cursor}}
-{{#claude}}
-- Passing a `model` override on implementation delegations
-{{/claude}}
+- Spawning implementation delegations in any way that breaks the model rule above
 - Dumping raw subagent tool traces into the main chat
 - Large main-thread edits to "save a delegation"
 - Auto-running many implementation tasks back-to-back without user visibility

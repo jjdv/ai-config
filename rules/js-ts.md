@@ -1,7 +1,7 @@
 ---
 description: JS/TS package manager — respect existing lockfiles; Bun for new projects
 globs: "**/*.{ts,tsx,js,jsx,mjs,cjs,vue,svelte,astro}"
-alwaysApply: false
+always: false
 ---
 
 # JavaScript / TypeScript package manager

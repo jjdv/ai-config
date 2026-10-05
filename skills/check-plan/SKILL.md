@@ -10,7 +10,7 @@ disable-model-invocation: false
 
 # Check plan
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
 Answer: **Is this plan file a single entry point for `/sequential-implementation` in a fresh chat?**
 
@@ -34,7 +34,7 @@ Resolve path relative to a workspace root when not absolute. If no path given, a
 
 1. **Read** the plan file end-to-end.
 2. **Resolve project root** from `**Project root:**` line, or parent of `.local/` if missing (flag fail).
-3. **Run every check** in § Checklist — verify on disk where applicable (`Glob`/`Read`, not assumptions).
+3. **Run every check** in § Checklist — verify on disk where applicable (find and read the files, not assumptions).
 4. **Emit report** (§ Output format).
 5. **Verdict:** `READY` only if zero **fail** checks. Warnings do not block `READY` but must be listed.
 
@@ -62,7 +62,7 @@ Optional: if `status: complete` and implementation order empty, verdict can be `
 
 | ID | Check | Pass when |
 | --- | --- | --- |
-| B1 | **Context references** | Every linked path under project root **exists** (skip `~/.agents/…` and sibling `../` repos — note as external) |
+| B1 | **Context references** | Every linked path under project root **exists** (skip installed-skill paths under the user home and sibling `../` repos — note as external) |
 | B2 | **Context purposes** | No stale “to update in task X” for already-✅ work |
 | B3 | **Initiative refs** | `.local/<slug>/decisions.md` etc. exist when referenced |
 | B4 | **Task files** | Every non-`—` Details link resolves to a readable `.md` under project root |
@@ -76,7 +76,7 @@ Apply **Task-fit checklist** (`create-plan`) to **each open task** (read linked 
 | ID | Check | Pass when |
 | --- | --- | --- |
 | C1 | **One outcome** | No open task summary bundles unrelated deliverables (tokens + layout + CMS + parity in one ID) |
-| C2 | **One session** | Each open task is reasonable for one `{{impl_agent_name}}` spawn without a planned second spawn for the same ID |
+| C2 | **One session** | Each open task is reasonable for one `standard` spawn without a planned second spawn for the same ID |
 | C3 | **Bounded scope** | Each open task ≤8 primary in-scope paths or one cohesive subsystem; not 3+ unrelated subsystems |
 | C4 | **Acceptance cap** | Each open task has ≤7 acceptance criteria serving one outcome |
 | C5 | **Single verify track** | Each open task has one primary verification path (not independent parity + import + deploy tracks) |

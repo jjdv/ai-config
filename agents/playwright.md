@@ -1,6 +1,6 @@
 ---
 name: playwright
-description: Playwright MCP inspection subagent. Use when the main agent needs evaluate/caret/console/network evidence—not {{#cursor}}IDE @Browser{{/cursor}}{{#claude}}Claude browser tool{{/claude}} smoke checks.
+description: Playwright MCP inspection subagent. Use when the main agent needs evaluate/caret/console/network evidence—not {{tool:browser}} smoke checks.
 ---
 
 # Playwright subagent
@@ -84,7 +84,7 @@ Save artifacts only when they support diagnosis or validation. Include reference
 
 ## Session teardown (mandatory)
 
-Before returning to the parent: close the browser/page/session (e.g. `browser_close` or equivalent). Report failure if teardown could not run.
+Before returning to the parent: close the browser session. Report failure if teardown could not run.
 
 ## Output contract
 
@@ -99,12 +99,12 @@ Before returning to the parent: close the browser/page/session (e.g. `browser_cl
 ## Tooling constraint
 
 - **Always** use **Playwright MCP** tools for browser debugging in this subagent.
-- Do **not** use {{#cursor}}Cursor IDE Browser (`cursor-ide-browser`){{/cursor}}{{#claude}}the Claude browser tools{{/claude}} as a substitute.
+- Do **not** use {{tool:browser}} as a substitute.
 - If Playwright MCP is unavailable or blocked, stop and report exact remediation to the parent.
 
 ## Related skill (main agent)
 
-Delegations should follow **`{{skills_dir}}debug-in-browser/SKILL.md`** (routing vs {{ide_browser}}, scenario packet, no direct Playwright MCP from main agent).
+Delegations should follow **`{{path:skills}}/debug-in-browser/SKILL.md`** (routing vs {{tool:browser}}, scenario packet, no direct Playwright MCP from main agent).
 
 ## Approval and prompts
 

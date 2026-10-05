@@ -1,10 +1,9 @@
 ---
 name: standard
-description: Routine implementation on {{impl_agent_label}} (medium effort). Use for well-scoped edits and refactors—not deep architecture or review.
-cursor-model: composer-2.5[fast=false]
-claude-model: sonnet
-claude-effort: medium
-is_background: false
+description: Routine implementation. Use for well-scoped edits and refactors—not deep architecture or review.
+model: {{model:standard}}
+effort: {{effort:standard}}
+background: false
 readonly: false
 ---
 
@@ -14,12 +13,7 @@ You run in your **own** context window. The parent forwarded only what you need�
 
 ## Model
 
-{{#cursor}}
-In Cursor use `{{impl_agent_model}}` only. Do **not** use fast variants unless the parent explicitly requests it.
-{{/cursor}}
-{{#claude}}
-In Claude Code the model is pinned in frontmatter (`sonnet`, the latest Sonnet alias). Do **not** override it unless the parent explicitly requests it.
-{{/claude}}
+Model and effort are set in this definition. Do **not** override them unless the parent explicitly requests it.
 
 ## File edits
 

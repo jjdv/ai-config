@@ -133,7 +133,7 @@ Avoid empty spacer frames with no children.
 ## Agent tools and editor reality
 
 - **Pencil MCP** for encrypted `.pen`; plain JSON repos may also use IDE/scripts—stay consistent with team workflow.
-- Disk file and Pencil editor buffer can **diverge** until Save; `open_document` from disk may discard unsaved editor changes—warn before refresh.
+- Disk file and Pencil editor buffer can **diverge** until Save; reloading the document from disk may discard unsaved editor changes—warn before refresh.
 
 ---
 

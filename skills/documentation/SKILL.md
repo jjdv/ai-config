@@ -55,7 +55,7 @@ When the repo ships **`.agents/skills/project-best-practices/`**, it is **part o
 
 **Promotion from completed work:** when a sequential plan or `.local/` initiative changes durable conventions, merge agent rules into the repo conventions skill `references/` (and `SKILL.md` if routing changes) in the **same documentation pass** as any `docs/` update. Do not leave conventions only in `.local/` or only in `docs/`.
 
-**Location:** project conventions skills live under **that repo's** `.agents/skills/` (not user-scope `~/.agents/skills/` unless the repo mirrors them there).
+**Location:** project conventions skills live under **that repo's** `.agents/skills/` (not user-scope installed skills unless the repo mirrors them there).
 
 ### Project-specific topics (styling, blocks, pages, …)
 
@@ -167,7 +167,7 @@ Adjust subpaths (`server/`, `product/`, `operations/`) to match the repo's `docs
 
 ## Agent skills vs `.context/`
 
-Prefer **`.agents/skills/<name>/`** when the repo uses Cursor/Codex skills (Claude Code reads project skills from **`.claude/skills/<name>/`** — mirror or symlink when the repo is used with Claude Code).
+Prefer **`.agents/skills/<name>/`** for project skills (mirror or symlink into the tool's own project skills directory when the tool does not read `.agents/skills/`).
 
 **Default conventions skill:** `.agents/skills/project-best-practices/` — use this folder name in new repos unless `project-description.md` declares otherwise.
 

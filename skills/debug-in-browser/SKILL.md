@@ -2,14 +2,14 @@
 name: debug-in-browser
 description: >-
   ALWAYS use when browser debugging is needed. Route lightweight checks to
-  {{#cursor}}Cursor {{/cursor}}{{ide_browser}}; delegate deep automation (evaluate, caret, console/network,
+  {{tool:browser}}; delegate deep automation (evaluate, caret, console/network,
   flaky repro) to the playwright subagent. Evidence-first workflow with
   mandatory cleanup of DEBUG_TMP instrumentation.
 ---
 
 # Debug in browser
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
 ## Goal
 
@@ -21,23 +21,23 @@ Phrases like **debug in browser**, **browser debugging**, **test in the browser*
 
 Compare the check to the table. Do **not** run two browser stacks in parallel for the same check.
 
-| Prefer **{{ide_browser}}** (IDE-integrated) | Prefer **playwright subagent** (deep automation) |
+| Prefer **{{tool:browser}}** (IDE-integrated) | Prefer **playwright subagent** (deep automation) |
 | --- | --- |
 | Reproduce with **clicks, typing, keys** | Need **`page.evaluate` / in-page JS** (selection, ranges, offsets) |
 | **Accessibility snapshot** or screenshots are enough | Need **precise DOM or selection state** around the caret |
 | Quick **smoke check** after a change | **Flaky** or timing-sensitive repro; structured capture and retries |
 | Console / network forensics **not** required | Need **console, network, or evaluate** tied to one hypothesis |
 
-**Default:** try **{{ide_browser}}** first when the check fits the left column.
+**Default:** try **{{tool:browser}}** first when the check fits the left column.
 
-**Escalation:** If {{ide_browser}} cannot falsify the hypothesis, start a **new** loop with the playwright subagent (new hypothesis, explicit stop condition). Stop after **two** iterations without improving confidence; ask the user.
+**Escalation:** If {{tool:browser}} cannot falsify the hypothesis, start a **new** loop with the playwright subagent (new hypothesis, explicit stop condition). Stop after **two** iterations without improving confidence; ask the user.
 
 ## Tooling rules (main agent)
 
 | Path | Main agent may |
 | --- | --- |
-| **{{ide_browser}}** | Use {{#cursor}}Cursor IDE Browser (`{{ide_browser}}`, MCP `cursor-ide-browser`){{/cursor}}{{#claude}}the Claude browser tools{{/claude}} directly |
-| **Playwright MCP** | **Must not** call Playwright MCP directly — delegate via **`/playwright`** or `{{spawn_tool}}(subagent_type="playwright")` with a scenario packet |
+| **{{tool:browser}}** | Use the integrated browser tooling ({{tool:browser}}) directly |
+| **Playwright MCP** | **Must not** call Playwright MCP directly — delegate via **`/playwright`** or `{{tool:spawn-agent}}({{agent:playwright}})` with a scenario packet |
 
 ## Workflow
 
@@ -55,13 +55,13 @@ Compare the check to the table. Do **not** run two browser stacks in parallel fo
 - Next loop: re-classify tooling, new hypothesis, new evidence target, explicit stop condition.
 - If confidence does not improve after **two** iterations, stop and ask the user.
 
-## {{ide_browser}} path
+## Integrated browser path
 
 1. Confirm the check fits the lightweight column; if not, switch to playwright delegation.
 2. Drive reproduction with integrated browser tools; snapshots/screenshots as needed.
 3. Report: tooling used, steps (short), evidence summary, hypothesis + confidence, whether to escalate.
 
-Store screenshots under `.tmp/{{browser_tmp_dir}}/` per the **temp-files** rule.
+Store screenshots under `.tmp/{{path:browser-tmp}}/` per the **temp-files** rule.
 
 ## Playwright subagent path
 
@@ -96,7 +96,7 @@ Deliverables:
 - **Session teardown:** confirmed or explicit deferral
 ```
 
-Fill the brief from `references/playwright-brief-template.md` (in this skill), then spawn with `subagent_type="playwright"`. Subagent spec: `{{agents_dir}}playwright.md`.
+Fill the brief from `references/playwright-brief-template.md` (in this skill), then spawn the playwright subagent. Subagent spec: `{{path:agents}}/playwright.md`.
 
 ## Debug logging
 
@@ -118,7 +118,7 @@ Assume task-level debugging is approved. If MCP prompts block progress, ask the 
 
 ## Output contract
 
-1. Route used ({{ide_browser}} or playwright subagent)
+1. Route used ({{tool:browser}} or playwright subagent)
 2. Scenario executed
 3. Evidence summary (high-signal only)
 4. Root cause hypothesis + confidence

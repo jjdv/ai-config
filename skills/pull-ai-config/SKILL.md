@@ -2,18 +2,18 @@
 name: pull-ai-config
 description: >-
   Pulls latest origin/main into the local ai-config clone (stash WIP, rebase, restore stash
-  with conflict care, drop stash), then runs /merge-ai-config. Direct invocation only —
+  with conflict care, drop stash), then runs /merge-ai-config for the current tool. Direct invocation only —
   /pull-ai-config.
 disable-model-invocation: true
 ---
 
 # pull-ai-config
 
-Update the **ai-config** clone from `origin/main`, then sync both Claude Code and Cursor via **`/merge-ai-config`**. Works from either tool, from any workspace. Never pushes; never touches other repos.
+Update the **ai-config** clone from `origin/main`, then sync the current tool via **`/merge-ai-config`**. Works from any tool and any workspace. Never pushes; never touches other repos.
 
 ## Repo root
 
-First match wins: (1) workspace contains `skills/merge-ai-config/` and `lib/ai_sync.py`; (2) `~/.ai-config/repo-path`; (3) ask. Rewrite `repo-path` when resolved from the workspace. Never write `~/.ai-config/` into the repo.
+First match wins: (1) the workspace contains the `skills/merge-ai-config` and `skills/update-harness` directories; (2) the single line of `${XDG_CONFIG_HOME:-$HOME/.config}/ai/repo-path`; (3) ask for the path. When resolved from the workspace or by asking, write the absolute path to `repo-path` (create the directory if needed). Never write `~/.config/ai` paths into the repo.
 
 ## Procedure
 
@@ -25,7 +25,7 @@ Run git in the repo root.
 4. **Stash apply** — `git stash apply` (not `pop`). Same conflict handling and approval gate.
 5. **Commit (conditional)** — only if conflicts needed resolving and those resolutions are uncommitted: use the commit skill on the conflicted files only; wait for explicit approval ("go", "yes", "commit" — not "ok"). No conflicts → no commit.
 6. **Drop stash** — only if apply succeeded and any resolutions are approved; match by the `pull-ai-config:` message.
-7. **Merge** — follow `/merge-ai-config` (`merge-ai-config/SKILL.md`), honoring its ask-before-write pauses.
+7. **Merge** — follow the `merge-ai-config` skill (`/merge-ai-config`), honoring its ask-before-write pauses.
 
 ## Safety
 

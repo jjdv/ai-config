@@ -1,10 +1,9 @@
 ---
 name: principal
-description: Complex cross-cutting implementation on a stronger Opus model (medium effort). Use for work spanning many files or modules that routine and senior tiers would struggle with.
-cursor-model: claude-opus-5-5[effort=medium,fast=false]
-claude-model: opus
-claude-effort: medium
-is_background: false
+description: Complex cross-cutting implementation. Use for work spanning many files or modules that routine and senior tiers would struggle with.
+model: {{model:principal}}
+effort: {{effort:principal}}
+background: false
 readonly: false
 ---
 
@@ -14,12 +13,7 @@ You run in your **own** context window. The parent forwarded only what you needâ
 
 ## Model
 
-{{#cursor}}
-In Cursor use `claude-opus-5-5[effort=medium,fast=false]` only. Do **not** use fast variants unless the parent explicitly requests it.
-{{/cursor}}
-{{#claude}}
-In Claude Code the model is pinned in frontmatter (`opus`, medium effort). Do **not** override it unless the parent explicitly requests it.
-{{/claude}}
+Model and effort are set in this definition. Do **not** override them unless the parent explicitly requests it.
 
 ## File edits
 

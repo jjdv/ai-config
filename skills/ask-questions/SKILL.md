@@ -2,7 +2,7 @@
 name: ask-questions
 description: >-
   Ask the user structured clarifying questions before guessing on scope, product
-  policy, or ambiguous requirements. Uses {{ask_tool}} with scoped prompts and
+  policy, or ambiguous requirements. Uses {{tool:ask-user}} with scoped prompts and
   concrete options. Use when a decision would change implementation, acceptance
   criteria, or which option to build; when requirements are incomplete; or when
   the user asks for questions before proceeding.
@@ -10,21 +10,21 @@ description: >-
 
 # Ask questions
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
 **Ask (do not guess)** when the answer would change what you build, validate, or recommend next.
 
 ## Tool first
 
-When **`{{ask_tool}}`** is available, use it instead of a prose numbered list or open-ended “any questions?”.
+When **`{{tool:ask-user}}`** is available, use it instead of a prose numbered list or open-ended “any questions?”.
 
 | Prefer | Avoid |
 | --- | --- |
-| One **`{{ask_tool}}`** call with 1–4 related questions | Seven loose bullets the user must reply to in free text |
+| One **`{{tool:ask-user}}`** call with 1–4 related questions | Seven loose bullets the user must reply to in free text |
 | Options that name **outcomes** | Vague yes/no without saying what each path means |
 | **Wait** for answers before delegating or editing | Stating a default and continuing |
 
-If **`{{ask_tool}}`** is unavailable, use the same structure in chat: short **Decision** line, **Options** (A/B/C), **Why it matters** — then wait.
+If **`{{tool:ask-user}}`** is unavailable, use the same structure in chat: short **Decision** line, **Options** (A/B/C), **Why it matters** — then wait.
 
 ## Question design
 
@@ -51,8 +51,8 @@ Each question must make **scope obvious** in the `prompt`:
 | Situation | Batch |
 | --- | --- |
 | One decision, 2–4 alternatives | 1 question |
-| Related decisions (same feature area) | 1 **`{{ask_tool}}`**, up to **4** questions |
-| Unrelated decisions | **Separate** **`{{ask_tool}}`** rounds — finish round 1, act or summarize, then round 2 |
+| Related decisions (same feature area) | 1 **`{{tool:ask-user}}`**, up to **4** questions |
+| Unrelated decisions | **Separate** **`{{tool:ask-user}}`** rounds — finish round 1, act or summarize, then round 2 |
 | More than 4 decisions | Split across rounds; never one mega-form |
 
 **Forbidden**
@@ -66,7 +66,7 @@ Each question must make **scope obvious** in the `prompt`:
 
 1. **Identify blockers** — list only choices that change scope, policy, or acceptance criteria.
 2. **Draft prompts** — decision + context + options per question.
-3. **Call `{{ask_tool}}`** — use stable `id`s (kebab-case); set `allow_multiple` only when options may combine.
+3. **Call `{{tool:ask-user}}`** — use stable `id`s (kebab-case); set `allow_multiple` only when options may combine.
 4. **Stop** — no implementation, delegation, or speculative defaults until the user answers.
 5. **Reflect answers** — one short sentence confirming what was chosen, then continue.
 
@@ -76,7 +76,7 @@ Each question must make **scope obvious** in the `prompt`:
 
 > 1. Daily expiry? 2. Without errors? 3. Reading value? …
 
-**Good (`{{ask_tool}}`):**
+**Good (`{{tool:ask-user}}`):**
 
 | id | prompt (pattern) | options |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ Each question must make **scope obvious** in the `prompt`:
 
 ## Subagents
 
-When **`{{impl_agent_name}}`** or another subagent is blocked on user policy, return **draft `{{ask_tool}}` payloads** (ids, prompts, options) to the main thread — do not pick product defaults in the subagent.
+When **`standard`** or another subagent is blocked on user policy, return **draft `{{tool:ask-user}}` payloads** (ids, prompts, options) to the main thread — do not pick product defaults in the subagent.
 
 ## Relation to `base`
 

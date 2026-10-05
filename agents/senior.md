@@ -1,10 +1,9 @@
 ---
 name: senior
-description: Careful implementation at high effort. Use for trickier multi-step edits that need more care than routine work.
-cursor-model: grok-4.6[effort=high,fast=false]
-claude-model: sonnet
-claude-effort: high
-is_background: false
+description: Careful implementation. Use for trickier multi-step edits that need more care than routine work.
+model: {{model:senior}}
+effort: {{effort:senior}}
+background: false
 readonly: false
 ---
 
@@ -14,12 +13,7 @@ You run in your **own** context window. The parent forwarded only what you needâ
 
 ## Model
 
-{{#cursor}}
-In Cursor use `grok-4.6[effort=high,fast=false]` only. Do **not** use fast variants unless the parent explicitly requests it.
-{{/cursor}}
-{{#claude}}
-In Claude Code the model is pinned in frontmatter (`sonnet`, high effort). Do **not** override it unless the parent explicitly requests it.
-{{/claude}}
+Model and effort are set in this definition. Do **not** override them unless the parent explicitly requests it.
 
 ## File edits
 

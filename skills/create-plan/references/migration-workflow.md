@@ -8,7 +8,7 @@ Loaded by `create-plan` for a website/page-group migration (routes or domains fr
 
 ## Execution
 
-Phases 1, 2 and 4 run on `{{senior_agent_name}}`{{#cursor}} (`model="{{senior_agent_model}}"`){{/cursor}} per `create-plan` § Execution. Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{ask_tool}}`, and spawns `{{senior_agent_name}}` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
+Phases 1, 2 and 4 run on `senior` per `create-plan` § Execution. Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `senior` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
 
 ## Required skills (load before Phase 1)
 
@@ -29,11 +29,11 @@ Fixtures: representative URLs, not every route unless the batch is small. Viewpo
 
 Inventory source → target mapping and candidate architecture **before** proposing tasks.
 
-**1.1 Parse scope.** Extract and confirm: routes/URLs (`/products/*`, 27 legal pages); domain slug (`legal`, `core-marketing`); source (sibling repo, production URLs, MDX/CMS export); target (monorepo package, dataset); constraints (tier, redirects, out-of-scope header/forms, deadline); parent plan (child of `existing-website-migration-plan.md` or similar). Ambiguous scope → **one** `{{ask_tool}}` round; never guess route lists or source repo.
+**1.1 Parse scope.** Extract and confirm: routes/URLs (`/products/*`, 27 legal pages); domain slug (`legal`, `core-marketing`); source (sibling repo, production URLs, MDX/CMS export); target (monorepo package, dataset); constraints (tier, redirects, out-of-scope header/forms, deadline); parent plan (child of `existing-website-migration-plan.md` or similar). Ambiguous scope → **one** `{{tool:ask-user}}` round; never guess route lists or source repo.
 
 **1.2 Conventions.** With `project-best-practices`, read at minimum `SKILL.md`, `references/placement.md`, `references/website-structure.md`; task-relevant `references/cms-blocks.md`, `references/styling.md`; `docs/website/migration-sources.md` when migrating from production siblings. Also check `docs/website/block-inventory.md`, domain foundation docs (`docs/website/*-foundation.md`), existing `.local/` plans for the domain.
 
-**1.3 Source investigation.** Survey for the scoped routes: route manifest, page templates, MDX/component sequences; reusable patterns vs one-off sections; CMS shapes, images/assets, redirects; production vs source-repo inconsistencies (flag for parity policy). When scope spans **>3 routes** or multiple source files, use the `{{explore_agent_name}}` subagent (read-only search) — **one** investigation spawn per domain slug.
+**1.3 Source investigation.** Survey for the scoped routes: route manifest, page templates, MDX/component sequences; reusable patterns vs one-off sections; CMS shapes, images/assets, redirects; production vs source-repo inconsistencies (flag for parity policy). When scope spans **>3 routes** or multiple source files, use a read-only search subagent — **one** investigation spawn per domain slug.
 
 **1.4 Architecture dimensions.** Per route group, decide **candidates** (Phase 2 proposes):
 
@@ -56,7 +56,7 @@ Apply **placement.md** decision guides: judge by **potential** reuse; prefer ext
 
 ## Phase 2 — Propose (concise, ~2-minute scan)
 
-Present **only**: (1) scope recap — routes, source, out-of-scope; (2) architecture summary — layer → new/extend/reuse; (3) page-type & styling — new shells, token/variant overrides, **global** items called out; (4) CMS & data — schemas, migrator/import approach; (5) phases sketch — 3–6 phase names with one-line outcomes (no task IDs); (6) parity approach (fixtures, viewports, iterations); (7) numbered open points, using `{{ask_tool}}` for decisions that change implementation. No full file trees or route dumps unless asked.
+Present **only**: (1) scope recap — routes, source, out-of-scope; (2) architecture summary — layer → new/extend/reuse; (3) page-type & styling — new shells, token/variant overrides, **global** items called out; (4) CMS & data — schemas, migrator/import approach; (5) phases sketch — 3–6 phase names with one-line outcomes (no task IDs); (6) parity approach (fixtures, viewports, iterations); (7) numbered open points, using `{{tool:ask-user}}` for decisions that change implementation. No full file trees or route dumps unless asked.
 
 **Escalate to the user before Phase 3 when:** global theme / `components/ui/` changes; duplicate vs consolidate blocks (merge profile / megablock); production inconsistency with no foundation rule; CMS import to the production dataset; redirect policy, retired routes, Tier D divergence; parity scope (include nav/footer or not).
 

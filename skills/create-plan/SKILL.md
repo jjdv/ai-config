@@ -14,15 +14,15 @@ description: >-
 
 # Create Plan
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
-Produce and maintain plans structured for **`sequential-implementation`** and **`{{impl_agent_name}}`** delegation.
+Produce and maintain plans structured for **`sequential-implementation`** and **`standard`** delegation.
 
 **Contract:** A plan is **handoff-ready** only when a **fresh chat** can run `/sequential-implementation <plan-path>` with **no prior context** — read plan → follow **Fresh chat handoff** → delegate next open task.
 
 ## Execution
 
-Main thread is a supervisor: author and maintain plans via `{{spawn_tool}}(subagent_type="{{senior_agent_name}}"{{#cursor}}, model="{{senior_agent_model}}"{{/cursor}})`, passing this skill's text, project root and scope. Already running as `{{senior_agent_name}}` → author directly. The subagent cannot ask the user: it returns questions; the supervisor relays them with `{{ask_tool}}` and re-spawns with the answers. Task execution later uses `{{impl_agent_name}}`.
+Main thread is a supervisor: author and maintain plans via `{{tool:spawn-agent}}({{agent:senior}})`, passing this skill's text, project root and scope. Already running as `senior` → author directly. The subagent cannot ask the user: it returns questions; the supervisor relays them with `{{tool:ask-user}}` and re-spawns with the answers. Task execution later uses `standard`.
 
 **Migration planning** (website/page-group migration, "plan a migration of these pages"): read `references/migration-workflow.md` and follow it; it authors through this skill. Do not load it for other plans.
 
@@ -51,7 +51,7 @@ A plan is the **sole starting context** for a fresh chat and throughout executio
 | Contract piece | create-plan | sequential-implementation |
 | --- | --- | --- |
 | Structure | **Required plan structure** | Pre-flight validation |
-| Task IDs | One ID = one `{{impl_agent_name}}` spawn | Delegates in **Implementation order** |
+| Task IDs | One ID = one `standard` spawn | Delegates in **Implementation order** |
 | Order | **Open tasks only** | Fails if ✅ IDs listed |
 | Progress | **Plan maintenance** | Supervisor updates after each task |
 | Autonomy | § **Autonomy & authorization** (when present) | Pauses only on plan **User escalation** |
@@ -78,7 +78,7 @@ Add when the plan needs autonomous multi-session execution or domain-vs-global b
 | **Pre-approved operations** | Dev server, Playwright/parity scripts, prod compare (read-only), plan-scoped edits, plan-authorized CMS import, etc. |
 | **Auto-decisions** | When the supervisor/subagent proceeds without user (clear majority target, S/M gap fixes in domain scope) |
 | **User escalation required** | Non-obvious choices, ties, global/shared scope, Tier D last resort, commit/deploy unless pre-approved |
-| **Delegation template** | **Authorization** block copied into every `{{impl_agent_name}}` prompt: project root, allowed operations, forbidden global scope, "do not update the plan", escalation pointer |
+| **Delegation template** | **Authorization** block copied into every `standard` prompt: project root, allowed operations, forbidden global scope, "do not update the plan", escalation pointer |
 
 Overrides **External environment boundary** for operations pre-approved here (e.g. Sanity MCP import).
 
@@ -206,12 +206,12 @@ Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slu
 
 ## Task sizing and task-fit (mandatory)
 
-**One task ID = one `{{impl_agent_name}}` spawn** ({{#cursor}}`model="{{impl_agent_model}}"`, {{/cursor}}foreground), finishable in a **single subagent session** with one primary verification path — not an epic, not a sequence of follow-up spawns. When drafting or extending a plan (and after scope grows mid-initiative), apply the checklist to **each open task** (read its linked task file). **Fail any row → split** (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
+**One task ID = one `standard` spawn** (foreground), finishable in a **single subagent session** with one primary verification path — not an epic, not a sequence of follow-up spawns. When drafting or extending a plan (and after scope grows mid-initiative), apply the checklist to **each open task** (read its linked task file). **Fail any row → split** (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
 
 | # | Criterion | Pass when | Fail → split when |
 | --- | --- | --- | --- |
 | 1 | **One outcome** | Summary is one concrete deliverable a reviewer can sign off | Summary joins unrelated outcomes with "and" (tokens **and** layout **and** CMS seed **and** parity) |
-| 2 | **One session** | One `{{impl_agent_name}}` spawn, no planned follow-up for the same ID | Needs multiple runs, or supervisor already expects a follow-up |
+| 2 | **One session** | One `standard` spawn, no planned follow-up for the same ID | Needs multiple runs, or supervisor already expects a follow-up |
 | 3 | **Bounded scope** | ≤8 primary paths, or one cohesive subsystem | >8 primary paths, or 3+ **unrelated** subsystems (Studio schema + React layout + MCP import) |
 | 4 | **Acceptance cap** | ≤7 criteria, all serving the same outcome | >7 criteria, or criteria belonging to separate tasks |
 | 5 | **Single verify track** | One primary **Verification** command or manual check | Multiple independent tracks (full parity suite **and** CMS import **and** schema deploy) |
@@ -318,8 +318,8 @@ Use `—` in Details when the summary is sufficient (no task file).
 4. Apply **code** user rule for source-editing tasks — run its checklist before marking each task done.
 5. Load initiative refs from Context references.
 6. **Next task:** `<id>` only — open `.local/<slug>/tasks/<id>.md`.
-7. Load task-specific skills listed in task spec or phase (e.g. `~/.agents/skills/improve-parity/SKILL.md`, `sanity-best-practices`, `sanity-data-handling`).
-8. Delegate `{{impl_agent_name}}`{{#cursor}} (`model="{{impl_agent_model}}"`){{/cursor}} with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
+7. Load task-specific skills listed in task spec or phase (e.g. `{{path:skills}}/improve-parity/SKILL.md`, `sanity-best-practices`, `sanity-data-handling`).
+8. Delegate `standard` with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
 9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required** (not fixed task IDs).
 10. Prerequisites: …
 ```

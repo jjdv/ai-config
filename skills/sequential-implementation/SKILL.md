@@ -10,9 +10,9 @@ disable-model-invocation: true
 
 # Sequential implementation
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
-Act as **supervisor**: do not implement task work yourself unless the user explicitly overrides. Delegate each task to **`{{impl_agent_name}}`** (`subagent_type="{{impl_agent_name}}"`{{#cursor}}, `model="{{impl_agent_model}}"`{{/cursor}}), then **update progress as the last action** before starting the next task.
+Act as **supervisor**: do not implement task work yourself unless the user explicitly overrides. Delegate each task to **`standard`**, then **update progress as the last action** before starting the next task.
 
 **Keep going through open tasks** until a stop condition applies — do not stop after each task to ask whether to continue.
 
@@ -54,11 +54,11 @@ Before **every** delegation, evaluate the **next open task** against the **Task-
 
 | Result | Supervisor action |
 | --- | --- |
-| **Pass** | Delegate to `{{impl_agent_name}}` as usual |
+| **Pass** | Delegate to `standard` as usual |
 | **Fail** | **Do not delegate.** Report failing criteria and task ID(s). Require **`create-plan`** (or user-approved split): new task IDs, updated **Implementation order**, task files, **Fresh chat handoff**. Re-run **`check-plan`** before resuming |
 | **Borderline** (one criterion marginal) | Prefer split if marginal on **One session** or **Bounded scope**; otherwise delegate and watch for follow-up spawn — if follow-up needed for same ID, treat as fail and split before next plan task |
 
-If a `{{impl_agent_name}}` spawn **cannot finish** the task without a follow-up for the **same ID** (not lint/typecheck fix), stop after that task, mark plan for **create-plan** split, and do not continue **Implementation order** until the plan is re-synced.
+If a `standard` spawn **cannot finish** the task without a follow-up for the **same ID** (not lint/typecheck fix), stop after that task, mark plan for **create-plan** split, and do not continue **Implementation order** until the plan is re-synced.
 
 Pasted plans without task files: apply the same checklist from inline task text in the plan.
 
@@ -103,14 +103,11 @@ Follow the plan's **Plan maintenance** section when present. Default checklist a
 
 ## Delegating tasks
 
-Delegate every implementation task to **`{{impl_agent_name}}`** with **{{impl_agent_label}} only**:
+Delegate every implementation task to **`standard`** with the standard implementation agent only:
 
 ```text
-{{spawn_tool}}(
-  subagent_type="{{impl_agent_name}}",
-{{#cursor}}
-  model="{{impl_agent_model}}",
-{{/cursor}}
+{{tool:spawn-agent}}(
+  {{agent:standard}},
   run_in_background=false,
   description="…",
   prompt="…"
@@ -119,15 +116,7 @@ Delegate every implementation task to **`{{impl_agent_name}}`** with **{{impl_ag
 
 ### Model (mandatory)
 
-{{#cursor}}
-- **Always** pass `model="{{impl_agent_model}}"`. Subagents do **not** inherit the correct model unless you set it explicitly.
-- **Never** use fast variants or omit `model`.
-- If `{{impl_agent_model}}` is not in the Task tool's allowed model list, stop and report — do not substitute silently.
-{{/cursor}}
-{{#claude}}
-- The `{{impl_agent_name}}` agent is pinned to `sonnet`; do **not** pass `model`.
-- **Never** use fast variants.
-{{/claude}}
+{{block:spawn-rule}}
 
 ### Spawn hygiene
 
@@ -177,7 +166,7 @@ When a task finishes, decide the next action using **only** the result — never
 ### Decision rule (apply in order)
 
 1. **Pause** — if **any extra input from the user** is required per the plan § **User escalation required** (or subagent `ESCALATE` / `ESCALATE: global-scope`). **Not** because a task title says “user gate” when plan auto-decisions apply.
-2. **Follow-up subagent** — if a **follow-up** is needed that does **not** require user input (e.g. fix typecheck/lint from the same task). Run a separate `{{impl_agent_name}}` subagent, then re-apply this decision rule.
+2. **Follow-up subagent** — if a **follow-up** is needed that does **not** require user input (e.g. fix typecheck/lint from the same task). Run a separate `standard` subagent, then re-apply this decision rule.
 3. **Next plan task** — **otherwise**, go to the **next open task** in the plan. This is the **default** when the task succeeded with no blockers.
 
 Walk tasks in plan order; the first still-open item is always next.
@@ -195,8 +184,8 @@ Walk tasks in plan order; the first still-open item is always next.
 
 - Asking "Want me to continue with T02?" after T01 succeeded
 - Stopping because the pasted plan says "one task per session" — when **this skill** is active, **these continuation rules override** unless the user also said to limit scope
-- Starting the next plan task in the parent context instead of delegating to `{{impl_agent_name}}`
-- Using any model other than `{{impl_agent_model}}` for implementation subagents
+- Starting the next plan task in the parent context instead of delegating to `standard`
+- Spawning implementation subagents in any way that breaks the model rule above
 - Omitting the **Conventions** block when `project-best-practices` exists in the project's `.agents/skills/`
 - Shipping code that does not **comply** with `project-best-practices` when that skill exists in the project root
 - Shipping source edits without applying the **code** user rule checklist when the task touched source files
@@ -212,7 +201,7 @@ Repeat until a stop condition applies:
 pick next task → build prompt → delegate to implementation subagent → review result → update plan → (pause | follow-up | next task)
 ```
 
-- **Sequential only** — one `{{impl_agent_name}}` task at a time unless the user explicitly requests parallel runs.
+- **Sequential only** — one `standard` task at a time unless the user explicitly requests parallel runs.
 - **No plan edits by subagent** — only the supervisor updates the plan.
 - **Preserve parent context** — rely on subagent summaries, not full task file dumps.
 
@@ -226,7 +215,7 @@ Subagents cannot talk to the user directly. The **supervisor** (you) is the only
 
 1. **Surface** the question(s) to the user — what decision is needed.
 2. **Wait** for the user's answer. Do not guess product or policy choices.
-3. **Resume** with a new `{{impl_agent_name}}` delegation that includes the user's answer.
+3. **Resume** with a new `standard` delegation that includes the user's answer.
 4. Mark the plan task `⏸ Blocked` with the question in **Open questions** until answered (file mode).
 
 ### When you need user input (supervisor)

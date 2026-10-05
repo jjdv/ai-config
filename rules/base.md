@@ -1,34 +1,13 @@
 ---
 description: Mandatory — supervisor-only main thread; always delegate when new context is needed
-alwaysApply: true
+always: true
 ---
 
 # Base (mandatory)
 
 ## Tool mapping
 
-This rule is rendered for {{tool_name}}.
-
-{{#cursor}}
-| Term in this rule | Cursor |
-|-------------------|--------|
-| Subagent spawn | `Task` |
-| Implementation subagent (`{{impl_agent_name}}`) | `{{impl_agent_name}}` agent, `model="{{impl_agent_model}}"` only |
-| Ask the user | `AskQuestion` |
-| Context tools | `Read`, `Grep`, `Glob`, `Shell`, `Write`/`StrReplace`/`Delete`, browser, MCP |
-| Harness sync (rules only) | `cursor_dialog` MCP |
-| Skill location | `~/.agents/skills/<name>/SKILL.md` |
-{{/cursor}}
-{{#claude}}
-| Term in this rule | Claude Code |
-|-------------------|-------------|
-| Subagent spawn | `Agent` |
-| Implementation subagent (`{{impl_agent_name}}`) | `{{impl_agent_name}}` agent (pinned to `sonnet`; do not pass `model`) |
-| Ask the user | `AskUserQuestion` |
-| Context tools | `Read`, `Grep`, `Glob`, `Bash`, `Write`/`Edit`, browser, MCP |
-| Harness sync (rules only) | none needed — rules are files |
-| Skill location | `~/.claude/skills/<name>/SKILL.md` |
-{{/claude}}
+{{block:tool-mapping}}
 
 ## Pre-turn gate (mandatory — every reply)
 
@@ -36,7 +15,7 @@ This rule is rendered for {{tool_name}}.
 
 | Step | What to do | If threshold met |
 |------|------------|-------------------|
-| **1. Classify** | Does answering need **new context**? (see **Supervisor-only**) | Spawn the implementation subagent **in this turn** before Read/Grep/Glob/Shell/Write/browser/MCP |
+| **1. Classify** | Does answering need **new context**? (see **Supervisor-only**) | Spawn the implementation subagent **in this turn** before any context tool (read files, search code, run shell commands, write files, browser automation, external integrations) |
 | **2. Main-thread only** | Answerable from **agent knowledge + this chat** only, with **no** context tools | Main thread OK — conversation, ask-the-user tool, spawn subagents, relay |
 
 ## Chat start (first turn)
@@ -49,8 +28,8 @@ This rule is rendered for {{tool_name}}.
 
 **Default: always delegate execution.** Main thread is the **supervisor** — conversation, clarification, relay, and spawning subagents.
 
-- Any work that needs **new context** → the **implementation subagent** ({{#cursor}}Cursor: `{{impl_agent_name}}` with `model="{{impl_agent_model}}"` only, never fast variants{{/cursor}}{{#claude}}`{{impl_agent_name}}` agent, pinned to `sonnet`{{/claude}}; never in the main thread).
-- Default tier is `{{impl_agent_name}}`; escalate by agent name only when needed: `senior` (trickier multi-step edits), `principal` (complex cross-cutting work), `expert` (hardest problems: deep debugging, architecture, review). Each tier pins its own model and effort.
+- Any work that needs **new context** → the **implementation subagent** (the `standard` agent; never in the main thread).
+- Default tier is `standard`; escalate by agent name only when needed: `senior` (trickier multi-step edits), `principal` (complex cross-cutting work), `expert` (hardest problems: deep debugging, architecture, review).
 - Large goals → split into subtasks; **one subagent spawn per subtask**.
 - Subtasks that **may** touch the same files → **sequential** (wait between spawns); parallel only when paths are clearly isolated.
 - Relay, interactive loop, and anti-patterns: the `long-chat-mode` skill
@@ -66,13 +45,13 @@ The main thread may answer **only** when the reply needs **no tools that gather 
 - Scope discussion, trade-offs, approvals, relaying subagent output
 - The ask-the-user tool
 - Spawning subagents
-- Harness sync (rules/skills/agents only{{#cursor}}; Cursor: `cursor_dialog` MCP{{/cursor}})
+- Harness sync (rules/skills/agents only)
 
 **Forbidden in main thread — delegate first:**
 
-- Context tools (see mapping), including shell and file writes
-- Browser, Playwright, or any MCP tool call (except harness sync above)
-- Reading a skill or file not already in context (including `.context/index.md`, logs, config under {{#cursor}}`~/.cursor/` or {{/cursor}}`~/.claude/`, repo files)
+- Context tools (see tool mapping), including shell commands and file writes
+- Browser automation or any external-integration tool call (except harness sync above)
+- Reading a skill or file not already in context (including `.context/index.md`, logs, tool config directories, repo files)
 - Investigate, debug, fix, implement, refactor, verify (tests, builds, browser repro)
 
 **When unsure** whether memory is sufficient → **delegate**.
@@ -119,7 +98,7 @@ Applies to **all** edits — code, types, config, docs, rules — in the main th
 
 ## Harness sync (mandatory)
 
-After **creating, updating, renaming, or deleting** any rule, skill, or agent in {{#cursor}}Cursor or {{/cursor}}Claude Code user config ({{#cursor}}`~/.agents/skills/`, `~/.cursor/agents/`, Cursor User Rules, {{/cursor}}`~/.claude/{skills,agents,rules}/`, and matching paths in **ai-config**): **same turn**, follow **`update-harness`** for every affected name **before** replying done. Do not wait for `/update-harness`.
+After **creating, updating, renaming, or deleting** any rule, skill, or agent in the tool's user config (like installed skills, agents and rules, and matching paths in **ai-config**): **same turn**, follow **`update-harness`** for every affected name **before** replying done. Do not wait for `/update-harness`.
 
 ## Workflow
 

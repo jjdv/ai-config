@@ -1,154 +1,93 @@
 ---
 name: merge-ai-config
 description: >-
-  Bidirectional merge of ai-config: reconciles every skill, agent, and rule between the repo
-  and this machine's Claude Code AND Cursor user config, then writes self-contained copies to
-  the repo and to both tools. Use after git pull, after local edits, or on a new machine.
-  Direct invocation only — /merge-ai-config.
+  Reconcile every item of the ai-config repo with this tool, driven by this tool's registry:
+  inventory by sync state, adapt, reverse-adapt installed edits, write repo, tool and registry,
+  list removal candidates, verify. Use after git pull, after local edits, or on a new machine.
+  Direct invocation only: /merge-ai-config (or /merge-ai-config import <name>).
 disable-model-invocation: true
 ---
 
 # merge-ai-config
 
-One pass, all destinations. The **repo** holds one canonical definition per skill, agent, and rule. Each tool gets its own **full, self-contained copy** (no `@` includes, no "see shared file" pointers — agents do not follow references). This skill reconciles whatever differs, then writes the repo and both tools.
+Full reconcile between the repo and the **current tool**. Narrower runs of the same procedure for named items: `update-harness`. Formats and the sync-state table: `update-harness/references/formats.md` (§ 2 files, § 3 hashes, § 4 states). Placeholders: `update-harness/references/placeholders.md`. Adaptation, reverse adaptation, unmapped protocol, canonical-write checks and the verify checklist: `update-harness/references/adaptation.md`. This file restates none of them.
 
-## Scope — only what is in the repo
+## 1. Scope
 
-ai-config manages **custom harness only**: items that exist in the repo's `skills/`, `agents/`, `rules/`. Everything else is **tool-specific** and **out of scope** — never read, adopted, merged, deleted, or reported as an orphan. That covers items that exist only in one tool's folders (e.g. a hand-made `~/.claude/skills/bar/`{{#cursor}} or `~/.cursor/agents/foo.md`{{/cursor}}), tool-managed content ({{#cursor}}`~/.cursor/skills-cursor/`, {{/cursor}}plugins), legacy backups (`*.pre-ai-config-*`{{#cursor}}, `~/.cursor/skills/`, `~/.agents/partials/`, `~/.cursor/rules/`{{/cursor}}), and `CLAUDE.md`/settings.
+- Runs against **this tool's registry only**. Other tools catch up through their own `merge-ai-config` run; never read or write another tool's directory under `<xdg>/ai/`.
+- Managed = listed in `registry.json`. A repo item that is not in the registry is **new**. Anything in the tool that is neither registered nor in the repo is **foreign**: never adopted, registered, edited or deleted, whatever an old install list says; report only a count.
+- Items in `profile.md` § Excluded items are skipped: not installed, not adapted, not registered. An excluded item that is already installed stays put and is listed as "excluded". There is no per-item tool restriction key; exclusion is per tool and machine-local.
+- **Import** of a foreign item into the repo happens only on explicit user nomination (`/merge-ai-config import <name>`, or the user naming it). Never automatic, never inferred from the inventory.
+- Installed files are rendered output: edit canonical repo files, not installed copies, unless the user edited the installed copy on purpose (that is the "installed edited" state below).
 
-An item joins ai-config only by being added to the repo (authoring there, or naming it to `update-harness`) — never because the merge noticed it on a machine. An item that is in the repo **and** on a machine is managed on both sides, whichever tool it lives in.
+## 2. Step 0: repo root and intent
 
-Works from Claude Code or Cursor. Everything is plain files except **Cursor User Rules**, which can only be written from Cursor (see § Cursor User Rules).
+1. Repo path: `${XDG_CONFIG_HOME:-$HOME/.config}/ai/repo-path`. If the current workspace is the repo clone (contains `skills/merge-ai-config/` and `BOOTSTRAP.md`) and differs from the file, confirm with the user before rewriting it. Missing and no workspace match: ask.
+2. Read `<xdg>/ai/<tool-id>/profile.md` and `registry.json` for the tool you run in. No profile: the tool was never bootstrapped; stop and point to `BOOTSTRAP.md` in the repo.
+3. `git -C <repo> status --short` and `git -C <repo> log --oneline -5` to see deliberate recent changes. Read the content of changes for items that turn out to differ, not just file names. A deleted repo item with a registry entry is a removal candidate, never silently restored.
 
-## Canonical repo format
+## 3. Step 1: inventory
 
-| Kind | Repo | Claude Code | Cursor |
-| --- | --- | --- | --- |
-| Skill | `skills/<name>/` (SKILL.md + bundled files) | `~/.claude/skills/<name>/` | `~/.agents/skills/<name>/` |
-| Agent | `agents/<name>.md` | `~/.claude/agents/<name>.md` | {{#cursor}}`~/.cursor/agents/<name>.md`{{/cursor}}{{#claude}}Cursor agents dir (path in `inventory` output){{/claude}} |
-| Rule | `rules/<name>.md` | `~/.claude/rules/<name>.md` | User Rule titled `<name>` (MCP) |
+1. Compute `S`, `I`, `M` for every registry item with the recipes in `formats.md` § 3 (`sha256sum`, `find`, `jq`; no script) and compare with the registry's `S0`, `I0`, `M0`.
+2. List repo items missing from the registry (respecting Excluded items), registry items whose repo source is gone, and repo items whose name already exists unmanaged in the tool.
+3. Count foreign tool items. Do not list them by name.
+4. Print a compact table: kind, name, state. Non-file items (rules stored by a mechanism that `profile.md` § Targets describes) are read through that mechanism; if it is unreachable, mark them pending and continue with the rest.
 
-- **Skills** are rendered per tool (text files through the template layer, binaries copied unchanged).
-- **Agents** are canonical files in `agents/`; `lib/ai_sync.py` renders each tool's dialect. The canonical frontmatter keys are listed in `$REPO/README.md`; produce canonical agents with `ai_sync.py import`, never by hand-translating a tool's dialect.
-- **Templates.** Repo bodies are shared by both tools and rendered through `\{{#cursor}}…\{{/cursor}}` / `\{{#claude}}…\{{/claude}}` blocks and `\{{placeholder}}`s defined in `$REPO/models.json` (syntax: `$REPO/README.md` § Templating). Machine copies are **rendered output**: never paste a machine copy over a repo file; edit the repo template instead.
-- **Rules** are canonical in Cursor's frontmatter (`description`, `alwaysApply`, `globs`). Claude gets `paths:` from `globs` when not `alwaysApply`.
-- **`targets.json`** (repo root, optional) restricts an item to one tool: `{"agents": {"gpt": ["cursor"]}, "skills": {"x": ["claude"]}}`. Unlisted = both. Use it for tool-specific items (Cursor model-lane agents, skills that call Cursor-only tools).
-- Tool-managed directories of either tool are never read or written{{#cursor}} (e.g. `~/.cursor/skills-cursor/`){{/cursor}}.
+## 4. Step 2: classify and ask
 
-## Machine-local state (never synced to the repo)
+Classify each item with the state table in `formats.md` § 4 and act as follows:
 
-- `~/.ai-config/repo-path` — absolute path of this machine's clone.
-- `~/.ai-config/local.md` — names (`## Skills`, `## Agents`, `## Rules`) to exclude on this machine. Add with `/set-local`.
-
-Repo root resolution, first match wins: (1) current workspace has `skills/merge-ai-config/` and `lib/ai_sync.py`; (2) `~/.ai-config/repo-path`; (3) ask. If resolved from the workspace, rewrite `repo-path`. Set `REPO=<root>` and use `python3 $REPO/lib/ai_sync.py`.
-
-## Step 0 — Git intent (which side's differences are intended)
-
-```bash
-git -C $REPO log --oneline -5
-git -C $REPO diff HEAD~3..HEAD --name-status     # clamp to available history
-```
-
-Recent commits record deliberate changes. File names are not enough — read the **content** of what changed for each item that differs (`git -C $REPO log -p -3 -- <path>`).
-
-- **Structure:** `D old` + `A new` of the same kind = rename/supersede (delete the old item from both tools). `D` alone = remove from the machine. Never resurrect repo-deleted items unless asked.
-- **Content:** for each item where a machine copy differs from the repo, check whether the machine copy equals an **older repo version** (`git show HEAD~N:<path>`; render agents/rules through `lib/ai_sync.py` first; skills compare directly). Look back past 3 commits if recent ones do not match.
-  - **Matches an older version** → the machine has no edits of its own; the later repo changes are intended. Take the repo version; do not revert them.
-  - **Matches no version** → the machine copy has local edits: merge (Step 3), keeping reasonable, helpful changes from both sides.
-- **Timestamps (tie-breaker only):** if still ambiguous, compare the path's last commit date (`git log -1 --format=%cI -- <path>`) with the machine file's mtime; the newer side is more likely intentional. Cursor User Rules have no mtime. Never let a timestamp override what the content comparison shows.
-- No commits yet: nothing to infer; merge by content.
-
-## Step 1 — Inventory
-
-```bash
-python3 $REPO/lib/ai_sync.py inventory --repo $REPO
-```
-
-Per skill/agent/rule it reports `repo` (bool), the machine path (`claude_path`, `cursor_path`) when present, and, for `claude` and `cursor`: `same`, `differs`, `missing` (repo has it, machine does not), `tool-specific` (on the machine only — **ignore**), `not-targeted`/`present-but-not-targeted`. Items in `local.md` are already omitted. "same" means the machine file equals exactly what install would write (the **rendered** output). The `excluded` key lists what `targets.json` keeps off each tool: **print it as "Excluded by targets.json" per tool** (e.g. Cursor-only agents are intentionally absent from Claude Code).
-
-{{#cursor}}
-Then list **Cursor User Rules** (MCP `cursor_dialog`, `scope: user`, `action: list`) if available, and consider only titles that match a repo rule; other titles are tool-specific. If MCP is unavailable, say so and skip: Cursor catches up on its next merge.
-{{/cursor}}
-{{#claude}}
-Cursor User Rules cannot be listed or written from Claude Code: report them as pending; Cursor catches up on its next merge.
-{{/claude}}
-
-Ignore every `tool-specific` entry (do not even list them, except as a count in the report). Print a compact table of repo items that are not `same`, then classify:
-
-| Status | Action |
+| State | Action |
 | --- | --- |
-| `same` on all targeted sides | nothing |
-| `missing` on a machine side | write from repo |
-| `differs` | merge (Step 3) |
+| in sync | nothing |
+| repo or map changed (`I=I0`) | re-adapt, write installed, refresh hashes; no confirmation |
+| installed edited (`S=S0`, `M=M0`, `I!=I0`) | reverse-adapt, show canonical diff, write repo after yes |
+| map changed, installed edited (`S=S0`, `M!=M0`, `I!=I0`) | reverse-adapt, three-way merge with the repo version and the re-rendered result (`adaptation.md` § 4); clean and unambiguous: apply and report; overlap or doubt: ask |
+| both changed (`S!=S0` and `I!=I0`) | three-way merge from the `S0` version (`adaptation.md` § 4), ask on conflict, write after yes |
+| installed missing | ask: restore or drop the entry |
+| new (in repo, not registered, name free) | list; install and register after the user confirms scope |
+| collision (in repo, not registered, name exists in tool) | ask per item: skip, adopt after diff, or replace after backup; never silent |
+| removal candidate (registered, not in repo) | list with installed path; delete installed item and drop entry only after yes |
+| foreign | never touched; count only |
 
-## Step 2 — Normalize
+Show the plan, then batch the ownership questions into as few asks as possible: scope of new items, collisions, removals, restores, reverse imports and merge conflicts. One focused ask per decision type, 2-4 concrete options, naming each item and showing the diff or list the answer is about. Ask with the tool's ask-user mechanism in the main thread. Do not ask about hash refreshes or about re-adapting after a repo or map change.
 
-For each repo item that `differs`, convert the machine copy to canonical before comparing:
+No tool equivalent for something an item needs: ask (skip or how to emulate); never pick a fallback.
 
-```bash
-python3 $REPO/lib/ai_sync.py import agent-claude ~/.claude/agents/<n>.md
-python3 $REPO/lib/ai_sync.py import agent-cursor <cursor_path from inventory>
-python3 $REPO/lib/ai_sync.py import rule-claude  ~/.claude/rules/<n>.md
-python3 $REPO/lib/ai_sync.py import rule-cursor  <file-with-user-rule-content>   # strips the "# title" line
-```
+## 5. Step 3: reverse-adapt and merge
 
-Then, on every candidate:
+For installed-edited, map-changed-installed-edited, both-changed and nominated-import items:
 
-1. **Inline references.** Replace `@path` / "see shared file" pointers with the referenced content if it exists. Unresolvable pointers: keep the best inline text from another side; if none, ask.
-2. Drop wrapper cruft (`# Foo (shared)` headings with no content).
-3. Preserve information lost by conversion: Claude rules lack `alwaysApply`; Claude agents lack the Cursor model key. When the repo copy has that field, keep it — never downgrade a canonical field because a tool's dialect cannot express it.
-4. Handle **tool-specific content** (one tool's spawn/ask tool names, model ids, MCP names, tool-only paths) **without asking**: translate it through `$REPO/models.json` placeholders (`\{{spawn_tool}}`, `\{{ask_tool}}`, `\{{impl_agent_model}}`, …) or wrap it in a `\{{#cursor}}` / `\{{#claude}}` block. **Never write a Cursor-only model id or name in a shared body outside a `\{{#cursor}}` block**; `verify --tool claude` rejects it. If the item is meaningless in one tool, restrict it with `targets.json`. Never drop content. List each decision in the report.
+- Reverse-adapt per `adaptation.md` § 4: tool keys found in installed text return to capabilities by lookup in the `tool:*` entries of `placeholders.json` (§§ 4-5 there cover a key with no entry: unmapped protocol). Model and effort handling: `adaptation.md` § 3; a model or effort that differs from the map is a local override, never written to the repo.
+- Show the full canonical diff before writing. Run the canonical-write checks (`adaptation.md` § 6) on every canonical file changed; fix the text, not the check.
+- Merge per `adaptation.md` § 4: the base is the `S0` version from the repo's git history; no recoverable `S0` means a two-way comparison and a question on every difference.
+- A nominated import of a foreign item: show the reverse-adapted canonical text and any new placeholder proposals first; the repo edit stays uncommitted.
 
-## Step 3 — Merge
+## 6. Step 4: write
 
-For each differing repo item produce **one canonical document** from all sides (repo, Claude, Cursor):
+Only after every ask is resolved, in this order:
 
-- Keep **reasonable, helpful** changes from every side; never undo an intended repo change (Step 0).
-- Keep the more complete procedure when one side is a stub; keep the better single-line `description`; valid frontmatter; `name` equals folder/file stem.
-- Do not duplicate paragraphs. Prefer repo naming for duplicates.
-- Skill dirs: merge `SKILL.md` and bundled files (`references/`, scripts); `assets/` of merge-ai-config is machine-local and never merged.
-- Self-contained output.
-- When a shared item needs different wording per tool, write it so both read correctly (e.g. "run the commit skill") rather than naming one tool's mechanism; if impossible, restrict via `targets.json`.
+1. **Repo** (after the `adaptation.md` § 6 checks): canonical files under `skills/`, `agents/`, `rules/`; `git rm` for superseded paths the user confirmed.
+2. **Tool**: adapted output per `adaptation.md` §§ 2-3 for files and directories; non-file items through the mechanism in `profile.md` § Targets. Never write an unrendered placeholder or adaptation note to the tool.
+3. **Registry**: re-hash the written files and compare with the expected content; then update `source_hash`, `installed_hash`, `map_hash`, add entries for newly confirmed items, drop entries of deleted ones. A hash mismatch after a write: stop, show both sides, do not update that entry.
 
-### Ask — required pauses
+Non-file items that cannot be reached: retry once, report as **pending**, leave their registry entries untouched.
 
-Stop and ask (batch related questions, 2–4 concrete options each, name the item and paths, tight diff summary) for: overlapping names with same intent; same name with substantially different bodies; incompatible guidance; destructive actions (deleting); invalid frontmatter; unresolvable pointers; unknown repo root; MCP failures.
+## 7. Step 5: removal candidates
 
-Do not ask for: whitespace-only diffs, writing a repo item to a machine side that lacks it, one side strictly a subset (keep the superset), or anything covered by a global policy the user already stated in this chat (state the policy in the report).
+Registered items with no repo counterpart: delete the installed item (file, directory or non-file entry) and its registry entry only after the user confirms. Declined ones stay registered and are listed again next run. Never delete an unregistered or foreign item.
 
-## Step 4 — Write
+## 8. Step 6: verify
 
-Only after all asks are resolved.
+Run the verify checklist in `adaptation.md` § 7 over every registry item. Any error fails the merge: fix the canonical item (never the installed copy) and re-run. Do not restate the checklist here.
 
-1. **Repo.** Write merged canonical files under `skills/`, `agents/`, `rules/` (and `targets.json` if changed). `git rm`/delete superseded paths.
-2. **Machine, files — script, not hand-copying:**
+## 9. Step 7: report
 
-   ```bash
-   python3 $REPO/lib/ai_sync.py install --repo $REPO --tool both
-   ```
+- Counts per sync state and per action taken; new, collision, removal and import decisions; items left pending (non-file); local overrides; excluded items; foreign item count.
+- Verify checklist result (each item).
+- `git -C <repo> status --short`.
+- Remind the user to commit and push so other tools can catch up through their own `merge-ai-config`.
 
-   Writes rendered skills, agents and Claude rules for both tools, honoring `targets.json` and `local.md`. It never deletes and never touches `merge-ai-config/assets/`.
-3. **Cursor User Rules.**{{#cursor}} `python3 $REPO/lib/ai_sync.py export-rules --repo $REPO` prints `[{title, content}]`. In `cursor_dialog`: `list` first, match by **title**, then `update` (id + title + content) or `add`. Ids are machine-local. Never write `~/.cursor/rules/`.{{/cursor}}{{#claude}} Not writable from Claude Code: report as pending.{{/claude}}
-4. **Removed/renamed repo items** (from Step 0 git intent, or `targets.json` narrowed): delete the old skill dir / agent file / rule from both tools{{#cursor}} (User Rule via MCP `remove`){{/cursor}} — only items that were in the repo. Just do it and list it. Broken symlinks at `~/.claude/{skills,agents,rules}` block writes: tell the user to run `./bootstrap.sh`.
-5. **Verify — the merge fails on any error:**
+## 10. Self-merge
 
-   ```bash
-   python3 $REPO/lib/ai_sync.py verify --repo $REPO --tool claude
-   python3 $REPO/lib/ai_sync.py verify --repo $REPO --tool cursor
-   ```
-
-   It checks that no Claude output or source (outside Cursor-only blocks) matches the deny-list in `models.json`, that every targeted item is installed, and that installed files equal the rendered output. Fix the repo templates (never the installed files) and re-run until both pass.
-
-Re-run `inventory` and confirm every non-excluded item is `same` (or `not-targeted`).
-
-## Step 5 — Report
-
-Repo items merged / written to a machine side (say which tool) · git intent (removed/renamed) · locally excluded · pointers inlined · conflicts asked vs auto-resolved · tool-specific *content* decisions (reworded / `targets.json`) · count of ignored tool-specific machine items · Cursor User Rules synced or **pending** · `verify` result for both tools (pass/fail, error lines) · agents/skills intentionally Cursor-only (`Excluded by targets.json`) · `git -C $REPO status --short`. Remind the user to commit and push.
-
-## Self-merge
-
-`merge-ai-config` and the other maintenance skills are ordinary repo items. Merge them like any other; never overwrite machine-local `~/.ai-config/`.
-
-## Out of scope
-
-Everything outside the repo's items (see § Scope), git merge/rebase (use `/pull-ai-config`), commit and push.
+`merge-ai-config`, `update-harness` and the other maintenance skills are ordinary repo items: reconcile them like any other, with the same states and confirmations.

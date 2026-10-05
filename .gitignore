@@ -1,4 +1,3 @@
-lib/__pycache__/
-*.pyc
+.local/
 .tmp/
 *.bak

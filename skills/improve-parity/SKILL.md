@@ -11,7 +11,7 @@ description: >-
 
 # Improve parity
 
-{{tool_mapping_note}}
+{{block:tool-note}}
 
 Repeatable **CSS-first, then visual** compare → fix loop between an **implemented page** (local dev) and a **reference page** (production URL and/or reference repo source).
 
@@ -365,7 +365,7 @@ Run **N** compare→fix iterations (default **2**, same N as Phase A unless user
 - Resize to target viewport(s) — default **1250px**; when user names breakpoints (e.g. **1250 / 900 / 320**), run B1 at **each** width before B2.
 - Load local and production side by side (or capture both).
 - Visual diff + DOM structure; confirm CMS content present (no empty fixture fallbacks unless user scoped that).
-- Screenshots → `.tmp/playwright-mcp/` or `.tmp/{{browser_tmp_dir}}/` only.
+- Screenshots → `.tmp/playwright-mcp/` or `.tmp/{{path:browser-tmp}}/` only.
 - Output: **≤10 visual issues**, ranked by impact; **type** per issue; likely fix paths.
 - For each failing region, note whether residual gap is **CSS-fixable**, **Structural**, or **Original-inconsistency** (use height Δ + A1 classification).
 - When body/chrome Tier B is sub-99% but § Vertical rhythm spacing probes pass, report **probe pass** separately — do not imply margins are still wrong.
@@ -497,13 +497,13 @@ When multiple pages: finish **Phase A→B on one page** (or one coherent scope) 
 
 One coherent chunk per spawn (~15min). **Do not bundle multiple full invocations in one subagent.**
 
-| Step | Subagent | Model |
-| --- | --- | --- |
-| A1 CSS compare + inconsistency cross-check | `playwright` or `{{impl_agent_name}}` | `{{impl_agent_model}}` for the implementation subagent |
-| A2 CSS fix | `{{impl_agent_name}}` | `{{impl_agent_model}}` |
-| B1 Visual compare | `playwright` (prefer headless script) | — |
-| B2 Visual fix | `{{impl_agent_name}}` | `{{impl_agent_model}}` |
-| Structural report synthesis | supervisor or `{{impl_agent_name}}` read-only | `{{impl_agent_model}}` |
+| Step | Subagent |
+| --- | --- |
+| A1 CSS compare + inconsistency cross-check | `playwright` or `standard` |
+| A2 CSS fix | `standard` |
+| B1 Visual compare | `playwright` (prefer headless script) |
+| B2 Visual fix | `standard` |
+| Structural report synthesis | supervisor or `standard` read-only |
 
 Supervisor relays **product choices** (approved divergence, plan extension) to the user — agents propose, user accepts.
 
@@ -552,6 +552,6 @@ Then **nav + footer** as a separate invocation if requested.
 
 ## Related
 
-- Plan shape (autonomy, scope, retros): `~/.agents/skills/create-plan/SKILL.md`
+- Plan shape (autonomy, scope, retros): `{{path:skills}}/create-plan/SKILL.md`
 - Browser tooling: `debug-in-browser` skill
 - **Project-local:** migration plans may supply fixture URLs, viewports, block-type → role mapping hints, and parity reports — follow plan **Context references** when present (not paths hardcoded in this skill)
