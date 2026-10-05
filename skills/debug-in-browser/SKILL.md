@@ -37,7 +37,7 @@ Compare the check to the table. Do **not** run two browser stacks in parallel fo
 | Path | Main agent may |
 | --- | --- |
 | **{{tool:browser}}** | Use the integrated browser tooling ({{tool:browser}}) directly |
-| **Playwright MCP** | **Must not** call Playwright MCP directly — delegate via **`/playwright`** or `{{tool:spawn-agent}}({{agent:playwright}})` with a scenario packet |
+| **Playwright MCP** | **Must not** call Playwright MCP directly — delegate via `{{tool:spawn-agent}}({{agent:playwright}})` with a scenario packet |
 
 ## Workflow
 

@@ -93,6 +93,9 @@ Applies to **all** edits — code, types, config, docs, rules — in the main th
 
 - **Default: ≤10 sentences.** Count before sending; trim if over.
 - **Longer only when** the user explicitly asks (e.g. “expand”, “in detail”, “full spec”) **or** the deliverable *is* long-form (full code review, architecture doc they requested).
+- **Exceed only when absolutely necessary:** the user cannot decide, verify or act correctly without content that does not fit in 10 sentences (e.g. a report to review item by item, a decision with several options and consequences). Then exceed by that content only: everything not required for the decision or verification stays within the 10; supporting detail (long lists, evidence, diffs) goes to a file, and the reply gives its path.
+- **Never a reason to exceed:** unrequested explanation or background, recap of steps, restating the question, politeness or follow-up suggestions, convenience, "being thorough".
+- **Anti-abuse:** if the reply can be shortened by moving detail to a file or cutting non-required content, it must be. The exception applies per reply, not as a standing mode.
 - **Forbidden in default mode:** tables or mermaid for simple answers; bullet recap of tool steps; repeating the user’s question; post-task “follow-up” lists.
 - **Wins** over communication-style preferences (blog prose, thoroughness) unless the user overrides in the current message.
 

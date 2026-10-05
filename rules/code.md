@@ -12,7 +12,7 @@ always: false
 - **After reading**, run through the **Checklist** before considering the edit done.
 - **Workspace scope:** When a change spans **multiple packages or repos**, run the checklist on **every file path you touched for that feature**.
 - **Comments:** see **`base`** (always on) — this rule does not repeat that policy.
-- **Project conventions:** if the `project-best-practices` skill (`<repo>/.agents/skills/project-best-practices/SKILL.md`) exists, **read it before editing** and write code that **complies** with it and its linked `references/` (and sibling skills it names). If it is absent, skip — do not invent a stand-in.
+- **Project best practices (single definition):** when **adding, changing or deleting project code** and `.agents/skills/project-best-practices/SKILL.md` exists in the project root, **read that skill first**, then the task-relevant files it references (its `references/` and the sibling skills it names), and follow them. This is the only location for every tool: there is no per-tool variant. If the file is absent, skip — do not invent a stand-in. Other items refer to this paragraph instead of restating it.
 
 ## Naming
 
@@ -41,5 +41,5 @@ always: false
 - [ ] **Units** are small enough to hold in memory; oversized functions warrant extraction.
 - [ ] **KISS / DRY:** no extra abstraction; duplicated knowledge is extracted, coincidental similarity is not.
 - [ ] **SOLID-lite:** one reason to change per unit; callers depend on interfaces/types, not hidden globals.
-- [ ] **Project conventions:** if `project-best-practices` exists in this repo, the diff complies with it.
+- [ ] **Project best practices:** if `.agents/skills/project-best-practices/SKILL.md` exists in the project root, it was read before the edit and the diff complies with it.
 - [ ] Diff matches the **task** — no drive-by churn on unrelated identifiers or structure.
