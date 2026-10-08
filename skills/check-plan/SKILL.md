@@ -3,7 +3,8 @@ name: check-plan
 description: >-
   Verify an implementation plan is handoff-ready for /sequential-implementation
   in a fresh chat — structure, open-only implementation order, linked task files,
-  context refs on disk, fresh chat handoff, autonomy/scope when claimed. Invoke
+  context refs on disk, fresh chat handoff, decision-complete tasks with agents
+  (non-standard user-agreed), autonomy/scope when claimed. Invoke
   with the plan file path. Read-only audit; use create-plan to fix gaps.
 disable-model-invocation: false
 ---
@@ -76,12 +77,15 @@ Apply **Task-fit checklist** (`create-plan`) to **each open task** (read linked 
 | ID | Check | Pass when |
 | --- | --- | --- |
 | C1 | **One outcome** | No open task summary bundles unrelated deliverables (tokens + layout + CMS + parity in one ID) |
-| C2 | **One session** | Each open task is reasonable for one `standard` spawn without a planned second spawn for the same ID |
+| C2 | **One session** | Each open task is reasonable for one spawn of its Agent without a planned second spawn for the same ID |
 | C3 | **Bounded scope** | Each open task ≤8 primary in-scope paths or one cohesive subsystem; not 3+ unrelated subsystems |
 | C4 | **Acceptance cap** | Each open task has ≤7 acceptance criteria serving one outcome |
 | C5 | **Single verify track** | Each open task has one primary verification path (not independent parity + import + deploy tracks) |
 | C6 | **No investigate + build** | No open task mixes spike/audit with implementation in the same ID |
-| C7 | **Runnable next task** | At least one delegable open task passes C1–C6, **or** plan legitimately `complete` |
+| C7 | **Runnable next task** | At least one delegable open task passes C1–C6 and C9–C11, **or** plan legitimately `complete` |
+| C9 | **Decision-complete** | Each open task spec states exact files, exact change (names, signatures, interfaces), a verification command with expected result, and only the context it needs — executable by `standard` alone with no design choices or exploration left to the executor |
+| C10 | **Agent field** | Every task row in **Phases** has an **Agent** value (default `standard`) |
+| C11 | **Agent approvals** | Every task with a non-`standard` Agent has a row in `## Agent approvals` with justification and user-agreed date; none are unapproved |
 | C8 | **Blocked tasks** | Any ⏸ task has reason in **Open questions** or phase row; not listed in **Implementation order** ahead of unblock |
 
 ### D — Conditional (when plan claims them)

@@ -1,8 +1,8 @@
 ---
 name: sequential-implementation
 description: >-
-  Supervise sequential plan implementation by delegating one task at a time to
-  the implementation subagent. Supports .local plan files (with create-plan structure)
+  Execute a plan sequentially as a thin executor, running one task at a time
+  with the task's agent. Supports .local plan files (with create-plan structure)
   or plans pasted in the prompt. Use when the user asks to implement, execute,
   or continue a plan step-by-step.
 disable-model-invocation: true
@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 {{block:tool-note}}
 
-Act as **supervisor**: do not implement task work yourself unless the user explicitly overrides. Delegate each task to **`standard`**, then **update progress as the last action** before starting the next task.
+Act as a **thin executor**: do not implement task work yourself unless the user explicitly overrides. Run each task with the task's **Agent** (default `standard`), then **update progress as the last action** before starting the next task.
 
 **Keep going through open tasks** until a stop condition applies — do not stop after each task to ask whether to continue.
 
@@ -45,6 +45,7 @@ Read the plan. **Do not delegate** until all checks pass. Prefer running **`chec
 | Context references | Linked paths exist; purposes match disk (flag stale “to update” or missing target/current banner on migrations) |
 | Plan maintenance | **Plan maintenance** section present with per-task update rules |
 | Task-fit | **Next open task** (and linked task spec) passes **Task-fit checklist** in **`create-plan`** — see **Oversized tasks** below |
+| Agent | Each open task has an Agent (absent = `standard`); every non-`standard` Agent has a user-agreed row in **Agent approvals** — otherwise do not delegate it, report and require **`create-plan`** |
 
 Flag **blocked** tasks (⏸ or open question blocking that ID) to the user before delegating.
 
@@ -54,11 +55,11 @@ Before **every** delegation, evaluate the **next open task** against the **Task-
 
 | Result | Supervisor action |
 | --- | --- |
-| **Pass** | Delegate to `standard` as usual |
+| **Pass** | Delegate to the task's Agent as usual |
 | **Fail** | **Do not delegate.** Report failing criteria and task ID(s). Require **`create-plan`** (or user-approved split): new task IDs, updated **Implementation order**, task files, **Fresh chat handoff**. Re-run **`check-plan`** before resuming |
 | **Borderline** (one criterion marginal) | Prefer split if marginal on **One session** or **Bounded scope**; otherwise delegate and watch for follow-up spawn — if follow-up needed for same ID, treat as fail and split before next plan task |
 
-If a `standard` spawn **cannot finish** the task without a follow-up for the **same ID** (not lint/typecheck fix), stop after that task, mark plan for **create-plan** split, and do not continue **Implementation order** until the plan is re-synced.
+If the task's Agent **cannot finish** the task without a follow-up for the **same ID** (not lint/typecheck fix, and not the single escalation below), stop after that task, mark plan for **create-plan** split, and do not continue **Implementation order** until the plan is re-synced.
 
 Pasted plans without task files: apply the same checklist from inline task text in the plan.
 
@@ -70,7 +71,7 @@ Resolve **project root** from the plan (`**Project root:**` line, plan path pare
 
 | Exists | Supervisor | Implementation `prompt` |
 | --- | --- | --- |
-| **Yes** | Treat **project-best-practices** as mandatory for every delegation. All code for that repo **must comply** with the skill (placement, naming, styling, CMS/blocks, and anything else it requires). Reject a “done” that ignores it — follow-up implementation spawn before the next plan task. | Include a **Conventions** block (see delegation template). Require the implementation subagent to **write code in compliance**, not only to read the skill. |
+| **Yes** | Treat **project-best-practices** as mandatory for every delegation. All code for that repo **must comply** with the skill (placement, naming, styling, CMS/blocks, and anything else it requires). Reject a “done” that ignores it — follow-up implementation spawn before the next plan task. | Include a **Conventions** block (see delegation template). Require the task's agent to **write code in compliance**, not only to read the skill. |
 | **No** | Do not mention project-best-practices | Omit **Conventions** — use `.context/` paths only if the plan lists them |
 
 This check is **per project root**, not global. Plans under `.local/` are project-specific; the global **sequential-implementation** skill stays conditional on `.agents/` in that root. Do not invent a stand-in skill when the file is missing.
@@ -103,11 +104,11 @@ Follow the plan's **Plan maintenance** section when present. Default checklist a
 
 ## Delegating tasks
 
-Delegate every implementation task to **`standard`** with the standard implementation agent only:
+Run every task with the **Agent** in its **Phases** row (default `standard`). Never pick a heavier agent yourself:
 
 ```text
 {{tool:spawn-agent}}(
-  {{agent:standard}},
+  <the task's Agent>,
   run_in_background=false,
   description="…",
   prompt="…"
@@ -122,8 +123,15 @@ Delegate every implementation task to **`standard`** with the standard implement
 
 - **`run_in_background: false`** — always foreground; avoids extra per-edit approval churn.
 - Put task-specific instructions in `prompt` — subagents do not see the parent chat.
-- Keep `prompt` self-contained. Require a short return: success/failure, key paths, verification run, blockers, and whether user input or a follow-up is needed.
-- After the subagent finishes, verify deliverables; do not assume success from the spawn alone. When `project-best-practices` exists, verify the diff complies with it. When the task touched source files, spot-check the **code** user rule checklist (naming, unit size, no unrelated churn).
+- Keep `prompt` self-contained and small: pass only the task spec (or its path), the Authorization and Conventions blocks, and the paths the task needs — never the plan body, chat history or other tasks' details. Require a short return: success/failure, key paths, verification run, blockers, and whether user input or a follow-up is needed.
+- After the subagent finishes, verify deliverables; do not assume success from the spawn alone. Review the diff for redundant comments (comments that restate the code) and have them removed before marking the task done. When `project-best-practices` exists, verify the diff complies with it. When the task touched source files, spot-check the **code** user rule checklist (naming, unit size, no unrelated churn).
+
+### Escalation
+
+- A `standard` task that fails (verification fails, acceptance unmet, or the agent reports it cannot proceed) is re-run **once** as `senior`, with the task spec, the failure report and the paths involved.
+- A task whose approved Agent is already `senior` or heavier is not re-run automatically.
+- Any further escalation (`senior` failure, or moving to `principal`/`expert`) needs the user's approval after a brief justification — pause per the decision rule below.
+- If the re-run still needs a follow-up for the same ID, treat the task as oversized per **Oversized tasks**.
 
 ### File-based delegation prompt
 
@@ -139,6 +147,7 @@ Conventions: <only when `.agents/skills/project-best-practices/SKILL.md` exists 
 Context: <paths to `.context/` files when the plan lists them — omit when none>
 Acceptance criteria: <from task file or infer from summary>
 Out of scope: <explicit boundaries>
+Comments: add no comments or doc comments unless the task spec requires them; none that restate the code.
 Return: summary, artifacts (paths/diffs), blockers
 Do not update the plan — the supervisor updates it after you finish.
 ```
@@ -166,14 +175,14 @@ When a task finishes, decide the next action using **only** the result — never
 ### Decision rule (apply in order)
 
 1. **Pause** — if **any extra input from the user** is required per the plan § **User escalation required** (or subagent `ESCALATE` / `ESCALATE: global-scope`). **Not** because a task title says “user gate” when plan auto-decisions apply.
-2. **Follow-up subagent** — if a **follow-up** is needed that does **not** require user input (e.g. fix typecheck/lint from the same task). Run a separate `standard` subagent, then re-apply this decision rule.
+2. **Escalate or follow up** — if the task failed, apply **Escalation** (one `senior` re-run of a failed `standard` task, no user input needed). If a **follow-up** is needed that does **not** require user input (e.g. fix typecheck/lint from the same task), run a separate subagent with the task's Agent, then re-apply this decision rule.
 3. **Next plan task** — **otherwise**, go to the **next open task** in the plan. This is the **default** when the task succeeded with no blockers.
 
 Walk tasks in plan order; the first still-open item is always next.
 
 ### Stop conditions (only reasons to pause)
 
-- User input required
+- User input required (including approval for escalation beyond the single `senior` re-run)
 - Subagent reports an unresolvable blocker without user action
 - All plan tasks are complete
 - The user **explicitly** limited scope (e.g. "only T01", "stop after this task")
@@ -184,8 +193,10 @@ Walk tasks in plan order; the first still-open item is always next.
 
 - Asking "Want me to continue with T02?" after T01 succeeded
 - Stopping because the pasted plan says "one task per session" — when **this skill** is active, **these continuation rules override** unless the user also said to limit scope
-- Starting the next plan task in the parent context instead of delegating to `standard`
-- Spawning implementation subagents in any way that breaks the model rule above
+- Starting the next plan task in the parent context instead of delegating to its Agent
+- Spawning subagents in any way that breaks the model rule above
+- Choosing a non-`standard` Agent not recorded in the plan, or escalating beyond the single `senior` re-run without user approval
+- Passing the full plan or chat history into a task prompt
 - Omitting the **Conventions** block when `project-best-practices` exists in the project's `.agents/skills/`
 - Shipping code that does not **comply** with `project-best-practices` when that skill exists in the project root
 - Shipping source edits without applying the **code** user rule checklist when the task touched source files
@@ -198,10 +209,10 @@ Walk tasks in plan order; the first still-open item is always next.
 Repeat until a stop condition applies:
 
 ```
-pick next task → build prompt → delegate to implementation subagent → review result → update plan → (pause | follow-up | next task)
+pick next task → build prompt → run task's Agent → review result (diff, redundant comments) → update plan → (pause | escalate/follow-up | next task)
 ```
 
-- **Sequential only** — one `standard` task at a time unless the user explicitly requests parallel runs.
+- **Sequential only** — one task at a time unless the user explicitly requests parallel runs.
 - **No plan edits by subagent** — only the supervisor updates the plan.
 - **Preserve parent context** — rely on subagent summaries, not full task file dumps.
 
@@ -215,7 +226,7 @@ Subagents cannot talk to the user directly. The **supervisor** (you) is the only
 
 1. **Surface** the question(s) to the user — what decision is needed.
 2. **Wait** for the user's answer. Do not guess product or policy choices.
-3. **Resume** with a new `standard` delegation that includes the user's answer.
+3. **Resume** with a new delegation to the task's Agent that includes the user's answer.
 4. Mark the plan task `⏸ Blocked` with the question in **Open questions** until answered (file mode).
 
 ### When you need user input (supervisor)

@@ -15,25 +15,27 @@ always: true
 
 | Step | What to do | If threshold met |
 |------|------------|-------------------|
-| **1. Classify** | Does answering need **new context**? (see **Supervisor-only**) | Spawn the implementation subagent **in this turn** before any context tool (read files, search code, run shell commands, write files, browser automation, external integrations) |
+| **1. Classify** | Does answering need **new context**? (see **Supervisor-only**) | Spawn `standard` scouts **in this turn** before any context tool (read files, search code, run shell commands, write files, browser automation, external integrations) |
 | **2. Main-thread only** | Answerable from **agent knowledge + this chat** only, with **no** context tools | Main thread OK — conversation, ask-the-user tool, spawn subagents, relay |
 
 ## Chat start (first turn)
 
 1. This rule is in context — follow it without re-fetching.
-2. **Always use long-chat mode** — follow **Delegation** below and read the `long-chat-mode` skill for full workflow. Do not wait for the user to invoke `/long-chat-mode`.
-3. Do **not** read `.context/index.md` in the main thread — include it in the first implementation-subagent prompt when project context is needed.
+2. Follow **Delegation** below from the first message.
+3. Do **not** read `.context/index.md` in the main thread — the scout prompt tells scouts to read it when project context is needed.
 
 ## Delegation (mandatory)
 
-**Default: always delegate execution.** Main thread is the **supervisor** — conversation, clarification, relay, and spawning subagents.
+The main thread is the **supervisor** — conversation, clarification, decisions, coordination, relay. Every non-trivial ask follows this flow.
 
-- Any work that needs **new context** → the **implementation subagent** (the `standard` agent; never in the main thread).
-- Default tier is `standard`; escalate by agent name only when needed: `senior` (trickier multi-step edits), `principal` (complex cross-cutting work), `expert` (hardest problems: deep debugging, architecture, review).
-- Large goals → split into subtasks; **one subagent spawn per subtask**.
-- Subtasks that **may** touch the same files → **sequential** (wait between spawns); parallel only when paths are clearly isolated.
-- Relay, interactive loop, and anti-patterns: the `long-chat-mode` skill
-- **First message with a non-trivial ask:** delegate in the **same turn** — no main-thread scouting first.
+1. **Scout.** In the same turn as the first non-trivial message, spawn one or more `standard` subagents to collect initial information (relevant files with role and likely change, conventions, constraints, open questions, `.context/index.md` when project context is needed) and return a short structured summary. Scouts are read-only and split by area or question, never one scout for everything. Later messages scout again only for areas not yet covered. Trivial asks (answerable from knowledge + chat) need no scout.
+2. **Split.** From the scout summaries the supervisor makes the design decisions and splits the work so that as many subtasks as possible go to `standard` and only the remainder to `senior`. A `standard` subtask needs a decision-complete spec (files, exact change, interfaces, out of scope, verification command, only the context it needs); a subtask without one goes to `senior`. One spawn per subtask. Subtasks that **may** touch the same files run **sequentially**; clearly isolated ones with no dependency between them may run in parallel.
+3. **Higher tiers.** Use `principal` or `expert` only when needed for effective completion, and only after proposing the agent to the user with a brief justification and getting approval via the ask-the-user tool.
+4. **Coordinate.** The supervisor coordinates subagents and relays results. A `standard` subtask that fails or reports it exceeds its tier is re-spawned once as `senior` (never retried at `standard`); further escalation follows step 3. After the work lands, one `senior` subagent reviews the combined diff.
+5. **Prompts and relay.** Subagent prompts are self-contained: the spec, the comments constraint, and an authorization block (project root, may read/write under it, no commit unless asked). Subagents cannot reach the user: relay their questions, wait for the answer, resume with a new delegation including it. Verify each subtask's deliverables (paths touched, verification result) before marking it done.
+6. **Interaction.** After each subagent run, report briefly. Continue to the next sequential chunk without asking only when the user said so (e.g. "continue", "run all"). For a pasted task list, keep an ID checklist in replies.
+
+**Keep every subagent context small (mandatory):** split all work, scouting included, into narrow subtasks; each spawn gets only the context it needs, and a subtask needing more than a few files of context is split further.
 
 ### Supervisor-only main thread (mandatory)
 
@@ -63,7 +65,7 @@ The main thread may answer **only** when the reply needs **no tools that gather 
 When the user invokes or attaches a harness skill whose procedure includes **repo exploration, multi-file edits, deletes, or tests** (e.g. `cleanup-plans`, `sequential-implementation`, `improve-parity`, `debug-in-browser`):
 
 1. **Supervisor (main thread):** eligibility gates, ask-the-user, relay — not the skill’s tool-heavy steps.
-2. **Delegate execution** to the implementation subagent with the full skill text + user inputs in the prompt.
+2. **Delegate execution** per **Delegation** (scout, split, tiers) with the full skill text + user inputs in the prompt.
 3. **Forbidden:** Running the skill’s inventory/delete/implement loop entirely in the main thread because the steps are “documented.”
 
 ## Clarify before acting (mandatory)

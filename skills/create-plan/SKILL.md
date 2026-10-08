@@ -16,13 +16,13 @@ description: >-
 
 {{block:tool-note}}
 
-Produce and maintain plans structured for **`sequential-implementation`** and **`standard`** delegation.
+Produce and maintain plans structured for **`sequential-implementation`**. Every task is written decision-complete so a **`standard`** agent can execute it alone.
 
 **Contract:** A plan is **handoff-ready** only when a **fresh chat** can run `/sequential-implementation <plan-path>` with **no prior context** — read plan → follow **Fresh chat handoff** → delegate next open task.
 
 ## Execution
 
-Main thread is a supervisor: author and maintain plans via `{{tool:spawn-agent}}({{agent:senior}})`, passing this skill's text, project root and scope. Already running as `senior` → author directly. The subagent cannot ask the user: it returns questions; the supervisor relays them with `{{tool:ask-user}}` and re-spawns with the answers. Task execution later uses `standard`.
+Main thread is a supervisor: author and maintain plans via `{{tool:spawn-agent}}({{agent:senior}})`, passing this skill's text, project root and scope. Already running as `senior` → author directly. The subagent cannot ask the user: it returns questions; the supervisor relays them with `{{tool:ask-user}}` and re-spawns with the answers. Task execution later uses each task's **Agent**.
 
 **Migration planning** (website/page-group migration, "plan a migration of these pages"): read `references/migration-workflow.md` and follow it; it authors through this skill. Do not load it for other plans.
 
@@ -51,7 +51,8 @@ A plan is the **sole starting context** for a fresh chat and throughout executio
 | Contract piece | create-plan | sequential-implementation |
 | --- | --- | --- |
 | Structure | **Required plan structure** | Pre-flight validation |
-| Task IDs | One ID = one `standard` spawn | Delegates in **Implementation order** |
+| Task IDs | One ID = one spawn of the task's **Agent** | Delegates in **Implementation order** |
+| Agent | **Agent field and approvals** | Runs each task with its Agent; escalates per its rule |
 | Order | **Open tasks only** | Fails if ✅ IDs listed |
 | Progress | **Plan maintenance** | Supervisor updates after each task |
 | Autonomy | § **Autonomy & authorization** (when present) | Pauses only on plan **User escalation** |
@@ -78,7 +79,7 @@ Add when the plan needs autonomous multi-session execution or domain-vs-global b
 | **Pre-approved operations** | Dev server, Playwright/parity scripts, prod compare (read-only), plan-scoped edits, plan-authorized CMS import, etc. |
 | **Auto-decisions** | When the supervisor/subagent proceeds without user (clear majority target, S/M gap fixes in domain scope) |
 | **User escalation required** | Non-obvious choices, ties, global/shared scope, Tier D last resort, commit/deploy unless pre-approved |
-| **Delegation template** | **Authorization** block copied into every `standard` prompt: project root, allowed operations, forbidden global scope, "do not update the plan", escalation pointer |
+| **Delegation template** | **Authorization** block copied into every task prompt: project root, allowed operations, forbidden global scope, "do not update the plan", escalation pointer |
 
 Overrides **External environment boundary** for operations pre-approved here (e.g. Sanity MCP import).
 
@@ -139,6 +140,8 @@ Run **after every create or structural update** and before `status: ready` / rec
 | **Task files** | Every linked `.local/<slug>/tasks/<id>.md` exists for non-`—` Details rows |
 | **Plan folder** | Supporting files under `.local/<slug>/`; entry point at `.local/<slug>-plan.md` — no shared flat `.local/tasks/` |
 | **Task-fit** | Every **open** task passes **Task-fit checklist**; no mega-tasks or investigate+implement bundles |
+| **Decision-complete** | Every open task passes **Decision-complete tasks** |
+| **Agent field** | Every task row has an **Agent**; each non-`standard` Agent has an **Agent approvals** row with user agreement |
 | **Target vs code** | Migration/refactor plans: banner under title (**target** docs vs **current** code) wherever docs ≠ code; canonical specs in **Context references**; prefer verify tasks over duplicate doc writes when docs already landed |
 | **Out-of-band** | Done work removed from **Implementation order**; task files `**Status:**` synced |
 | **Open questions** | **Blocks** column empty or only truly blocked IDs |
@@ -206,12 +209,12 @@ Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slu
 
 ## Task sizing and task-fit (mandatory)
 
-**One task ID = one `standard` spawn** (foreground), finishable in a **single subagent session** with one primary verification path — not an epic, not a sequence of follow-up spawns. When drafting or extending a plan (and after scope grows mid-initiative), apply the checklist to **each open task** (read its linked task file). **Fail any row → split** (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
+**One task ID = one spawn of the task's Agent** (foreground), finishable in a **single subagent session** with one primary verification path — not an epic, not a sequence of follow-up spawns. When drafting or extending a plan (and after scope grows mid-initiative), apply the checklist to **each open task** (read its linked task file). **Fail any row → split** (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
 
 | # | Criterion | Pass when | Fail → split when |
 | --- | --- | --- | --- |
 | 1 | **One outcome** | Summary is one concrete deliverable a reviewer can sign off | Summary joins unrelated outcomes with "and" (tokens **and** layout **and** CMS seed **and** parity) |
-| 2 | **One session** | One `standard` spawn, no planned follow-up for the same ID | Needs multiple runs, or supervisor already expects a follow-up |
+| 2 | **One session** | One spawn, no planned follow-up for the same ID | Needs multiple runs, or supervisor already expects a follow-up |
 | 3 | **Bounded scope** | ≤8 primary paths, or one cohesive subsystem | >8 primary paths, or 3+ **unrelated** subsystems (Studio schema + React layout + MCP import) |
 | 4 | **Acceptance cap** | ≤7 criteria, all serving the same outcome | >7 criteria, or criteria belonging to separate tasks |
 | 5 | **Single verify track** | One primary **Verification** command or manual check | Multiple independent tracks (full parity suite **and** CMS import **and** schema deploy) |
@@ -223,6 +226,25 @@ Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slu
 **Keep together:** one vertical slice (GROQ → normalize → props → component); token palette + SCSS map for one chrome surface; cleanup/deletion grep + build for one retirement manifest; CMS content patch (OAuth MCP) kept separate from code layout.
 
 **Splitting procedure:** add new rows in **Phases** (+ task files for non-trivial splits); move scope, acceptance and verify from the oversized task and tighten **Out of scope** on each; insert new IDs in **Implementation order** in dependency order (remove or replace the oversized ID); update **Fresh chat handoff** `(next: …)` and **Context references**; re-run the checklist.
+
+## Decision-complete tasks (mandatory)
+
+Write every task so a **`standard`** agent can execute it alone, without exploring, choosing between designs or inferring intent. Each task spec (task file, or the plan row when Details is `—`) states:
+
+- **Files:** exact paths to create or edit.
+- **Change:** the exact change per file, with names, signatures, data shapes and interfaces fixed.
+- **Verification:** the exact command or check, and its expected result.
+- **Context:** only what this task needs (paths, snippets, decisions) — no pointers to "see the discussion" or to unrelated files.
+
+Design choices belong in `decisions.md` or the spec, never left to the executor. Gather missing facts (scouting, reading code) while authoring, not inside the task.
+
+## Agent field and approvals (mandatory)
+
+Each task has an **Agent** in the **Phases** table, default `standard`.
+
+If a task cannot be made `standard`-executable after splitting and tightening the spec, do not silently assign a heavier agent. Ask the user with `{{tool:ask-user}}`: propose `senior`, `principal` or `expert` with a brief justification (why the task resists a decision-complete spec). Write the **agreed** Agent into the task row and record it in `## Agent approvals`. If the user declines, keep `standard` and tighten the spec or split further.
+
+No task may name a non-`standard` Agent without a matching approval row. `principal` and `expert` are used only with this user agreement.
 
 ## Required plan structure
 
@@ -271,15 +293,23 @@ Use accurate purpose text (date, "target architecture", "legacy — replace in t
 
 ### Phase 1 — <name>
 
-| Task ID | Summary | Status | Details |
-|---------|---------|--------|---------|
-| 1.1 | One-line outcome | ⬜ | [1.1.md](<slug>/tasks/1.1.md) or — |
+| Task ID | Summary | Agent | Status | Details |
+|---------|---------|-------|--------|---------|
+| 1.1 | One-line outcome | standard | ⬜ | [1.1.md](<slug>/tasks/1.1.md) or — |
 
 Use `—` in Details when the summary is sufficient (no task file).
 
 ### Phase 2 — <name>
 
 …
+
+## Agent approvals
+
+Only for tasks whose Agent is not `standard`; omit rows otherwise.
+
+| Task ID | Agent | Justification | Agreed by user |
+|---------|-------|---------------|----------------|
+| 2.4 | senior | … | YYYY-MM-DD |
 
 ## Open questions
 …
@@ -319,7 +349,7 @@ Use `—` in Details when the summary is sufficient (no task file).
 5. Load initiative refs from Context references.
 6. **Next task:** `<id>` only — open `.local/<slug>/tasks/<id>.md`.
 7. Load task-specific skills listed in task spec or phase (e.g. `{{path:skills}}/improve-parity/SKILL.md`, `sanity-best-practices`, `sanity-data-handling`).
-8. Delegate `standard` with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
+8. Delegate each task to its **Agent** with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
 9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required** (not fixed task IDs).
 10. Prerequisites: …
 ```
@@ -335,6 +365,8 @@ One paragraph — concrete outcome.
 
 ## Scope
 
+- Files: exact paths to create or edit
+- Change: exact change per file (names, signatures, data shapes, interfaces)
 - In scope: …
 - Out of scope: … (include boundaries vs adjacent tasks when paths may overlap)
 
@@ -350,7 +382,7 @@ One paragraph — concrete outcome.
 
 ## Verification
 
-Command or manual check the subagent should run (e.g. `pnpm test packages/foo`, lint, or visual check).
+Exact command or manual check and its expected result (e.g. `pnpm test packages/foo` passes, lint clean, or visual check).
 
 ## Notes
 
@@ -363,7 +395,7 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 2. Check `project-best-practices`; map open tasks to **Conventions coverage** refs.
 3. Write `.local/<slug>/` decisions/architecture as needed; durable conventions to agent `references/` or `docs/` when the initiative defines long-term rules.
 4. Write task files for non-trivial tasks (paths, **Out of scope**, **Verification** when not obvious).
-5. Run **Task-fit checklist** on every open task; split until all pass.
+5. Run **Task-fit checklist** and **Decision-complete tasks** on every open task; split or tighten until all pass. Set each task's **Agent** (default `standard`); ask the user for any non-`standard` proposal per **Agent field and approvals**.
 6. Write `.local/<slug>-plan.md` last.
 7. **Handoff readiness checklist** — fix all failures (or run **`check-plan`**).
 8. Tell the user: `/check-plan <plan-path>` then `/sequential-implementation <plan-path>` in a fresh chat.
@@ -371,7 +403,7 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 ## Authoring rules
 
 1. **Task IDs:** `<phase>.<sequence>` (e.g. `2.3`), unique across the plan; phases are labels, never umbrella tasks.
-2. **One spawn per task**, independently delegatable — see **Task sizing**.
+2. **One spawn per task**, independently delegatable and `standard`-executable unless an approved Agent says otherwise — see **Task sizing**.
 3. **Implementation order = open tasks only** — re-sync when tasks complete.
 4. **Progress:** the plan owns the summary table and per-task status columns (single source of truth).
 5. **Lean plan:** specs live in linked files; the plan is the **index** — never orphan detail outside **Context references** or task links.
@@ -381,6 +413,7 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 9. **Ready gate:** `status: ready` only when the checklist passes and no open question blocks specific tasks (list them in **Open questions** with **Blocks**).
 10. **Conventions coverage:** source-editing plans list project-best-practices (+ task-relevant references and Sanity siblings) and the **code** user rule in **Fresh chat handoff**.
 11. **Task-fit:** no open task fails the checklist — split first.
+12. **Decision-complete and Agent:** every task meets **Decision-complete tasks** and carries an Agent; non-`standard` only with a recorded user approval.
 
 ## Do not
 
@@ -392,3 +425,4 @@ Primary file or dir hints; sequencing notes only when reordering **Implementatio
 - Create tasks without IDs, or a plan without **Implementation order**.
 - Write tasks whose acceptance criteria require another open task — reorder or split.
 - Merge investigation and implementation when exploration scope is unclear.
+- Leave design choices or exploration to the executor, or name a non-`standard` Agent without a recorded user approval.
