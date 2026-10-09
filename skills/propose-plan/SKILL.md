@@ -3,11 +3,13 @@ name: propose-plan
 description: >-
   Elaborate an initial idea into a decision-complete plan brief covering
   architecture, data structures, UX, UI, performance, security and other
-  relevant aspects. Researches in parallel with tiered subagents, asks the user
-  to decide every open direction with ask-questions (each with a recommendation),
-  records decisions in a brief, then hands off to create-plan. Use when the user
-  has an idea, feature or initiative that needs shaping before a plan is written,
-  or asks to propose, design or elaborate a plan.
+  relevant aspects. Settles decisions level by level (product and system shape,
+  architecture, design detail), researching each level with tiered subagents
+  once the level above is settled, asks the user to decide every open direction
+  with ask-questions (each with a recommendation), records decisions in a
+  brief, then hands off to create-plan. Use when the user has an idea, feature
+  or initiative that needs shaping before a plan is written, or asks to
+  propose, design or elaborate a plan.
 ---
 
 # Propose plan
@@ -15,6 +17,18 @@ description: >-
 {{block:tool-note}}
 
 Turn an idea into a **plan brief**: every key detail specified, every key decision made by the user, every key open question closed. The last step runs `create-plan` on that brief.
+
+## Levels
+
+Levels are abstraction depth, not aspects: an aspect can have decisions at more than one level. A decision belongs to the **highest level at which it constrains other aspects**; UX scope and flows constrain architecture (Level 1), visual and interaction detail does not (Level 3).
+
+| Level | Holds | Asking |
+| --- | --- | --- |
+| 1. Product and system shape | Goals, scope, success criteria, user-facing capabilities and main flows, system boundaries, major trade-offs | Ask decisions with directions of similar value |
+| 2. Architecture | Components and responsibilities, data model, interfaces and integrations, technology choices, cross-cutting strategies (security, performance, error handling, failure behaviour) | Ask decisions with directions of similar value |
+| 3. Design detail | UI and interaction details, schemas and field-level choices, performance tuning | Rarely constrains other aspects: record as **proposed** with a recommendation, ask only contentious ones |
+
+Levels are settled top-down. Deep research and thinking for a level starts only after the level above is settled.
 
 ## Roles
 
@@ -29,7 +43,7 @@ Subagents cannot ask the user: they return **draft questions** (decision, contex
 
 ## Tier selection
 
-Pick per aspect from importance, complexity and blast radius, not once per run. A `minor` aspect gets no own gather or thinker: fold it into the closest related aspect's thinker.
+Pick per aspect and level from importance, complexity and blast radius, not once per run. A `minor` aspect gets no own gather or thinker: fold it into the closest related aspect's thinker.
 
 | Work | Tier |
 | --- | --- |
@@ -55,9 +69,7 @@ Look for parallel work at every phase, then decide per set of tasks:
 
 - **Parallel** (same turn, several spawns): independent aspects, independent gather tasks, read-only investigations, anything with no shared written files and no data dependency.
 - **Sequential**: tasks that may write the same files (the brief is written only by one `standard` at a time), and a thinker that depends on a gather or on another aspect's decision.
-- Aspect dependencies decide order: decide upstream aspects (for example data model) before downstream ones (API, UI, performance) when the answer changes the options.
-
-Gather tasks for all aspects run in one parallel wave; thinkers for independent aspects run in one parallel wave.
+- Levels decide order: settle a level before researching the next. Within a level, gather tasks run in one parallel wave, then thinkers for independent aspects in one parallel wave; aspect dependencies decide order: upstream aspects (for example data model) before downstream ones when the answer changes the options.
 
 ## Phases
 
@@ -71,42 +83,45 @@ Gather tasks for all aspects run in one parallel wave; thinkers for independent 
 
 1. Spawn `standard` (or use the fact sheet) to list candidate aspects. Always consider: architecture (implementation, process), data structures, UX, UI, performance, security, plus those the idea implies: integrations, migration and rollout, testing and verification, observability, accessibility, cost, compliance, failure modes, and any domain-specific aspect outside this set.
 2. Drop aspects the idea does not touch; record dropped ones with a one-line reason.
-3. For each kept aspect set: importance (`core`, `supporting`, `minor`), complexity, tier, dependencies on other aspects, gather tasks needed.
-4. Confirm the aspect list (drops, importance, tiers) with one `ask-questions` question before fanning out; recommended option: proceed as listed.
+3. For each kept aspect set: importance (`core`, `supporting`, `minor`), complexity, tier, dependencies on other aspects.
+4. Confirm the aspect list (drops, importance, tiers) with one `ask-questions` question before scanning; recommended option: proceed as listed.
 
-### 3. Research fan-out
+### 3. Shallow scan and level assignment
 
-1. Spawn all independent gather tasks as `standard` in parallel.
-2. Collect fact sheets. A failed or thin sheet is re-gathered, not guessed.
+1. Spawn `standard` in parallel per aspect (or one for all small ones) for a shallow scan only: open decisions, dependencies on other aspects, no options analysis.
+2. Assign every open decision to a level by the placement rule and record the map (aspect, decision, level, dependencies) in the brief.
+3. Start at Level 1. Phases 4 and 5 repeat per level, top-down.
 
-### 4. Proposal per aspect
+### 4. Proposal per level
 
-1. Spawn one thinker per aspect (parallel where independent), passing: idea, project root, relevant fact sheets, decisions already made, the aspect's scope.
-2. Each thinker returns, in the **proposal format** below, either a single justified decision or **directions of similar value** with a recommendation.
-3. A decision with one clearly dominant direction is recorded as **proposed** and listed for confirmation, not asked as an open question.
-4. A new aspect reported by a thinker goes through phase 2 step 3, then phases 3 and 4.
+1. Spawn `standard` gather tasks for the level's aspects in parallel. A failed or thin sheet is re-gathered, not guessed.
+2. Spawn one thinker per aspect with decisions at this level (parallel where independent), passing: idea, project root, relevant fact sheets, decisions already made, the aspect's scope limited to this level.
+3. Each thinker returns, in the **proposal format** below, either a single justified decision or **directions of similar value** with a recommendation.
+4. A decision with one clearly dominant direction is recorded as **proposed** and listed for confirmation, not asked as an open question. Level 3 decisions default to this.
+5. A new aspect reported by a thinker goes through phase 2 step 3 and a shallow scan (phase 3); its decisions are assigned to levels. It is handled at the current level only for decisions assigned to that level; the others are deferred to their level.
 
 Proposal format returned by a thinker:
 
 ```
 Aspect: <name>
+Level: <1 | 2 | 3>
 Findings: <facts that drive the choice, with sources>
 Proposal: <the recommended design, concrete enough to plan from>
 Directions (only when similar value):
   - <id> <option>: <benefit> / <cost> / <risk>
 Recommendation: <direction id or the proposal>, <reason in one sentence>
 Questions: <decision | context | options | recommended option>
-Cross-aspect impact: <aspects affected, including new aspects missing from the list>
+Cross-aspect impact: <aspects affected, level reassignments, new aspects missing from the list>
 Gather requests: <what is missing>
 ```
 
 ### 5. Ask-questions rounds
 
-1. Group draft questions by aspect and dependency. Run `ask-questions` rounds in dependency order: upstream decisions first.
+1. Ask one level at a time, aspect by aspect within the level, upstream aspects first. Follow `ask-questions` batching: one question for a single decision, up to 4 related questions per call, unrelated decisions in separate rounds.
 2. Every question carries a **recommended option**, listed first and marked, with the reason it is recommended.
 3. Ask only decisions where directions have similar value; do not ask what a dominant direction settles.
-4. After each round, spawn `standard` to record answers in the brief's decision log. Answers that change a downstream aspect re-spawn its thinker with the decision.
-5. Repeat until no aspect has an open direction or open question.
+4. After each round, spawn `standard` to record answers in the brief's decision log. An answer that changes a downstream aspect or a level assignment re-spawns the affected thinkers with the decision. Reopen an already-settled level only if the answer changes its decisions, and re-think downstream aspects.
+5. Repeat until the level has no open direction or open question, then return to phase 4 for the next level. After Level 3, no level has open items.
 
 ### 6. Consolidation
 
@@ -144,10 +159,15 @@ Goal, success criteria, constraints, out of scope.
 | --- | --- | --- | --- |
 | architecture | expert | decided | one line |
 
+## Level map
+| Aspect | Decision | Level | Dependencies |
+| --- | --- | --- | --- |
+| data | storage choice | 2 | none |
+
 ## Decision log
-| ID | Aspect | Decision | Alternatives rejected | Reason | Source |
-| --- | --- | --- | --- | --- | --- |
-| D1 | data | chosen option | other options | why | user / proposed-confirmed |
+| ID | Level | Aspect | Decision | Alternatives rejected | Reason | Source |
+| --- | --- | --- | --- | --- | --- | --- |
+| D1 | 2 | data | chosen option | other options | why | user / proposed-confirmed |
 
 ## Design by aspect
 ### <aspect>
@@ -174,6 +194,7 @@ Decision `Source` is `user` when the user chose, `proposed-confirmed` when the u
 
 Before status `approved`:
 
+- Every decision has a level and was settled after the level above.
 - Every kept aspect has a decided design and at least one decision-log row or a stated no-decision reason.
 - No open direction of similar value remains.
 - Every user question had a recommendation and a recorded answer.
@@ -206,6 +227,7 @@ Before status `approved`:
 - Gathering data in the main thread or with a high tier.
 - Asking a question without a recommendation, or one whose options are not of similar value.
 - Asking aspects in parallel rounds when a downstream answer depends on an upstream one.
+- Asking Level 3 detail that does not constrain other aspects instead of recording it as proposed.
 - Two agents writing the brief at once.
 - Running `create-plan` before the brief is `approved`.
 - Guessing a product or policy choice instead of asking.
