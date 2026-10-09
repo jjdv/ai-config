@@ -18,17 +18,17 @@ description: >-
 
 Turn an idea into a **plan brief**: every key detail specified, every key decision made by the user, every key open question closed. The last step runs `create-plan` on that brief.
 
-## Levels
+## Levels and aspects
 
-Levels are abstraction depth, not aspects: an aspect can have decisions at more than one level. A decision belongs to the **highest level at which it constrains other aspects**; UX scope and flows constrain architecture (Level 1), visual and interaction detail does not (Level 3).
+Level definitions, the placement rule and the aspect catalogue are in `references/levels-and-aspects.md`; read it before phase 2.
 
-| Level | Holds | Asking |
-| --- | --- | --- |
-| 1. Product and system shape | Goals, scope, success criteria, user-facing capabilities and main flows, system boundaries, major trade-offs | Ask decisions with directions of similar value |
-| 2. Architecture | Components and responsibilities, data model, interfaces and integrations, technology choices, cross-cutting strategies (security, performance, error handling, failure behaviour) | Ask decisions with directions of similar value |
-| 3. Design detail | UI and interaction details, schemas and field-level choices, performance tuning | Rarely constrains other aspects: record as **proposed** with a recommendation, ask only contentious ones |
+Asking by level:
 
-Levels are settled top-down. Deep research and thinking for a level starts only after the level above is settled.
+| Level | Asking |
+| --- | --- |
+| 1. Product and system shape | Ask decisions with directions of similar value |
+| 2. Architecture | Ask decisions with directions of similar value |
+| 3. Design detail | Rarely constrains other aspects: record as **proposed** with a recommendation, ask only contentious ones |
 
 ## Roles
 
@@ -81,9 +81,9 @@ Look for parallel work at every phase, then decide per set of tasks:
 
 ### 2. Aspect decomposition
 
-1. Spawn `standard` (or use the fact sheet) to list candidate aspects. Always consider: architecture (implementation, process), data structures, UX, UI, performance, security, plus those the idea implies: integrations, migration and rollout, testing and verification, observability, accessibility, cost, compliance, failure modes, and any domain-specific aspect outside this set.
-2. Drop aspects the idea does not touch; record dropped ones with a one-line reason.
-3. For each kept aspect set: importance (`core`, `supporting`, `minor`), complexity, tier, dependencies on other aspects.
+1. Spawn `standard` (or use the fact sheet) to list candidate aspects from the catalogue in the reference.
+2. Drop aspects the idea does not touch, recording each with a reason as the reference defines.
+3. For each kept aspect set importance, complexity, tier and dependencies, as the reference defines.
 4. Confirm the aspect list (drops, importance, tiers) with one `ask-questions` question before scanning; recommended option: proceed as listed.
 
 ### 3. Shallow scan and level assignment
