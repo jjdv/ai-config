@@ -466,7 +466,7 @@ Agents **propose** approved divergence rows; **only the user or plan** marks the
 ## Recommended next steps
 
 1. **Fix now** — CSS-fixable + **Structural — fixable** (domain scope) items still open — **including failed key-element diffs** and **failed visual spacing supplements** (adjacent text, text-to-surface, margin-chain) — prefer **DOM-preserving ladder** before template/block changes
-2. **Plan task** — gap matrix rows needing analysis or multi-spawn implementation (S1, …) — **not** open key-element CSS diffs (those belong in (1))
+2. **Plan task** — gap matrix rows needing analysis or implementation beyond one small task (S1, …), split by `create-plan` — **not** open key-element CSS diffs (those belong in (1))
 3. **Approve divergence** — **Structural — divergent** or original-inconsistency only after (1)–(2) exhausted **and** key-element CSS parity passes for that region — user confirms. **Do not** Tier C open CSS diffs
 4. **Re-run parity** — after (2) or (3), which URLs/regions only; include **spacing probe matrix** when rhythm was the focus
 5. **Escalate global scope** — any fix touching shared theme / `components/ui/` / site-wide tokens — user before implement

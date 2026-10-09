@@ -1,28 +1,44 @@
 ---
 name: create-plan
 description: >-
-  Create or update implementation plans for sequential-implementation. Run on
-  every plan create or structural update — enforces handoff-ready structure,
-  open-only implementation order, fresh-chat entry point, and linked task files.
-  Use when drafting a plan, extending phases, re-syncing after completed tasks,
-  or before telling the user to run sequential-implementation. Also use for
-  planning a website/page-group migration (routes, domains, blocks or page types
-  from a reference repo; "plan a migration", "create migration plan", migration
-  scope) — load references/migration-workflow.md. After authoring, run
-  check-plan on the plan path to confirm READY.
+  Create or update implementation plans for sequential-implementation: small
+  tasks (one outcome, bounded scope, acceptance check) with a decided Agent each,
+  a Decisions section for cross-task choices, notes/ for scout findings, and
+  check-plan as the single owner of readiness rules (read before authoring, run
+  as the final audit until READY). Authoring is delegated (standard scouts, senior
+  author). Includes replan mode when sequential-implementation reports a plan
+  issue. Use when drafting a plan, extending phases, re-syncing after completed
+  tasks, replanning, or before telling the user to run sequential-implementation.
+  Also use for planning a website/page-group migration (routes, domains, blocks
+  or page types from a reference repo; "plan a migration", "create migration
+  plan", migration scope) — load references/migration-workflow.md.
 ---
 
 # Create Plan
 
 {{block:tool-note}}
 
-Produce and maintain plans structured for **`sequential-implementation`**. Every task is written decision-complete so a **`standard`** agent can execute it alone.
+Produce and maintain plans structured for **`sequential-implementation`**. A task is **small**: one outcome, bounded scope, an acceptance check, references to cross-task decisions and notes, and a decided Agent (default `standard`). Tasks are not decision-complete specs: the supervisor running the plan writes the spec for each task at run time from the task, the **Decisions** section and the notes. Plan effort goes into making tasks small enough that most are `standard`.
 
-**Contract:** A plan is **handoff-ready** only when a **fresh chat** can run `/sequential-implementation <plan-path>` with **no prior context** — read plan → follow **Fresh chat handoff** → delegate next open task.
+**Contract:** A plan is **handoff-ready** only when `check-plan` returns `READY`, i.e. a **fresh chat** can run `/sequential-implementation <plan-path>` with **no prior context**.
+
+## Readiness: check-plan is the single owner
+
+`check-plan` owns every readiness rule (structure, linked artifacts, task fit, agents, notes, conditional and convention checks). This skill does not restate them.
+
+- **Before authoring:** read `{{path:skills}}/check-plan/SKILL.md` and author so that every check passes.
+- **At the end:** run `check-plan` as an audit (Workflow step 7) and fix reported gaps until `READY`.
 
 ## Execution
 
-Main thread is a supervisor: author and maintain plans via `{{tool:spawn-agent}}({{agent:senior}})`, passing this skill's text, project root and scope. Already running as `senior` → author directly. The subagent cannot ask the user: it returns questions; the supervisor relays them with `{{tool:ask-user}}` and re-spawns with the answers. Task execution later uses each task's **Agent**.
+Main thread is a supervisor; plan authoring is delegated:
+
+1. **Scouts:** `{{tool:spawn-agent}}({{agent:standard}})`, split by area (code, docs, conventions, external sources). Scouts are read-only for the repo and write findings to `.local/<slug>/notes/`.
+2. **Author:** `{{tool:spawn-agent}}({{agent:senior}})` writes the plan, passing this skill's text, `check-plan`'s SKILL.md path, project root, scope, the brief path (when present) and the note paths. `principal` authors only after the user approves it with a brief justification via `{{tool:ask-user}}`.
+3. **Questions:** a subagent cannot ask the user. It returns questions and proposed non-`standard` Agents; the supervisor relays them with `{{tool:ask-user}}` and re-spawns the author with the answers.
+4. **Audit:** the supervisor runs the `check-plan` audit after the author returns (Workflow step 7).
+
+Task execution later uses each task's **Agent**.
 
 **Migration planning** (website/page-group migration, "plan a migration of these pages"): read `references/migration-workflow.md` and follow it; it authors through this skill. Do not load it for other plans.
 
@@ -32,32 +48,33 @@ Read and follow this skill **before finishing** when **any** of:
 
 | Trigger | Action |
 | --- | --- |
-| **New plan** | Full **Workflow** + **Handoff readiness checklist** |
-| **Plan extended** (new phase/task, parity round, scope change) | **Plan update workflow** + checklist on affected sections |
+| **New plan** | **Workflow (new plan)** |
+| **Plan extended** (new phase/task, parity round, scope change) | **Plan update workflow**, then the audit |
 | **Batch completion** (many tasks marked ✅ outside sequential-implementation) | **Out-of-band completion** |
-| **Before** user runs `sequential-implementation`, or its **pre-flight failed** | Run **`check-plan`**; fix gaps with this skill |
-| **Conventions/docs changed** after plan was `ready` | Re-run checklist; update **Context references** and task specs |
+| **Plan issue reported** by `sequential-implementation` | **Replan mode** |
+| **Pre-flight failed** (`check-plan` not `READY`) | Fix the reported gaps with this skill, then re-run the audit |
+| **Conventions/docs changed** after plan was `ready` | Update **Context references** and affected tasks, then the audit |
 
-**After every structural edit** (phases, order, context refs, fresh chat handoff): run the **Handoff readiness checklist** before replying done. If a fresh chat needs history, re-run this skill on the plan — do not patch ad hoc.
+**After every structural edit** (phases, order, decisions, context refs, fresh chat handoff): re-run the audit before replying done.
 
 ## Self-contained entry point
 
-A plan is the **sole starting context** for a fresh chat and throughout execution. It **must** have: **Project root** (absolute git root), **Context references** (every file an implementer needs), **Implementation order** (open task IDs only), **Fresh chat handoff** (numbered steps naming the next task ID, skills, prerequisites), **Plan maintenance**. Detail lives in linked files, not chat history.
+A plan is the **sole starting context** for a fresh chat and throughout execution. Detail lives in linked files, not chat history. Required sections are listed in **Required plan structure**.
 
-**Ready gate:** `status: ready` or `in_progress` only when the **Handoff readiness checklist** passes (`complete`: all tasks ✅ and scoreboard/acceptance met if applicable).
+**Ready gate:** `status: ready` or `in_progress` only after the audit returns `READY` (`complete`: all tasks ✅ and scoreboard/acceptance met if applicable).
 
 ## Alignment with sequential-implementation
 
 | Contract piece | create-plan | sequential-implementation |
 | --- | --- | --- |
-| Structure | **Required plan structure** | Pre-flight validation |
-| Task IDs | One ID = one spawn of the task's **Agent** | Delegates in **Implementation order** |
-| Agent | **Agent field and approvals** | Runs each task with its Agent; escalates per its rule |
+| Structure | **Required plan structure** | Pre-flight (`check-plan`) |
+| Task | Small task: goal, scope, acceptance, Decisions refs, notes, Agent | Supervisor writes the spec at run time and delegates to the task's Agent |
+| Agent | **Agents** | Runs each task with its Agent; reports plan issues |
 | Order | **Open tasks only** | Fails if ✅ IDs listed |
 | Progress | **Plan maintenance** | Supervisor updates after each task |
+| Plan issue | **Replan mode** | Reports the issue and stops the affected tasks |
 | Autonomy | § **Autonomy & authorization** (when present) | Pauses only on plan **User escalation** |
 | Scope | § **Scope boundary** | Agent respects; global → escalate |
-| Task-fit | **Task-fit checklist** | Pre-flight + **Oversized tasks** block delegation until split |
 
 ## Plan lineage (parent → child)
 
@@ -99,58 +116,15 @@ On multi-phase plans (analysis → implementation → verify) add **report-only*
 
 | When | Task ID pattern | Output |
 | --- | --- | --- |
-| After target survey / lock | `N.3` optional | `retro-<phase>.md` |
+| After target survey / lock | `N.3` optional | `notes/retro-<phase>.md` (Notes out) |
 | After gap analysis, before fixes | `N.4` **recommended** | Replan implementation order |
 | After fix slices, before final pass | `N.R` **recommended** | Trim or extend final verify scope |
 
-Sections: **Went well** · **Didn't work** · **Plan changes** · **Policy notes** (if any). Supervisor updates **Implementation order** from the retro before the next delegation.
+Sections: **Went well** · **Didn't work** · **Plan changes** · **Policy notes** (if any). Plan changes from a retro go through **Replan mode** before the next delegation.
 
-## Conventions coverage (mandatory for source-editing plans)
+## Conventions coverage (source-editing plans)
 
-Implementers need **repo conventions** and **code quality**, not only task paths. Check `<project-root>/.agents/skills/project-best-practices/SKILL.md` during **Before writing** and **Handoff readiness**.
-
-| Plan touches | **Context references** must include |
-| --- | --- |
-| Always (repo has the skill) | `project-best-practices/SKILL.md` |
-| Blocks, components, placement | `references/placement.md`, `references/website-structure.md` |
-| Styling, tokens, SCSS | `references/styling.md` |
-| CMS blocks, GROQ, page builders | `references/cms-blocks.md` |
-| Sanity schemas, Studio, CMS content | `sanity-best-practices` + `sanity-data-handling` (per project-best-practices § Sanity) |
-
-List only refs the plan needs, but **never omit** one when any open task matches the row; note task IDs per ref in the Purpose column when helpful.
-
-Plans that change source must call out the **code** user rule in **Fresh chat handoff** (apply + run its checklist before marking tasks done). It covers general quality (naming, structure, KISS/DRY/SOLID-lite); **project-best-practices** covers repo placement and architecture — both apply when present.
-
-## Handoff readiness checklist
-
-Run **after every create or structural update** and before `status: ready` / recommending `sequential-implementation`.
-
-| Check | Pass when |
-| --- | --- |
-| **Project root** | `**Project root:**` line with absolute path |
-| **Header next task** | `**Last updated:**` includes `(next: **<id>**)` matching first open task |
-| **Implementation order** | Lists **only** task IDs that still need work — **no** `✅ Complete` IDs |
-| **Phase table vs order** | Every ID in **Implementation order** appears in **Phases**; completed tasks stay in **Phases** with `✅` |
-| **Fresh chat handoff** | Section present; step names **next task ID**; lists skills (e.g. `improve-parity`, `project-best-practices`) and **code** user rule when plan edits source |
-| **Project conventions** | When `project-best-practices` exists: SKILL.md + task-relevant `references/` and Sanity siblings in **Context references** per **Conventions coverage** |
-| **Code quality** | **Fresh chat handoff** requires **code** user rule checklist for source-editing tasks |
-| **Single entry point** | Handoff includes exact `sequential-implementation` invocation with plan path |
-| **Context references** | Every linked path exists; purposes accurate (no stale "to update" for done work) |
-| **Initiative refs** | `.local/<slug>/decisions.md` and `architecture.md` exist when referenced |
-| **Task files** | Every linked `.local/<slug>/tasks/<id>.md` exists for non-`—` Details rows |
-| **Plan folder** | Supporting files under `.local/<slug>/`; entry point at `.local/<slug>-plan.md` — no shared flat `.local/tasks/` |
-| **Task-fit** | Every **open** task passes **Task-fit checklist**; no mega-tasks or investigate+implement bundles |
-| **Decision-complete** | Every open task passes **Decision-complete tasks** |
-| **Agent field** | Every task row has an **Agent**; each non-`standard` Agent has an **Agent approvals** row with user agreement |
-| **Target vs code** | Migration/refactor plans: banner under title (**target** docs vs **current** code) wherever docs ≠ code; canonical specs in **Context references**; prefer verify tasks over duplicate doc writes when docs already landed |
-| **Out-of-band** | Done work removed from **Implementation order**; task files `**Status:**` synced |
-| **Open questions** | **Blocks** column empty or only truly blocked IDs |
-| **Operator handoff** | External steps (import, deploy) in **Operator handoff** — not plan tasks unless user requested or **Autonomy** pre-approves |
-| **Autonomy** (parity/migration) | § **Autonomy & authorization** present when plan claims autonomous execution; escalation rules explicit |
-| **Scope boundary** (domain migration) | Domain vs global/shared paths listed when edits touch theme or shared architecture |
-| **Plan lineage** | Child plan linked from parent when parent marked complete with open follow-on |
-
-**Report:** list failed checks and fix them in the plan before marking done.
+Implementers need **repo conventions** and **code quality**, not only task paths. During **Before writing**, check `<project-root>/.agents/skills/project-best-practices/SKILL.md`. When it exists, list it in **Context references** together with the task-relevant `references/` files (placement, website-structure, styling, cms-blocks) and the Sanity siblings, per project-best-practices; note task IDs per ref in the Purpose column when helpful. Source-editing plans call out the **code** user rule in **Fresh chat handoff**. `check-plan` E1–E4 verify this.
 
 ## Out-of-band completion
 
@@ -158,22 +132,35 @@ When work finishes outside sequential-implementation:
 
 1. Mark task `✅` in **Phases** + task file `**Status:**`.
 2. **Remove** the ID from **Implementation order** (no "skip" comments).
-3. Update **Context references** purposes; rewrite later task specs if outcomes changed.
-4. Re-run **Handoff readiness checklist**.
+3. Update **Context references** purposes; revise open tasks if outcomes changed.
+4. Run the audit.
 
 ## Plan update workflow (extend / re-sync)
 
 1. Read the current plan end-to-end.
-2. Add phase/task rows in **Phases**; create `.local/<slug>/tasks/<id>.md` for non-trivial work.
-3. Append **only new open IDs** to **Implementation order**.
-4. Update **Progress summary**, header `(next: …)`, **Context references**, **Fresh chat handoff** for the new next task.
-5. Parity/migration: add scoreboard or invocation spec inline, or link `improve-parity`.
-6. Run **Handoff readiness checklist**; bump `last_updated` and `version` if structure changed materially.
+2. Add phase/task rows in **Phases**; create `.local/<slug>/tasks/<id>.md` for each task (see **Authoring tasks**); add new cross-task choices to **Decisions**.
+3. Add scout tasks where new work depends on discovery.
+4. Append **only new open IDs** to **Implementation order**.
+5. Update **Progress summary**, header `(next: …)`, **Context references**, **Fresh chat handoff** for the new next task.
+6. Parity/migration: add scoreboard or invocation spec inline, or link `improve-parity`.
+7. Bump `last_updated` and `version` if structure changed materially; run the audit.
+
+## Replan mode
+
+Triggered when `sequential-implementation` reports a plan issue (task ID, what failed or does not fit). The supervisor spawns `{{tool:spawn-agent}}({{agent:senior}})` with this skill, `check-plan`'s SKILL.md path, the plan path and the issue report. The replan agent assesses the problematic task and its impact on the following tasks, then may edit the plan within these limits:
+
+- Edits only tasks **not yet done**. Completed tasks are never rewritten; add a corrective task instead.
+- Stays within the plan's original goal and scope.
+- Does not reverse **Decisions** the user approved.
+- Does not assign `principal` or `expert`.
+- Appends a **Change log** entry: date, task IDs, what changed, why.
+
+A change beyond these limits (goal or scope change, reversing an approved decision, a heavier Agent, completed work) needs user approval via `{{tool:ask-user}}` before the plan is edited; the agent returns it as a question. After editing, the agent reports what changed; the supervisor runs the audit again (Workflow step 7) so `sequential-implementation` can resume on `READY`.
 
 ## Before writing (new plan)
 
 1. Confirm **project root** (git root).
-2. Gather scope, constraints, success criteria.
+2. Gather scope, constraints, success criteria; read the brief at `.local/<slug>/brief.md` when `propose-plan` produced one and treat its decisions as locked.
 3. Separate task details from durable knowledge (**documentation** skill).
 4. Confirm external-environment requests (**External environment boundary**).
 
@@ -189,66 +176,44 @@ No tasks mutating GitHub, remote deploy, hosted datasets, etc. unless the user *
 .local/
   <slug>-plan.md           # Main plan — sole entry point for sequential-implementation
   <slug>/
-    decisions.md            # Locked decisions (optional but recommended)
+    brief.md                # Plan brief from propose-plan (when present)
     architecture.md         # Target layout, inventory (optional)
+    notes/                  # Scout findings and analysis recommendations
+      <name>.md
     tasks/
       1.1.md
 ```
 
 | Content | Path |
 |---------|------|
-| Main plan (lean **entry point**: phases, task index, progress) | `.local/<slug>-plan.md` — slug is short kebab-case (e.g. `date-input-migration`) |
-| Task details (large or multi-file specs) | `.local/<slug>/tasks/<task-id>.md` — **never** a repo-wide `.local/tasks/` |
-| Initiative reference (short-term decisions, design targets, runbooks) | `.local/<slug>/decisions.md`, `architecture.md`, … |
+| Main plan (lean **entry point**: phases, task index, decisions, progress) | `.local/<slug>-plan.md` — slug is short kebab-case (e.g. `date-input-migration`) |
+| Plan brief handed off by `propose-plan` | `.local/<slug>/brief.md` |
+| Task files | `.local/<slug>/tasks/<task-id>.md` — **never** a repo-wide `.local/tasks/` |
+| Scout findings, analysis recommendations | `.local/<slug>/notes/<name>.md` |
+| Initiative reference (design targets, runbooks) | `.local/<slug>/architecture.md`, … |
 | Long-term agent knowledge (stable architecture, conventions) | `.context/` (+ `index.md`) |
 | Long-term human docs | `docs/` (+ `README.md`) |
 
-Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slug>/tasks/1.1.md)`. Legacy plans with `plan.md` inside `<slug>/` or flat `.local/tasks/`: migrate when touching them. Create `.local/<slug>/` and `tasks/` when authoring; write `.local/<slug>-plan.md` last; add `.local/` to `.gitignore` when not already ignored.
+Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slug>/tasks/1.1.md)`. Legacy plans with `plan.md` inside `<slug>/` or flat `.local/tasks/`: migrate when touching them. Create `.local/<slug>/` with `tasks/` and `notes/` when authoring; write `.local/<slug>-plan.md` last; add `.local/` to `.gitignore` when not already ignored.
 
-**Content placement:** the plan or task file holds only what the executor needs for that task. Locked decisions, design targets, epic architecture, and background repeated across tasks → one `.local/<slug>/` file linked from each task; stable conventions → `.context/`; durable human reference → `docs/`.
+**Content placement:** the plan or task file holds only what the executor needs for that task. Cross-task choices → the plan's **Decisions** section; discovery output → `notes/`; stable conventions → `.context/`; durable human reference → `docs/`.
 
-## Task sizing and task-fit (mandatory)
+## Authoring tasks
 
-**One task ID = one spawn of the task's Agent** (foreground), finishable in a **single subagent session** with one primary verification path — not an epic, not a sequence of follow-up spawns. When drafting or extending a plan (and after scope grows mid-initiative), apply the checklist to **each open task** (read its linked task file). **Fail any row → split** (e.g. `3.2` → `3.2` + `3.3`) and update **Implementation order**.
+**Task size.** A task is one outcome a reviewer can sign off, finishable in one spawn of its Agent, with one primary verification. `check-plan` C1–C8 define the bar (including scope and acceptance limits); they are not restated here. To get there:
 
-| # | Criterion | Pass when | Fail → split when |
-| --- | --- | --- | --- |
-| 1 | **One outcome** | Summary is one concrete deliverable a reviewer can sign off | Summary joins unrelated outcomes with "and" (tokens **and** layout **and** CMS seed **and** parity) |
-| 2 | **One session** | One spawn, no planned follow-up for the same ID | Needs multiple runs, or supervisor already expects a follow-up |
-| 3 | **Bounded scope** | ≤8 primary paths, or one cohesive subsystem | >8 primary paths, or 3+ **unrelated** subsystems (Studio schema + React layout + MCP import) |
-| 4 | **Acceptance cap** | ≤7 criteria, all serving the same outcome | >7 criteria, or criteria belonging to separate tasks |
-| 5 | **Single verify track** | One primary **Verification** command or manual check | Multiple independent tracks (full parity suite **and** CMS import **and** schema deploy) |
-| 6 | **No investigate + build** | Implementation only, or analysis is a separate report-only ID | Same ID mixes spike/audit/gap analysis with production code changes |
-| 7 | **Sequenced deps only** | Depends only on prior tasks already sequenced; **Out of scope** defers adjacent work | Acceptance requires a later ID's work, or overlaps another open task |
-| 8 | **Vertical slice OK** | Multi-file edits are one GROQ→props→UI slice, token+SCSS for one surface, or a deletion sweep | Unrelated packages or layers bundled without a single user-visible slice |
+- **Split** by vertical slice and by dependency: schema, React UI, CMS seed and visual parity are separate tasks; phase umbrellas ("implement footer", "fix customers parity"), research + fix in one ID and global shared refactor + feature work (unless § **Scope boundary** pre-approves) are always split.
+- **Keep together:** one vertical slice (GROQ → normalize → props → component); token palette + SCSS map for one chrome surface; cleanup/deletion grep + build for one retirement manifest. CMS content patch (OAuth MCP) stays separate from code layout.
+- A task states what it delivers and how to check it, not how to build it. Do not pre-write file-by-file change lists; the executing supervisor derives them from the task, **Decisions** and notes.
+- **Splitting procedure:** add rows in **Phases** (+ task files); move scope and acceptance from the oversized task and tighten **Out of scope** on each; insert new IDs in **Implementation order** in dependency order; update **Fresh chat handoff** `(next: …)` and **Context references**.
 
-**Split:** schema + React UI + CMS seed + visual parity verify; phase umbrellas ("implement footer", "fix customers parity"); research + fix in one ID; global shared refactor + feature work (unless § **Scope boundary** pre-approves).
-**Keep together:** one vertical slice (GROQ → normalize → props → component); token palette + SCSS map for one chrome surface; cleanup/deletion grep + build for one retirement manifest; CMS content patch (OAuth MCP) kept separate from code layout.
+**Decisions.** Put a choice in `## Decisions` (ID `D1`, `D2`, …) when more than one task depends on it or when getting it wrong breaks a later task: interfaces and signatures, data shapes, ordering, naming, placement. A choice local to one task stays in that task's Scope. Never leave a design choice for the executor to make: settle it in **Decisions**, or in the brief, or ask the user. Tasks cite decisions by ID.
 
-**Splitting procedure:** add new rows in **Phases** (+ task files for non-trivial splits); move scope, acceptance and verify from the oversized task and tighten **Out of scope** on each; insert new IDs in **Implementation order** in dependency order (remove or replace the oversized ID); update **Fresh chat handoff** `(next: …)` and **Context references**; re-run the checklist.
+**Scout tasks.** When later work depends on discovery (inventory, gap analysis, API survey), add a `standard`, report-only scout task whose `Notes out` is a file under `notes/`, and have the later tasks list it in `Notes in`. Place the scout earlier in **Implementation order**. A scout task never also implements. Discovery done while authoring goes to `notes/` too, and tasks reference it in `Notes in`.
 
-## Decision-complete tasks (mandatory)
-
-Write every task so a **`standard`** agent can execute it alone, without exploring, choosing between designs or inferring intent. Each task spec (task file, or the plan row when Details is `—`) states:
-
-- **Files:** exact paths to create or edit.
-- **Change:** the exact change per file, with names, signatures, data shapes and interfaces fixed.
-- **Verification:** the exact command or check, and its expected result.
-- **Context:** only what this task needs (paths, snippets, decisions) — no pointers to "see the discussion" or to unrelated files.
-
-Design choices belong in `decisions.md` or the spec, never left to the executor. Gather missing facts (scouting, reading code) while authoring, not inside the task.
-
-## Agent field and approvals (mandatory)
-
-Each task has an **Agent** in the **Phases** table, default `standard`.
-
-If a task cannot be made `standard`-executable after splitting and tightening the spec, do not silently assign a heavier agent. Ask the user with `{{tool:ask-user}}`: propose `senior`, `principal` or `expert` with a brief justification (why the task resists a decision-complete spec). Write the **agreed** Agent into the task row and record it in `## Agent approvals`. If the user declines, keep `standard` and tighten the spec or split further.
-
-No task may name a non-`standard` Agent without a matching approval row. `principal` and `expert` are used only with this user agreement.
+**Agents.** Each task has an **Agent** in the **Phases** table, default `standard`. If a task stays too hard for `standard` after splitting and tightening its scope, do not assign a heavier agent silently. Ask the user with `{{tool:ask-user}}`: propose `senior`, `principal` or `expert` with a brief justification (why the task resists being made `standard`-sized). Once agreed, write the Agent into the task row **and** a row in `## Agent approvals`. If the user declines, keep `standard` and split further.
 
 ## Required plan structure
-
-Every plan **must** include:
 
 ```markdown
 ---
@@ -274,9 +239,10 @@ Complete manifest — every file to consult during this initiative. Group by kin
 | File | Purpose |
 |------|---------|
 | `.local/<slug>-plan.md` | Main plan (entry point for sequential-implementation) |
-| `.local/<slug>/decisions.md` | Locked decisions |
+| `.local/<slug>/brief.md` | Plan brief from propose-plan; locked decisions and rationale |
 | `.local/<slug>/architecture.md` | Target layout, file inventory, retirement manifest |
-| `.local/<slug>/tasks/<id>.md` | Per-task specs (list every task file) |
+| `.local/<slug>/notes/<name>.md` | Scout findings and analysis recommendations (list every note) |
+| `.local/<slug>/tasks/<id>.md` | Per-task files (list every task file) |
 | `.agents/skills/project-best-practices/SKILL.md` | Mandatory when present under project root |
 | `.agents/skills/project-best-practices/references/*.md` | Task-relevant refs (placement, styling, cms-blocks, website-structure, …) |
 | `.agents/skills/sanity-best-practices/SKILL.md` | When plan has Sanity schema/GROQ/Studio tasks |
@@ -284,6 +250,14 @@ Complete manifest — every file to consult during this initiative. Group by kin
 | *convention / docs paths* | Canonical spec — note **target** vs **current** if code lags |
 
 Use accurate purpose text (date, "target architecture", "legacy — replace in task X").
+
+## Decisions
+
+Cross-task decisions (interfaces, data shapes, ordering, naming). Tasks reference these by ID.
+
+| ID | Decision | Affects |
+|----|----------|---------|
+| D1 | … | 1.2, 2.1 |
 
 ## Implementation order
 
@@ -295,9 +269,9 @@ Use accurate purpose text (date, "target architecture", "legacy — replace in t
 
 | Task ID | Summary | Agent | Status | Details |
 |---------|---------|-------|--------|---------|
-| 1.1 | One-line outcome | standard | ⬜ | [1.1.md](<slug>/tasks/1.1.md) or — |
+| 1.1 | One-line outcome | standard | ⬜ | [1.1.md](<slug>/tasks/1.1.md) |
 
-Use `—` in Details when the summary is sufficient (no task file).
+`Decisions`, `Notes in` and `Notes out` of each task live in its task file; any task that has them uses a task file (Details `—` only for a task with none).
 
 ### Phase 2 — <name>
 
@@ -317,6 +291,13 @@ Only for tasks whose Agent is not `standard`; omit rows otherwise.
 ## Operator handoff (not plan tasks)
 …
 
+## Change log
+
+Replans only (see **Replan mode**).
+
+| Date | Task IDs | Change | Why |
+|------|----------|--------|-----|
+
 ## Plan maintenance
 …
 
@@ -328,13 +309,14 @@ Only for tasks whose Agent is not `standard`; omit rows otherwise.
 4. Update header `**Last updated:**` and frontmatter `last_updated` (today's date).
 5. Set frontmatter `status: in_progress` on first completed task; `status: complete` when all tasks are `✅`.
 6. Resolve or add **Open questions** if the task surfaced new blockers or decisions.
-7. Add newly created files that future tasks need to **Context references** immediately.
+7. Add newly created files (including notes) that future tasks need to **Context references** immediately.
 
 ### During execution
 
 - Do **not** start the next task until the plan is updated.
-- Subagents do **not** edit the plan — the supervisor or implementing agent does.
+- Subagents do **not** edit the plan — the supervisor does.
 - Prefer updating the plan over leaving progress in chat only.
+- A plan issue (task cannot be done as written, wrong order, missing decision) goes back through **Replan mode**; do not patch around it in the task prompt.
 
 ### Fresh chat handoff
 
@@ -343,14 +325,14 @@ Only for tasks whose Agent is not `standard`; omit rows otherwise.
 /sequential-implementation <project-root>/.local/<slug>-plan.md
 
 1. **Project root:** …
-2. Read this plan (Progress summary, Context references, scoreboard if any).
+2. Read this plan (Progress summary, Decisions, Context references, scoreboard if any).
 3. Load `.agents/skills/project-best-practices/SKILL.md` when under `.agents/`; open task-relevant `references/` from Context references.
 4. Apply **code** user rule for source-editing tasks — run its checklist before marking each task done.
-5. Load initiative refs from Context references.
+5. Load initiative refs (brief, architecture) from Context references.
 6. **Next task:** `<id>` only — open `.local/<slug>/tasks/<id>.md`.
-7. Load task-specific skills listed in task spec or phase (e.g. `{{path:skills}}/improve-parity/SKILL.md`, `sanity-best-practices`, `sanity-data-handling`).
-8. Delegate each task to its **Agent** with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
-9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required** (not fixed task IDs).
+7. Load task-specific skills listed in the task or phase (e.g. `{{path:skills}}/improve-parity/SKILL.md`, `sanity-best-practices`, `sanity-data-handling`).
+8. For each task, write its spec from the task, the **Decisions** it cites and its `Notes in`; delegate to its **Agent** with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
+9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required** or a plan issue (**Replan mode**).
 10. Prerequisites: …
 ```
 
@@ -359,70 +341,71 @@ Adjust steps for the initiative; **never** omit the single entry point or next t
 ## Task file template (`.local/<slug>/tasks/<task-id>.md`)
 
 ```markdown
+**Status:** ⬜
+
 ## Goal
 
-One paragraph — concrete outcome.
+One paragraph — one concrete outcome.
 
 ## Scope
 
-- Files: exact paths to create or edit
-- Change: exact change per file (names, signatures, data shapes, interfaces)
+- Areas: expected files or directories
 - In scope: …
 - Out of scope: … (include boundaries vs adjacent tasks when paths may overlap)
 
-## Context
+## References
 
-- Plan: `../../<slug>-plan.md` (from `tasks/`; or `../<slug>-plan.md` from `.local/` siblings)
-- Background: `../decisions.md`, `../architecture.md`, or `../../.context/…` (long-term only)
+- Decisions: D1, D3 (IDs from the plan's Decisions section)
+- Notes in: `../notes/<name>.md` (existing, or produced by an earlier task's Notes out)
+- Notes out: `../notes/<name>.md` (scout and analysis tasks only)
 
-## Acceptance criteria
+## Acceptance
 
-- [ ] …
-- [ ] Code complies with project-best-practices (when present) and passes **code** user rule checklist for touched source files
+- [ ] … (all serving the goal)
 
 ## Verification
 
 Exact command or manual check and its expected result (e.g. `pnpm test packages/foo` passes, lint clean, or visual check).
 
-## Notes
+## Context
 
-Primary file or dir hints; sequencing notes only when reordering **Implementation order** is insufficient.
+- Plan: `../../<slug>-plan.md`
+- Background: `../architecture.md`, `../brief.md`, or `../../.context/…` (long-term only)
 ```
+
+Omit a References line that has no entries.
 
 ## Workflow (new plan)
 
-1. Draft phases/tasks; agree order if ambiguous.
-2. Check `project-best-practices`; map open tasks to **Conventions coverage** refs.
-3. Write `.local/<slug>/` decisions/architecture as needed; durable conventions to agent `references/` or `docs/` when the initiative defines long-term rules.
-4. Write task files for non-trivial tasks (paths, **Out of scope**, **Verification** when not obvious).
-5. Run **Task-fit checklist** and **Decision-complete tasks** on every open task; split or tighten until all pass. Set each task's **Agent** (default `standard`); ask the user for any non-`standard` proposal per **Agent field and approvals**.
-6. Write `.local/<slug>-plan.md` last.
-7. **Handoff readiness checklist** — fix all failures (or run **`check-plan`**).
-8. Tell the user: `/check-plan <plan-path>` then `/sequential-implementation <plan-path>` in a fresh chat.
+1. Confirm project root, scope, constraints and the brief (if any); read `check-plan`'s SKILL.md.
+2. Check `project-best-practices`; map open work to **Conventions coverage** refs.
+3. Spawn `standard` scouts by area; they write findings to `.local/<slug>/notes/` and return a short summary.
+4. Spawn the `senior` author (see **Execution**) with the notes and brief: it drafts phases, small tasks, **Decisions**, scout tasks and Agents (default `standard`), and returns proposals for any non-`standard` Agent.
+5. Relay questions and Agent proposals to the user with `{{tool:ask-user}}`; record agreed Agents in the task rows and **Agent approvals**; re-spawn the author with the answers.
+6. The author creates `.local/<slug>/` (`tasks/`, `notes/`), the task files, then `.local/<slug>-plan.md` last.
+7. **Audit:** spawn `{{tool:spawn-agent}}({{agent:standard}})` as a read-only auditor given `{{path:skills}}/check-plan/SKILL.md` and the plan path; it returns the `check-plan` report. If not `READY`, re-spawn the author with the failed checks and repeat until `READY`.
+8. Tell the user the plan path and `/sequential-implementation <plan-path>` for a fresh chat.
 
 ## Authoring rules
 
 1. **Task IDs:** `<phase>.<sequence>` (e.g. `2.3`), unique across the plan; phases are labels, never umbrella tasks.
-2. **One spawn per task**, independently delegatable and `standard`-executable unless an approved Agent says otherwise — see **Task sizing**.
+2. **Small tasks:** one spawn per task, `standard` unless a recorded approval says otherwise — see **Authoring tasks**.
 3. **Implementation order = open tasks only** — re-sync when tasks complete.
 4. **Progress:** the plan owns the summary table and per-task status columns (single source of truth).
-5. **Lean plan:** specs live in linked files; the plan is the **index** — never orphan detail outside **Context references** or task links.
+5. **Lean plan:** the plan is the **index**; cross-task choices live in **Decisions**, discovery in `notes/`; never orphan detail outside **Context references** or task links.
 6. **Self-contained:** **Context references** enumerates all files for a fresh chat; **Plan maintenance** keeps progress current; **Fresh chat handoff** is required.
-7. **External environments:** no PR/deploy/import/hosting/commit tasks by default (not even "ship"/"done" phases); hand off to the user in decisions or runbook text and use local verify. Exceptions per **External environment boundary**.
-8. **Re-sync before handoff:** if conventions or docs changed after drafting, update the plan before telling the user to run `sequential-implementation`; re-run the checklist after any structural edit.
-9. **Ready gate:** `status: ready` only when the checklist passes and no open question blocks specific tasks (list them in **Open questions** with **Blocks**).
+7. **External environments:** no PR/deploy/import/hosting/commit tasks by default (not even "ship"/"done" phases); hand off to the user in the runbook text and use local verify. Exceptions per **External environment boundary**.
+8. **Re-sync before handoff:** if conventions or docs changed after drafting, update the plan and re-run the audit.
+9. **Ready gate:** `status: ready` only after the audit returns `READY`.
 10. **Conventions coverage:** source-editing plans list project-best-practices (+ task-relevant references and Sanity siblings) and the **code** user rule in **Fresh chat handoff**.
-11. **Task-fit:** no open task fails the checklist — split first.
-12. **Decision-complete and Agent:** every task meets **Decision-complete tasks** and carries an Agent; non-`standard` only with a recorded user approval.
 
 ## Do not
 
 - Put task files in a shared `.local/tasks/`, or the main plan inside `.local/<slug>/`.
+- Duplicate `check-plan`'s checklist in the plan or in this skill; mark ready without a `READY` audit.
+- Assign a non-`standard` Agent without a recorded user approval, or rewrite a completed task during a replan.
+- Leave a design choice for the executor, or a cross-task choice outside **Decisions**.
+- Merge investigation and implementation; put discovery in a task body instead of a scout task with `Notes out`.
 - Leave `✅ Complete` IDs in **Implementation order**, or a handoff saying "start at 1.1" when only `8.1` is open.
-- Mark ready without the checklist.
-- Embed full product briefs in the plan when `.local/<slug>/` is more appropriate.
 - Leave implementation-relevant files unlisted in **Context references**, or use "to update" purposes for finished work.
-- Create tasks without IDs, or a plan without **Implementation order**.
-- Write tasks whose acceptance criteria require another open task — reorder or split.
-- Merge investigation and implementation when exploration scope is unclear.
-- Leave design choices or exploration to the executor, or name a non-`standard` Agent without a recorded user approval.
+- Write tasks whose acceptance requires another open task — reorder or split.

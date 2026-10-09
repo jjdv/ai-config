@@ -66,4 +66,4 @@ Structure for Phase 2 chat output; expand sections only on request.
 - …
 ```
 
-After user agreement, copy locked rows into `.local/<slug>/decisions.md` and expand inventory into `.local/<slug>/architecture.md`.
+After user agreement, copy locked rows into the plan's `## Decisions` section and expand inventory into `.local/<slug>/architecture.md`.

@@ -2,13 +2,13 @@
 
 Loaded by `create-plan` for a website/page-group migration (routes or domains from a reference repo to the target monorepo, blocks/components/page types, or a follow-on child plan such as parity, gaps, CMS seed). Not for one-line fixes, parity-only passes on an agreed architecture (`improve-parity` + existing plan), or harness edits.
 
-**Upstream:** analysis + user agreement → **downstream:** a `create-plan` plan file + `.local/<slug>/` artifacts.
+**Upstream:** analysis + user agreement → **downstream:** a `create-plan` plan file + `.local/<slug>/` artifacts (`brief.md` when `propose-plan` ran, `notes/`).
 
 **Gate:** do **not** write any `.local/*-plan.md` until the user explicitly agrees the proposed solution (Phase 3).
 
 ## Execution
 
-Phases 1, 2 and 4 run on `senior` per `create-plan` § Execution. Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `senior` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
+Phases 1 and 2 run on `senior`; Phase 4 follows `create-plan` § Execution (`standard` scouts write to `notes/`, `senior` authors, then the `check-plan` audit). Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `senior` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
 
 ## Required skills (load before Phase 1)
 
@@ -70,13 +70,13 @@ Follow `create-plan` end-to-end. Migration extras:
 
 | Artifact | Path |
 | --- | --- |
-| Decisions | `.local/<slug>/decisions.md` — locked choices from Phase 3 |
+| Decisions | the plan's `## Decisions` section — locked choices from Phase 3 (IDs cited by tasks) |
 | Architecture | `.local/<slug>/architecture.md` — route map, block inventory, retirement notes |
 | Parity mapping (optional) | `.local/<slug>/parity-mapping.md` — block-type → prod role hints for `improve-parity` |
 
-Plan sections (patterns in `create-plan` § Optional sections; **Target vs code** banner per its checklist): **Autonomy & authorization** (dev server, parity, domain-scoped edits, CMS import if pre-approved), **Scope boundary**, **Parity scoreboard** (empty table, updated during `improve-parity` tasks), **Operator handoff** (import, deploy, asset copy — not tasks unless requested).
+Plan sections (patterns in `create-plan` § Optional sections; **Target vs code** banner per `check-plan` D6): **Autonomy & authorization** (dev server, parity, domain-scoped edits, CMS import if pre-approved), **Scope boundary**, **Parity scoreboard** (empty table, updated during `improve-parity` tasks), **Operator handoff** (import, deploy, asset copy — not tasks unless requested).
 
-**Typical phases** (adapt to scope; split until task-fit passes):
+**Typical phases** (adapt to scope; split until `check-plan` task checks pass):
 
 | Phase | Typical tasks |
 | --- | --- |
@@ -86,7 +86,7 @@ Plan sections (patterns in `create-plan` § Optional sections; **Target vs code*
 | **4 — Parity** | One task per coherent URL batch (e.g. listing + one story; whole domain only if ≤3 URLs) |
 | **5 — Closure** | Scoreboard sign-off, docs update, parent index link |
 
-Investigation-only work is a separate report-only task ID before implementation tasks. Every parity task spec includes:
+Investigation-only work is a separate report-only `standard` scout task with `Notes out` in `notes/`, read by the later tasks (`Notes in`). Every parity task includes:
 
 ```markdown
 ## Parity invocation
@@ -99,20 +99,19 @@ Investigation-only work is a separate report-only task ID before implementation 
 - Mapping overlay: `.local/<slug>/parity-mapping.md` (if present)
 ```
 
-**Before `status: ready`:** run the `create-plan` Handoff readiness checklist, plus:
+**Before `status: ready`:** satisfy every check in `check-plan` (run as the final audit per `create-plan`), plus:
 
 | Check | Pass when |
 | --- | --- |
 | User agreement | Phase 3 confirmed in chat |
-| Decisions file | `decisions.md` reflects locked choices |
+| Decisions section | `## Decisions` reflects locked choices |
 | Parity delegation | Every parity task references `improve-parity`; iterations ≤ cap |
 | Scope boundary | Global paths listed under escalation |
 | Parent link | Child plans linked from the parent index when applicable |
 
-Then run `check-plan` and hand off to the user:
+After the audit returns `READY`, hand off to the user:
 
 ```
-/check-plan <project-root>/.local/<slug>-plan.md
 /sequential-implementation <project-root>/.local/<slug>-plan.md
 ```
 

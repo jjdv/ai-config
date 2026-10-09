@@ -132,7 +132,7 @@ Gather requests: <what is missing>
 ### 7. Handoff to create-plan
 
 1. Brief status is `approved`. Brief path: `<project-root>/.local/<slug>/brief.md`.
-2. Run `create-plan` with the project root, slug, brief path and the instruction to treat the brief as locked decisions: list it in Context references, keep every decision in the plan or its task files, and carry open items into Open questions only if the user deferred them.
+2. Run `create-plan` with the project root, slug, brief path and the instruction to treat the brief as locked decisions: list it in Context references, keep every decision in the plan's Decisions section, and carry open items into Open questions only if the user deferred them.
 3. After `create-plan` finishes, report the plan path and the single next command.
 
 ## Plan brief format

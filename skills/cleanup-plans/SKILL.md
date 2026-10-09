@@ -108,7 +108,7 @@ Include **all** of the following when they exist and belong to the plan:
 4. Every **initiative folder** explicitly referenced (e.g. `<slug>/` under `PLANS_DIR`) — **entire tree**, including:
    - `scripts/`, `lib/`, `package.json`, `node_modules/`
    - `output/`, scratch NDJSON, convert caches
-   - decisions, architecture, parity notes, reports, probes
+   - brief, architecture, notes, parity notes, reports, probes
 5. Scope / tracker files the plan links as its task list (e.g. `scopes/I01-….md`)
 6. Any other path named in the plan body as a deliverable location for that initiative (e.g. `.local/customers-migration/`)
 
@@ -157,7 +157,7 @@ For each eligible plan, merge **only** what is not already canonical:
 
 | Source (typical) | Destination |
 |------------------|-------------|
-| Locked decisions, architecture sketch | `docs/<area>/<topic>.md` or conventions skill `references/` — extend, don’t duplicate |
+| Locked decisions (plan Decisions section, brief), architecture sketch | `docs/<area>/<topic>.md` or conventions skill `references/` — extend, don’t duplicate |
 | Shipped status, dates | Product spec header + `docs/README.md` index row |
 | IA / routes | `.context/app-pages.md` + product spec (legacy) or conventions `references/` |
 | API outline | `docs/server/http-api.md` (if shipped) |
