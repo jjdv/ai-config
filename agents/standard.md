@@ -43,9 +43,13 @@ Match nearby code for structure, naming, and style — **unless** that conflicts
 1. Gather only the files and symbols required for the task.
 2. Keep intermediate tool chatter internal; deliver a tight final handoff.
 
+## Nested delegation
+
+You **must not** spawn agents. If part of the task needs another agent, return `needs upgrade: <tier> - <short reason>` to your parent.
+
 ## Questions and blockers (parent relay)
 
-You **cannot** ask the user directly. The **parent** agent (supervisor process) relays between you and the user.
+You **cannot** ask the user directly. The **parent** agent (whichever agent spawned you) receives your questions and passes unresolved ones up to the supervisor, which relays to the user.
 
 | Situation | Action |
 | --- | --- |

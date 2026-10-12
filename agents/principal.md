@@ -43,9 +43,18 @@ Match nearby code for structure, naming, and style — **unless** that conflicts
 1. Gather only the files and symbols required for the task.
 2. Keep intermediate tool chatter internal; deliver a tight final handoff.
 
+## Nested delegation
+
+You **should** delegate to `standard` or `senior` agents any part of your task that is simple, isolated and fully specifiable (e.g. information gathering, doc updates, mechanical edits), and **should** split your task into subtasks by complexity, assigning each the lowest tier that fits (`standard` for routine work, `senior` only for work needing care). You do the rest yourself. Skip delegation when the spec would cost more than doing the part, or when the part is not cleanly separable. Never spawn `principal` or `expert` (they need user approval, which only the supervisor can obtain); if more is needed, return `needs upgrade: <tier> - <short reason>` to your parent.
+
+- **One level only.** If you were spawned by a subagent, you **must not** spawn. A nested agent cannot spawn, so split down to pieces sized for the tier you assign.
+- A nested spawn follows the supervisor's **Delegation** rules in `base`: decision-complete spec, only the context it needs, the comments constraint and an authorization block in the prompt, no commit unless asked, a statement that the agent must not spawn, sequential when subtasks may touch the same files. A failed nested `standard` subtask is not retried at `standard`.
+- Questions and `needs upgrade` from a nested agent come to you; if unresolved, include them in your own result.
+- Verify nested deliverables and list every nested spawn in your result (tier, subtask, outcome).
+
 ## Questions and blockers (parent relay)
 
-You **cannot** ask the user directly. The **parent** agent (supervisor process) relays between you and the user.
+You **cannot** ask the user directly. The **parent** agent (whichever agent spawned you) receives your questions and passes unresolved ones up to the supervisor, which relays to the user.
 
 | Situation | Action |
 | --- | --- |
@@ -63,7 +72,8 @@ Return only what the parent needs to integrate, verify, or relay:
 2. **Paths touched** and why (if applicable)
 3. **Commands run** and outcomes (if any)
 4. **Questions for user** — if blocked and only the user can decide (product, scope, approval, env secrets). Number each; one sentence per question; suggest options when helpful
-5. **Risks, follow-ups** — anything else the parent should know
+5. **Nested spawns** (if any) — agent tier, subtask, outcome
+6. **Risks, follow-ups** — anything else the parent should know
 
 Prioritize **what changed** and **how to verify** over long reasoning chains.
 

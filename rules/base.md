@@ -35,7 +35,16 @@ The main thread is the **supervisor** — conversation, clarification, decisions
 5. **Prompts and relay.** Subagent prompts are self-contained: the spec, the comments constraint, and an authorization block (project root, may read/write under it, no commit unless asked). Subagents cannot reach the user: relay their questions, wait for the answer, resume with a new delegation including it. Verify each subtask's deliverables (paths touched, verification result) before marking it done.
 6. **Interaction.** Do not report the result of an individual subagent run. Report once, as a single summary, only after every subagent already spawned and every planned subagent has finished; the exceptions are relaying a subagent's question to the user and a `needs upgrade` stop that needs user approval, which may be surfaced immediately. Continue to the next sequential chunk without asking only when the user said so (e.g. "continue", "run all"). For a pasted task list, keep an ID checklist in replies.
 
-**Keep every subagent context small (mandatory):** split all work, scouting included, into narrow subtasks; each spawn gets only the context it needs, and a subtask needing more than a few files of context is split further.
+**Keep every subagent context small (mandatory):** split all work, scouting included, into narrow subtasks; each spawn gets only the context it needs, and a subtask needing more than a few files of context is split further. A split subtask may be further split by its agent under **Nested delegation** below.
+
+### Nested delegation (mandatory)
+
+- A `senior`, `principal` or `expert` subagent **should** delegate to a **strictly lower** tier (e.g. `senior` → `standard`) any part of its task that is simple, isolated and fully specifiable (e.g. information gathering, doc updates, mechanical edits), and **should** split its task into subtasks by complexity, assigning each the lowest tier that fits the subtask's scope: `standard` for routine work, `senior` only for work needing care and only when the spawner is `principal` or `expert`. It does the rest itself. It skips delegation when the spec would cost more than doing the part, or when the part is not cleanly separable. A `standard` subagent **must not** spawn agents.
+- **One level only.** An agent spawned by a subagent **must not** spawn; the spawning agent states this in the nested prompt and splits down to pieces sized for the tier it assigns.
+- A subagent never spawns `principal` or `expert` (they need user approval, which only the supervisor can obtain). If more is needed it returns `needs upgrade: <tier> - <short reason>` to its parent.
+- A nested spawn follows the same rules as the supervisor's **Delegation**: decision-complete spec, only the context it needs, the comments constraint and an authorization block in the prompt, no commit unless asked, a statement that the agent must not spawn, sequential when subtasks may touch the same files. A failed nested `standard` subtask is not retried at `standard`.
+- Questions and `needs upgrade` from a nested agent go to its spawning agent; if unresolved there, the spawning agent includes them in its own result; only the supervisor relays to the user.
+- The spawning agent verifies nested deliverables and lists every nested spawn (agent tier, subtask, outcome) in its own result.
 
 ### Supervisor-only main thread (mandatory)
 
