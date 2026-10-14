@@ -35,9 +35,13 @@ Asking by level:
 | Who | Does |
 | --- | --- |
 | Main thread (supervisor) | Dialogue with the user, `ask-questions` rounds, relay, choosing tiers, deciding parallel vs sequential, spawning |
-| `standard` | Process management (brief file upkeep, decision log, consolidation, status), data gathering from the codebase, docs and the internet, fact sheets for higher tiers |
-| `principal`, `expert` | Key thinking: investigation, option analysis, solution proposals, risk and trade-off judgment. Consume `standard` fact sheets instead of gathering data themselves |
-| `senior` | Aspects of moderate complexity that do not need the top tiers |
+| `junior` | Pure lookups: single facts, path and symbol inventories |
+| `standard` | Process management (brief file upkeep, decision log, status), narrow data gathering from the codebase, docs and the internet, fact sheets for higher tiers |
+| `senior` | Consolidation, aspects of moderate complexity that do not need higher tiers |
+| `staff` | Key thinking: investigation, option analysis, solution proposals, risk and trade-off judgment. Consumes `standard` fact sheets instead of gathering data itself |
+| `principal`, `expert` | Specific, bounded analysis subtasks of high complexity (`principal`) or with a critical, high-impact decision (`expert`); spawned by the `staff` thinker under the criteria in Tier selection, or by the supervisor only after user approval |
+
+A `staff` thinker acts as a sub-supervisor for its activity: the Delegation scope table and delegation rules apply to it, except that it may spawn `principal` and `expert` without user approval, only for the criteria in Tier selection, never for size. Its spawn prompt grants this explicitly.
 
 Subagents cannot ask the user: they return **draft questions** (decision, context, options, recommendation). The main thread asks them and relays answers in the next spawn.
 
@@ -47,19 +51,21 @@ Pick per aspect and level from importance, complexity and blast radius, not once
 
 | Work | Tier |
 | --- | --- |
-| Reading code, docs, web sources; inventories; fact sheets; brief upkeep; consolidation; status | `standard` |
-| Well-understood aspect, one clear option space | `senior` |
-| Cross-cutting aspect, several viable architectures, non-obvious trade-offs | `principal` |
-| Hardest or highest-risk aspect (core architecture, security model, data model migration, performance-critical paths), or review of the consolidated brief | `expert` |
+| Pure lookups | `junior` |
+| Reading code, docs, web sources; inventories; fact sheets; brief upkeep; status | `standard` |
+| Consolidation; well-understood aspect, one clear option space | `senior` |
+| Key thinking, review of the consolidated brief | `staff` |
+| Well-scoped aspect of high complexity: subtle interactions, hard trade-offs, intricate logic where `staff` would likely fail | `principal` |
+| Critical, high-impact decision that is hard to reverse (core architecture, security model, data model migration, performance-critical paths), or the hardest deep problem in a bounded scope | `expert` |
 
-Default for key thinking: `expert` or `principal`. Never spend a high tier on data gathering.
+Default for key thinking: `staff`, which escalates to `principal` or `expert` as sub-supervisor only for the criteria above; the supervisor spawns them directly only after user approval. Size or breadth alone is never a reason: split a large aspect into smaller thinkers for `staff`. Never spend a high tier on data gathering.
 
 ## Splitting for cost
 
 Every investigation is split into two stages:
 
 1. **Gather** (`standard`): a bounded fact sheet with sources and paths. Facts only, no recommendations.
-2. **Think** (`principal` or `expert`): receives the fact sheets in its prompt and returns options with a recommendation per direction.
+2. **Think** (`staff` by default, escalating by complexity): receives the fact sheets in its prompt and returns options with a recommendation per direction.
 
 A thinking agent that needs more data returns a **gather request**; the main thread spawns `standard` and re-spawns the thinker with the result.
 
@@ -68,7 +74,7 @@ A thinking agent that needs more data returns a **gather request**; the main thr
 Look for parallel work at every phase, then decide per set of tasks:
 
 - **Parallel** (same turn, several spawns): independent aspects, independent gather tasks, read-only investigations, anything with no shared written files and no data dependency.
-- **Sequential**: tasks that may write the same files (the brief is written only by one `standard` at a time), and a thinker that depends on a gather or on another aspect's decision.
+- **Sequential**: tasks that may write the same files (the brief is written only by one agent at a time), and a thinker that depends on a gather or on another aspect's decision.
 - Levels decide order: settle a level before researching the next. Within a level, gather tasks run in one parallel wave, then thinkers for independent aspects in one parallel wave; aspect dependencies decide order: upstream aspects (for example data model) before downstream ones when the answer changes the options.
 
 ## Phases
@@ -108,9 +114,9 @@ Level: <1 | 2 | 3>
 Findings: <facts that drive the choice, with sources>
 Proposal: <the recommended design, concrete enough to plan from>
 Directions (only when similar value):
-  - <id> <option>: <benefit> / <cost> / <risk>
-Recommendation: <direction id or the proposal>, <reason in one sentence>
-Questions: <decision | context | options | recommended option>
+  - <option title> [<id>]: <benefit> / <cost> / <risk>
+Recommendation: <direction title [id] or the proposal>, <reason in one sentence>
+Questions: <decision title | context | option titles | recommended option title>
 Cross-aspect impact: <aspects affected, level reassignments, new aspects missing from the list>
 Gather requests: <what is missing>
 ```
@@ -125,8 +131,8 @@ Gather requests: <what is missing>
 
 ### 6. Consolidation
 
-1. Spawn `standard` to merge all decisions into the brief and run a consistency pass: contradictions, uncovered requirements, decisions without owner aspect, open questions left.
-2. For a large or high-risk idea, spawn `expert` to review the consolidated brief against the goal and the checklist below; its findings go back through phase 5.
+1. Spawn `senior` to merge all decisions into the brief and run a consistency pass: contradictions, uncovered requirements, decisions without owner aspect, open questions left.
+2. Spawn `staff` (granted the sub-supervisor exception, so it may use `expert` only for a specific critical, high-impact decision in the idea, never because the idea is large) to review the consolidated brief against the goal and the checklist below; its findings go back through phase 5.
 3. Present the user a short summary of the decided design and any residual risks. Wait for approval or changes.
 
 ### 7. Handoff to create-plan
@@ -137,7 +143,7 @@ Gather requests: <what is missing>
 
 ## Plan brief format
 
-One file, `<project-root>/.local/<slug>/brief.md`, written and updated only by `standard`. Add `.local/` to the project's ignore file when missing.
+One file, `<project-root>/.local/<slug>/brief.md`, written and updated only by one agent at a time (`standard`, `senior` for consolidation). Add `.local/` to the project's ignore file when missing.
 
 ```markdown
 ---
@@ -157,7 +163,7 @@ Goal, success criteria, constraints, out of scope.
 ## Aspects
 | Aspect | Tier used | Status | Summary |
 | --- | --- | --- | --- |
-| architecture | expert | decided | one line |
+| architecture | staff | decided | one line |
 
 ## Level map
 | Aspect | Decision | Level | Dependencies |
@@ -188,7 +194,7 @@ Only items the user explicitly deferred, each with owner and blocking task area.
 Fact-sheet summaries with paths and sources.
 ```
 
-Decision `Source` is `user` when the user chose, `proposed-confirmed` when the user approved a dominant proposal.
+Decision `Source` is `user` when the user chose, `proposed-confirmed` when the user approved a dominant proposal. In chat, a decision, direction or question is named by its title, with its ID in brackets only as extra (e.g. `chosen option [D1]`), never by ID alone.
 
 ## Completeness checklist
 
@@ -216,8 +222,9 @@ Before status `approved`:
 )
 ```
 
-- Self-contained prompts: idea, project root, aspect scope, inputs, return format. State what is out of scope and that the agent only reads unless it is the brief writer.
-- Thinker prompts include the fact sheets, decisions so far and the proposal format.
+- Self-contained prompts: idea, project root, the agent's level (2), aspect scope, inputs, return format. State what is out of scope and that the agent only reads unless it is the brief writer.
+- Draft questions give a title for every referenced option, decision and item; an ID may follow in brackets, never alone.
+- Thinker prompts include the fact sheets, decisions so far and the proposal format; a `staff` thinker prompt grants the sub-supervisor exception explicitly.
 - Brief writer prompts include an Authorization block: project root, may write only `.local/<slug>/`, no commit.
 - Parallel spawns go in the same turn; wait for the whole wave before the next phase.
 - Do not dump raw subagent output into chat; relay only what the user must decide or verify.

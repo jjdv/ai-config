@@ -30,7 +30,7 @@ If **`{{tool:ask-user}}`** is unavailable, use the same structure in chat: short
 
 Each question must make **scope obvious** in the `prompt`:
 
-1. **Decision** — what you need chosen (one sentence).
+1. **Decision** — what you need chosen (one sentence), naming any referenced item by title or short description (id in brackets only as extra help).
 2. **Context** — why it matters / what blocks without it (one short clause).
 3. **Options** — 2–4 concrete paths; labels readable without reading the rest of the chat.
 
@@ -58,6 +58,7 @@ Each question must make **scope obvious** in the `prompt`:
 **Forbidden**
 
 - Questions answerable from repo docs or the current message — read first.
+- Referring to anything only by id, section or task number; restate it by title.
 - “Is this OK?” without stating what “this” is.
 - Options that all mean the same thing with different wording.
 - Proceeding after asking without waiting for answers.
@@ -66,7 +67,7 @@ Each question must make **scope obvious** in the `prompt`:
 
 1. **Identify blockers** — list only choices that change scope, policy, or acceptance criteria.
 2. **Draft prompts** — decision + context + options per question.
-3. **Call `{{tool:ask-user}}`** — use stable `id`s (kebab-case); set `allow_multiple` only when options may combine.
+3. **Call `{{tool:ask-user}}`** — use stable `id`s (kebab-case); set `allow_multiple` only when options may combine. The payload `id` stays internal; question text and option labels must not depend on it.
 4. **Stop** — no implementation, delegation, or speculative defaults until the user answers.
 5. **Reflect answers** — one short sentence confirming what was chosen, then continue.
 
@@ -85,7 +86,7 @@ Each question must make **scope obvious** in the `prompt`:
 
 ## Subagents
 
-When **`standard`** or another subagent is blocked on user policy, return **draft `{{tool:ask-user}}` payloads** (ids, prompts, options) to the main thread — do not pick product defaults in the subagent.
+When a subagent of any tier is blocked on user policy, return **draft `{{tool:ask-user}}` payloads** (ids, prompts, options) to the main thread — do not pick product defaults in the subagent. Every item a draft payload refers to gets a title (ids optional, in brackets); the supervisor rewrites id-only items before showing them.
 
 ## Relation to `base`
 

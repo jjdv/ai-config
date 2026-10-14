@@ -303,7 +303,7 @@ Split **before** spawning when a single domain lane would touch too many paths �
 
 **Sub-lane time budget:** If a sub-lane cannot finish its allowlist, return partial candidates with `paths_not_reviewed: [...]` — orchestrator spawns a follow-up sub-lane for the remainder or completes on main thread before synthesis (§ Lane failure / abortion).
 
-Use `senior` for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
+Use `staff` for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
 
 **Lane failure / abortion (mandatory):** If a domain lane subagent **times out, aborts, or returns incomplete output**, the orchestrator must either (a) finish that lane’s scope on the main thread before synthesis, or (b) record the gap in **Open questions** (e.g. “Domain 4 incomplete — global-blast table not fully verified”). Do **not** publish a complete-looking report when an activated lane did not finish.
 

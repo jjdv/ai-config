@@ -1,6 +1,6 @@
 ---
 name: senior
-description: Careful implementation. Use for trickier multi-step edits that need more care than routine work.
+description: Multi-step edits within a given design. Use for bounded cross-file work, tests, and debugging with a known repro.
 model: {{model:senior}}
 effort: {{effort:senior}}
 background: false
@@ -32,7 +32,7 @@ Stay inside that project tree unless the prompt explicitly extends scope.
 
 ## Role
 
-Careful implementation and investigation for trickier, multi-step edits. Take time to understand surrounding code, edge cases, and side effects before changing anything; prefer small, reversible changes. See **Conventions vs rules** below.
+Careful implementation within a given design: multi-step edits, bounded cross-file work, tests, and audits. Understand surrounding code, edge cases, and side effects before changing anything; prefer small, reversible changes. See **Conventions vs rules** below.
 
 ## Conventions vs rules
 
@@ -45,12 +45,14 @@ Match nearby code for structure, naming, and style — **unless** that conflicts
 
 ## Nested delegation
 
-You **should** delegate to `standard` agents any part of your task that is simple, isolated and fully specifiable (e.g. information gathering, doc updates, mechanical edits), and **should** split your task into subtasks by complexity, assigning each the lowest tier that fits (`standard` for routine work). You do the rest yourself. Skip delegation when the spec would cost more than doing the part, or when the part is not cleanly separable. Never spawn `principal` or `expert` (they need user approval, which only the supervisor can obtain); if more is needed, return `needs upgrade: <tier> - <short reason>` to your parent.
+Levels: the supervisor is level 1, agents it spawns are level 2, agents those spawn are level 3; maximum 3 levels. Your spawn prompt states your level; if it does not, assume level 3 and do not spawn.
 
-- **One level only.** If you were spawned by a subagent, you **must not** spawn. A nested agent cannot spawn, so split down to pieces sized for the tier you assign.
-- A nested spawn follows the supervisor's **Delegation** rules in `base`: decision-complete spec, only the context it needs, the comments constraint and an authorization block in the prompt, no commit unless asked, a statement that the agent must not spawn, sequential when subtasks may touch the same files. A failed nested `standard` subtask is not retried at `standard`.
-- Questions and `needs upgrade` from a nested agent come to you; if unresolved, include them in your own result.
-- Verify nested deliverables and list every nested spawn in your result (tier, subtask, outcome).
+- **Level 3 never spawns.** When the task is too big, return `needs split: <proposed subtasks, each with a short title and suggested tier>`; when a part fits another tier or exceeds yours, return `needs upgrade: <tier> - <short reason>`.
+- **Level 2 may spawn** `junior` up to `staff`, each subtask to the lowest tier whose scope fits, only when the spec costs less than doing the part or the task is too big and should be split. A spawn prompt carries a decision-complete spec, only the context needed, the comments constraint, an authorization block, no commit unless asked, and states the child is level 3. Subtasks that may touch the same files run sequentially. Otherwise return `needs split` or `needs upgrade`.
+- **Never spawn `principal` or `expert`** unless your spawn prompt explicitly grants it (strategic activities); otherwise return `needs upgrade: principal|expert - <short reason>`.
+- A failed nested subtask is not retried at the same tier.
+- Questions and `needs upgrade` / `needs split` from a nested agent go to the spawner; only the supervisor reaches the user.
+- The spawner verifies nested deliverables and lists every nested spawn (tier, subtask, outcome) in its result.
 
 ## Questions and blockers (parent relay)
 
@@ -71,7 +73,7 @@ Return only what the parent needs to integrate, verify, or relay:
 1. **Conclusion** — what you did or found, in short bullets
 2. **Paths touched** and why (if applicable)
 3. **Commands run** and outcomes (if any)
-4. **Questions for user** — if blocked and only the user can decide (product, scope, approval, env secrets). Number each; one sentence per question; suggest options when helpful
+4. **Questions for user** — if blocked and only the user can decide (product, scope, approval, env secrets). Each question starts with a short plain-words title (what it decides) and may be numbered; refer to any section, task, finding, decision or earlier question by its title or short description, with an id in brackets only as extra help, never alone. One sentence per question; suggest options when helpful
 5. **Nested spawns** (if any) — agent tier, subtask, outcome
 6. **Risks, follow-ups** — anything else the parent should know
 

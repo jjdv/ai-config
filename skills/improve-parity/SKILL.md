@@ -259,7 +259,7 @@ Do not assume in-block prose rhythm closes **block boundary** gaps. Process:
 4. **Implement** in **block-level** stylesheets using pair selectors (block type A + block type B) and variant attributes when spacing depends on CMS flags; do not rely on last-child margin inside prose unless prod used the same layer.
 5. **Fixture coverage:** use the plan’s mapping doc / fixture URLs so diverse block types and spacing variants appear in the audit — not a single story.
 
-**Margin model discipline (A2):**
+**Margin model discipline [A2]:**
 
 - Prefer **margin-top-only** adjacent pairs inside a single prose root with **zero** default margins on flow elements — mirrors reference “margin only after preceding block type” patterns.
 - Set explicit **padding on headings** when reference headings used padding — do not rely on margin alone for heading internal rhythm.
@@ -466,7 +466,7 @@ Agents **propose** approved divergence rows; **only the user or plan** marks the
 ## Recommended next steps
 
 1. **Fix now** — CSS-fixable + **Structural — fixable** (domain scope) items still open — **including failed key-element diffs** and **failed visual spacing supplements** (adjacent text, text-to-surface, margin-chain) — prefer **DOM-preserving ladder** before template/block changes
-2. **Plan task** — gap matrix rows needing analysis or implementation beyond one small task (S1, …), split by `create-plan` — **not** open key-element CSS diffs (those belong in (1))
+2. **Plan task** — gap matrix rows needing analysis or implementation beyond one small task (e.g. `Block-root spacing variants [S1]`, …), split by `create-plan` — **not** open key-element CSS diffs (those belong in (1))
 3. **Approve divergence** — **Structural — divergent** or original-inconsistency only after (1)–(2) exhausted **and** key-element CSS parity passes for that region — user confirms. **Do not** Tier C open CSS diffs
 4. **Re-run parity** — after (2) or (3), which URLs/regions only; include **spacing probe matrix** when rhythm was the focus
 5. **Escalate global scope** — any fix touching shared theme / `components/ui/` / site-wide tokens — user before implement
@@ -503,9 +503,9 @@ One coherent chunk per spawn (~15min). **Do not bundle multiple full invocations
 | A2 CSS fix | `standard` |
 | B1 Visual compare | `playwright` (prefer headless script) |
 | B2 Visual fix | `standard` |
-| Structural report synthesis | supervisor or `standard` read-only |
+| Structural report synthesis | supervisor or `senior` read-only |
 
-Supervisor relays **product choices** (approved divergence, plan extension) to the user — agents propose, user accepts.
+Supervisor relays **product choices** (approved divergence, plan extension) to the user — agents propose, user accepts; each choice is named by its title with the ID in brackets and worded per the **ask-questions** skill.
 
 ## Core-marketing page order
 
@@ -521,6 +521,7 @@ Then **nav + footer** as a separate invocation if requested.
 - **Per page:** CSS % @ each scoped viewport + aggregate; visual % (worst viewport); pass/fail vs 100% / 99% or approved divergence.
 - **Optional file:** migration plans may ask for `.tmp/<tool>/<slug>/parity-report.md` mirroring the chat sections.
 - **Temp artifacts:** screenshots under `.tmp/<tool>/` only.
+- **User-facing names:** structural issues, original inconsistencies, approved-divergence rows and phases are named by title (phases e.g. `Phase A — CSS parity`); an ID such as S1 or O1 appears only in brackets after its title, never alone.
 
 ## Invocation examples
 

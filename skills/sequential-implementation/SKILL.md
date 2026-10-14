@@ -14,7 +14,7 @@ disable-model-invocation: true
 
 {{block:tool-note}}
 
-Act as a **thin executor** under **Delegation**: the supervisor writes each task's spec, the task's **Agent** (default `standard`) does the work, and the supervisor verifies and **updates progress as the last action** before starting the next task. Do not do task work yourself unless the user explicitly overrides.
+Act as a **thin executor** under **Delegation**: the supervisor writes each task's spec, the task's recorded **Agent** does the work, and the supervisor verifies and **updates progress as the last action** before starting the next task. Do not do task work yourself unless the user explicitly overrides.
 
 **Keep going through open tasks** until a stop condition applies; do not ask after each task whether to continue.
 
@@ -31,7 +31,7 @@ A plan task is small: one goal, bounded scope, acceptance check or verification 
 
 ## Pre-flight (file plans)
 
-1. Spawn a read-only `standard` subagent given the path of `check-plan`'s SKILL.md and the plan path; it returns the audit report.
+1. Spawn a read-only `senior` subagent given the path of `check-plan`'s SKILL.md and the plan path; it returns the audit report.
 2. Start only on verdict `READY`. On `NOT READY`, stop and report the failed checks; **`create-plan`** fixes them. On `COMPLETE`, report that nothing is left to run.
 3. Flag ⏸ blocked tasks to the user before delegating.
 4. Resolve the project root from the plan's `**Project root:**` line. Check whether `<project-root>/.agents/skills/project-best-practices/SKILL.md` exists (it governs the Conventions block below).
@@ -47,7 +47,7 @@ Repeat until a stop condition applies:
 5. **Verify** deliverables: paths touched, verification command result, diff free of redundant comments (have them removed), drive-by churn and rule violations; when `project-best-practices` exists, compliance with it; when source files changed, the **code** user rule checklist.
 6. **Update the plan** (Progress tracking), then decide the next action (After a task).
 
-Sequential only: one task at a time unless the user explicitly requests parallel runs. Only the supervisor edits the plan; subagents never do. Brief the user after each task.
+Sequential only: one task at a time unless the user explicitly requests parallel runs. Only the supervisor edits the plan; subagents never do. Brief the user after each task, naming tasks by title with the ID in brackets (`Title [T02]`), including progress and next-task lines.
 
 ### Task prompt
 
@@ -55,6 +55,7 @@ Self-contained and small; never pass the plan body or chat history. Include only
 
 ```markdown
 Task ID: <id>
+Level: 2
 Goal: <one outcome>
 Spec: <the run-time spec: files, exact change, interfaces, out of scope>
 Verification: <command and expected result>
@@ -64,7 +65,7 @@ Reference: <paths to Decisions or docs the task needs, omit when none>
 Conventions: <only when project-best-practices exists: read `.agents/skills/project-best-practices/SKILL.md` first, then the task-relevant `references/` and `docs/` paths from the plan's Context references; write all code in compliance with it. For source edits also apply the **code** user rule checklist (intention-revealing names, small units, KISS/DRY, project conventions) before finishing>
 Context: <`.context/` paths the plan lists, omit when none>
 Comments: add no comments or doc comments unless the spec requires them; none that restate the code.
-Return: summary, paths touched, verification result, blockers; or `needs upgrade: <tier> - <reason>`; or `plan issue: <description>`
+Return: summary, paths touched, verification result, blockers; or `needs upgrade: <tier> - <reason>`; or `needs split: <subtasks, each with suggested tier>`; or `plan issue: <description>`
 Do not update the plan; the supervisor does.
 
 ## Authorization
@@ -78,23 +79,26 @@ Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (th
 
 {{block:spawn-rule}}
 
-Never pick a heavier Agent than the plan records.
+Task Agents run as level 2 (this supervisor is level 1): per **Delegation** they may spawn subtasks, or return `needs split` / `needs upgrade`.
+
+Never pick a heavier Agent than the plan records, except by escalation per **Delegation** step 4.
 
 ## Returns from an executing agent
 
-- `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a higher tier beyond `senior` still needs user approval, recorded in the plan's **Agent approvals**).
+- `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a `principal` or `expert` Agent still needs user approval, recorded in the plan's **Agent approvals**, and only for a criterion in the Delegation scope table, never for size: an oversized task is split instead).
+- `needs split: <subtasks>`: the task is oversized; **Replan flow**.
 - `plan issue: <description>`: **Replan flow**.
-- Questions: relay per **Delegation**; mark the task `⏸ Blocked` with the question in **Open questions** until answered, then resume with the answer.
+- Questions: relay per **Delegation**, worded per the **ask-questions** skill and naming the task by title with its ID in brackets; mark the task `⏸ Blocked` with the question in **Open questions** until answered, then resume with the answer.
 
 ## Replan flow
 
 Triggered by a `plan issue:` result, an oversized task, a task whose spec cannot be written, or a task needing a follow-up spawn for the same ID.
 
-1. Stop the loop. Spawn a `senior` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
+1. Stop the loop. Spawn a `staff` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
 2. Re-run the `check-plan` audit (Pre-flight step 1); resume only on `READY`.
 3. Report the replan to the user in 1-2 lines, even when no approval was needed.
 
-Replan limits (defined in `create-plan`): edits only unfinished tasks, within the original goal and scope, no reversal of user-approved Decisions, no `principal` or `expert` assignment. Anything beyond needs the user's approval before the plan changes.
+Replan limits (defined in `create-plan`): edits only unfinished tasks, within the original goal and scope, no reversal of user-approved Decisions, no `principal` or `expert` assignment without recorded user approval. Anything beyond needs the user's approval before the plan changes.
 
 ## Progress tracking
 
@@ -112,8 +116,8 @@ Progress lives in the plan file (file mode) or in the plan text maintained in re
 
 Apply in order, from the result alone:
 
-1. **Pause** when user input is required per the plan's § **User escalation required** (or the agent returned `ESCALATE`), or a question is relayed.
-2. **Escalate or follow up** per **Delegation** step 4 for a failed task or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
+1. **Pause** when user input is required per the plan's § **User escalation required** (or the agent returned `ESCALATE`), or a question is relayed; the escalation names the task by title with its ID in brackets.
+2. **Escalate or follow up** per **Delegation** step 4 for a failed task (never retried at the same tier) or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
 3. **Next task**: otherwise delegate the next open task immediately.
 
 ### Stop conditions
@@ -129,7 +133,7 @@ One task succeeding is not a stop condition.
 
 - Asking "Want me to continue?" after a successful task
 - Starting the next task in the parent context instead of delegating
-- Choosing a non-`standard` Agent not recorded in **Agent approvals**
+- Choosing an Agent not recorded in the plan, or a `principal` or `expert` Agent not recorded in **Agent approvals**
 - Passing the full plan or chat history into a task prompt
 - Omitting the Conventions block when `project-best-practices` exists, or accepting code that ignores it
 - Delegating a task you cannot write a spec for, instead of replanning

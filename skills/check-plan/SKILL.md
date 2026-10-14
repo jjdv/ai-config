@@ -6,7 +6,7 @@ description: >-
   handoff-ready for /sequential-implementation in a fresh chat — structure,
   Decisions and Change log sections, open-only implementation order, linked task
   and note files, small tasks with acceptance checks and bounded scope, agents
-  (non-standard user-agreed), autonomy/scope when claimed. Invoke with the plan
+  (principal/expert user-agreed), autonomy/scope when claimed. Invoke with the plan
   file path. Read-only audit; use create-plan to fix gaps.
 disable-model-invocation: false
 ---
@@ -19,7 +19,7 @@ Answer: **Is this plan file a single entry point for `/sequential-implementation
 
 **Read-only.** Never edit the plan, task files or notes. Fixes belong to **`create-plan`**.
 
-This skill owns the readiness checklist. `create-plan` reads it before authoring and runs it as an audit at the end; `sequential-implementation` runs it as pre-flight and starts only on `READY`. Callers pass this skill's SKILL.md path and the plan path to a read-only `standard` subagent via `{{tool:spawn-agent}}({{agent:standard}})`; that subagent performs the audit and returns the report.
+This skill owns the readiness checklist. `create-plan` reads it before authoring and runs it as an audit at the end; `sequential-implementation` runs it as pre-flight and starts only on `READY`. Callers pass this skill's SKILL.md path and the plan path to a read-only `senior` subagent via `{{tool:spawn-agent}}({{agent:senior}})`; that subagent performs the audit and returns the report.
 
 ## Invocation
 
@@ -64,7 +64,7 @@ Every check below is **fail** unless its row says **warn**.
 | A7 | **Phase table vs order** | Every ID in **Implementation order** appears in **Phases** with non-complete status (or ⏸ with documented block); completed tasks stay in **Phases** with `✅` |
 | A8 | **Decisions section** | `## Decisions` exists holding cross-task decisions (interfaces, data shapes, ordering, naming) with IDs; it may be empty only if no task references a decision |
 | A9 | **Change log section** | `## Change log` exists, recording replans (what changed, why); may be empty on a never-replanned plan |
-| A10 | **Agent approvals table** | `## Agent approvals` exists with columns Task ID, Agent, Justification, Agreed by user (rows only for non-`standard` tasks; empty otherwise) |
+| A10 | **Agent approvals table** | `## Agent approvals` exists with columns Task ID, Agent, Justification, Agreed by user (rows only for `principal`/`expert` tasks; empty otherwise) |
 | A11 | **Plan maintenance** | Section present with per-task update rules |
 | A12 | **Fresh chat handoff** | `### Fresh chat handoff` (or equivalent) with numbered steps naming the next task ID and skills to load |
 | A13 | **Single entry point** | Handoff includes the exact `/sequential-implementation <plan-path>` invocation matching this file |
@@ -99,8 +99,8 @@ Read each open task (plan row and linked task file). A task is **small**: one ou
 | C9 | **Decision references** | Where a task depends on cross-task decisions (interfaces, data shapes, ordering, naming), it references them by ID and every referenced ID exists in **Decisions**; design choices are not left to the executor |
 | C10 | **Notes in** | Every `Notes in` entry refers to a note that exists on disk or is listed in the `Notes out` of an **earlier** task in **Implementation order** |
 | C11 | **Notes out** | Every `Notes out` path lies in the plan's `notes/` folder; no scout or analysis task omits `Notes out` |
-| C12 | **Agent field** | Every task row in **Phases** has an **Agent** value (default `standard`) |
-| C13 | **Agent approvals** | Every task with a non-`standard` Agent has a row in `## Agent approvals` with justification and a user-agreed date; none are unapproved |
+| C12 | **Agent field** | Every task row in **Phases** has an **Agent** value that follows the Delegation scope table (lowest tier that fits) |
+| C13 | **Agent approvals** | Every task with a `principal` or `expert` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a Delegation scope table criterion (well-scoped high complexity, or critical high-impact decision); a justification citing size or breadth alone fails; none are unapproved |
 | C14 | **Blocked tasks** | Any ⏸ task has its reason in **Open questions** or the phase row, and is not listed in **Implementation order** ahead of its unblock |
 | C15 | **Runnable next task** | At least one delegable open task passes C1–C13, or the plan is legitimately `complete` |
 
@@ -148,7 +148,7 @@ A vertical slice (one GROQ → props → UI path, tokens plus styles for one sur
 
 ## Failed checks (fix before /sequential-implementation)
 
-1. **A6** — …
+1. **Implementation order** [A6] — …
 2. …
 
 ## Warnings (non-blocking)

@@ -53,7 +53,7 @@ Roles, tier selection, gather/think splitting, parallelism and spawning follow `
 
 1. Spawn `standard` scouts in parallel, one per area, returning a fact sheet: what it does, boundaries, components, data, interfaces, flows, tests, with `file:line` paths. Facts only, no judgment.
 2. A failed or thin sheet is re-gathered, not guessed.
-3. Spawn one `standard` to merge the sheets into a single as-built picture. No assessment starts before it exists.
+3. Spawn one `senior` to merge the sheets into a single as-built picture. No assessment starts before it exists.
 
 ### 3. Aspect decomposition
 
@@ -83,8 +83,8 @@ Evidence: <what was observed, with file:line>
 Impact: <consequence for users, maintainers, performance, security>
 Improvement (only when warranted): <concrete change>, effort <S|M|L>, risk <low|medium|high>
 Directions (only when similar value):
-  - <id> <option>: <benefit> / <cost> / <risk>
-Recommendation: <direction id or the improvement>, <reason in one sentence>
+  - <option title> [<id>]: <benefit> / <cost> / <risk>
+Recommendation: <direction title [id] or the improvement>, <reason in one sentence>
 Questions: <decision | context | options | recommended option>
 Cross-aspect impact: <aspects affected, level reassignments, new aspects missing from the list>
 Gather requests: <what is missing>
@@ -92,20 +92,20 @@ Gather requests: <what is missing>
 
 ### 5. Consolidation
 
-1. Spawn `standard` to merge findings into the report content and run a consistency pass: duplicates, contradictions, findings without evidence, severity ranking, uncovered aspects, open questions left.
-2. For a large or high-risk scope, spawn `expert` to review the consolidated report against the checklist below; its findings go back through phase 4.
+1. Spawn `senior` to merge findings into the report content and run a consistency pass: duplicates, contradictions, findings without evidence, severity ranking, uncovered aspects, open questions left.
+2. Spawn `staff` (granted the sub-supervisor exception, so it may use `expert` only for a specific critical, high-impact decision in the scope, never because the scope is large) to review the consolidated report against the checklist below; its findings go back through phase 4.
 3. Present the findings report in chat, with a short summary of the main findings and agreed improvements. Wait for approval or changes.
 
 ### 6. Handoff
 
 1. Report status is `approved`.
 2. When improvements were agreed, present the agreed-improvements summary in chat in the `propose-plan` brief structure (Plan brief format section there): Goal and scope from the assessment, a Level map, a Decision log with a Level column (one row per agreed improvement, Source `user` or `proposed-confirmed`) and the supporting finding ids and evidence.
-3. Subagents cannot persist anything, so the supervisor keeps findings and agreed decisions complete and self-contained in chat: id, level, aspect, severity, evidence `file:line`, agreed direction. `create-plan` consumes them from the conversation.
+3. Subagents cannot persist anything, so the supervisor keeps findings and agreed decisions complete and self-contained in chat: title [id], level, aspect, severity, evidence `file:line`, agreed direction. `create-plan` consumes them from the conversation.
 4. On request or when improvements were agreed, point the user to `create-plan`, which takes the findings and agreements from this conversation as locked decisions. This skill does not invoke it. Without agreed improvements, stop after the report.
 
 ## Report format
 
-Delivered as chat messages only; no file is written.
+Delivered as chat messages only; no file is written. Findings and directions are named by title, with the ID in brackets as extra.
 
 ```markdown
 # <Scope title>
@@ -124,12 +124,12 @@ What it does, boundaries, components, flows.
 | --- | --- | --- | --- | --- |
 
 ## Findings
-| ID | Level | Aspect | Severity | Finding | Evidence | Impact | Improvement | Effort / risk |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Title | ID | Level | Aspect | Severity | Finding | Evidence | Impact | Improvement | Effort / risk |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Agreed improvements
-| ID | Level | Aspect | Improvement | Alternatives rejected | Reason | Source |
-| --- | --- | --- | --- | --- | --- | --- |
+| Title | ID | Level | Aspect | Improvement | Alternatives rejected | Reason | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Dropped aspects
 Aspect and one-line reason.
@@ -161,6 +161,7 @@ Prompts follow `propose-plan` Spawning, plus:
 - Every prompt carries the constraint: add no comments, JSDoc or documentation.
 - Every prompt carries an Authorization block. Every agent: project root, **read-only**, no writes of any kind, no commit.
 - Thinker prompts include the as-built picture, fact sheets, higher-level findings and decisions, and the finding format.
+- Draft questions give a title for every referenced finding and direction; an ID may follow in brackets, never alone.
 
 ## Anti-patterns
 
