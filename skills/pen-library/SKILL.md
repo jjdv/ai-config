@@ -23,14 +23,13 @@ Adjust directory names (`designs/`, `scripts/`) to match the repo; keep **one ca
 - Band and component files should **embed the same** `variables` (and `themes`) as the canonical design-system file—usually via a **sync script** under `scripts/` at the repo root, run after token changes.
 - **Do not** hand-edit large `variables` blocks in band files; change the canonical file, then **sync** so all files resolve `$--` tokens consistently.
 - Responsive number tokens often use a **`device`** (or similar) theme axis with ordered breakpoints (e.g. `base`, `md`, `lg`, `xl`).
+- Doc-only tokens (`--ds-doc-*`) typically stay in the canonical file only; sync may strip them from copies.
 
 ## Structure and reuse
 
 ### Design system (documentation + tokens)
 
-- Keep the **token gallery** for tokens only; keep **atoms** in a separate frame/column for controls (buttons, fields, select, etc.).
-- Split the gallery by concern: **colors**, **space**, **typography**, **layout constants**, **radii** (pure shapes, not fake product chrome).
-- Prefer a **regeneration script** so the gallery stays consistent and reviewable in git.
+- Gallery and atoms content follow the `design-system` skill; this skill covers where that file sits in the library and how it syncs.
 
 ### Components
 
@@ -50,10 +49,10 @@ Adjust directory names (`designs/`, `scripts/`) to match the repo; keep **one ca
 3. Instance components; override only what the screen needs.
 4. Validate with screenshots or export if the toolchain supports it.
 
-## Pencil MCP vs files on disk
+## Pencil integration vs files on disk
 
-- If `.pen` files are **encrypted / MCP-only**, use Pencil tools (read design nodes, apply design operations, read design variables)—do not read them as plain text.
-- If the repo stores `.pen` as **JSON**, agents may edit on disk and run scripts—still prefer Pencil MCP when the user works in the Pencil app (disk vs unsaved buffer can diverge until **Save**).
+- If `.pen` files are **encrypted / integration-only**, use the Pencil integration (read design nodes, apply design operations, read design variables)—do not read them as plain text.
+- If the repo stores `.pen` as **JSON**, agents may edit on disk and run scripts—still prefer the Pencil integration when the user works in the Pencil app (disk vs unsaved buffer can diverge until **Save**).
 
 ## Anti-patterns
 

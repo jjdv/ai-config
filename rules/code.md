@@ -8,11 +8,11 @@ always: false
 
 ## When to read and apply
 
-- **Read this file whenever** you edit, add, or review **source files** under the user's intent (implement, refactor, fix, types, components).
+- **Read this file whenever** you edit, add, or review **source files** that the task asks you to change (implement, refactor, fix, types, components).
 - **After reading**, run through the **Checklist** before considering the edit done.
 - **Workspace scope:** When a change spans **multiple packages or repos**, run the checklist on **every file path you touched for that feature**.
 - **Comments:** see **`base`** (always on) — this rule does not repeat that policy.
-- **Project best practices (single definition):** when **adding, changing or deleting project code** and `.agents/skills/project-best-practices/SKILL.md` exists in the project root, **read that skill first**, then the task-relevant files it references (its `references/` and the sibling skills it names), and follow them. This is the only location for every tool: there is no per-tool variant. If the file is absent, skip — do not invent a stand-in. Other items refer to this paragraph instead of restating it.
+- **Project best practices (single definition):** when **adding, changing or deleting project code** and `.agents/skills/project-best-practices/SKILL.md` exists in the project root, **read that skill first**, then the task-relevant files it references (its `references/` and the sibling skills it names), and follow them. This is the single definition for all tools. If the file is absent, skip — do not invent a stand-in. Other items refer to this paragraph instead of restating it.
 
 ## Naming
 

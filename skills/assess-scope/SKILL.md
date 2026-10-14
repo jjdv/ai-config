@@ -38,6 +38,7 @@ Levels are assessed top-down. Deep analysis for a level starts only after the le
 Roles, tier selection, gather/think splitting, parallelism and spawning follow `{{path:skills}}/propose-plan/SKILL.md` (Roles, Tier selection, Splitting for cost, Parallelism, Spawning), with these changes:
 
 - Every agent is read-only and writes no files; subagents return results to the supervisor, who keeps them in the conversation.
+- Brief upkeep does not apply (no files are written).
 - Gather means reading the as-built code, docs and tests; think means judging it against the aspect and level.
 - Subagents return **findings** in the format below and **draft questions** (decision, context, options, recommendation); they never ask the user.
 

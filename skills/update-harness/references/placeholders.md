@@ -14,10 +14,10 @@ Canonical rules, skills and agents contain placeholders only where the text must
 | Placeholder | Meaning: what the value must be | Allowed in |
 | --- | --- | --- |
 | `{{agent:<name>}}`, one per agent in `agents/` | Argument text that selects that agent inside a spawn call, including a model argument when the tool requires one at the call site | spawn-call examples and delegation instructions only; prose names the agent in plain text |
-| `{{model:<name>}}`, one per agent | The tool's model identifier for that agent | `model:` frontmatter of `agents/*.md` only |
-| `{{effort:<name>}}`, one per agent | The tool's effort value for that agent; empty string means omit the line | `effort:` frontmatter of `agents/*.md` only |
+| `{{model:<name>}}`, one per agent that sets it (required for tier agents) | The tool's model identifier for that agent | `model:` frontmatter of `agents/*.md` only |
+| `{{effort:<name>}}`, one per agent that sets it (required for tier agents) | The tool's effort value for that agent; empty string means omit the line | `effort:` frontmatter of `agents/*.md` only |
 | `{{tool:<capability>}}` | the capability table below | skills, rules, agents; only where the exact tool key must appear |
-| `{{path:agents}}`, `{{path:skills}}` | Installed directories of the tool for agents and skills; values never end in a slash, call sites add the separator | skills, agents |
+| `{{path:agents}}`, `{{path:skills}}` | Installed directories of the tool for agents and skills (`null` for a kind without a `dir` mechanism); values never end in a slash, call sites add the separator | skills, agents |
 | `{{path:browser-tmp}}` | Subdirectory name under `.tmp/` for output of the tool's browser tooling | rules, skills |
 | `{{block:tool-note}}` | Block contract below | skills that carry a tool note under the title |
 | `{{block:tool-mapping}}` | Block contract below | the rule that holds the tool-mapping table |
@@ -25,7 +25,7 @@ Canonical rules, skills and agents contain placeholders only where the text must
 
 ### Capability vocabulary (`tool:<capability>`, closed set)
 
-Tool keys and ids are tool-specific and never appear in canonical items: no tool allowlists, no tool ids of integrations, no permission or allowlist keys, no tool-specific action names. A canonical item says what it needs semantically. In prose it uses the plain wording of the capability ("read files", "run shell commands"); plain wording needs no translation. Where the rendered text must carry the exact tool key (a spawn-call example, a tool-mapping row, an allowlist), the item uses `{{tool:<capability>}}`. The mapping is exact and lives in `placeholders.json` (entry `tool:<capability>`, rule of thumb: exact values the agent copies verbatim go in `placeholders.json`, prose rules and recorded decisions go in `profile.md`). The value is the tool's exact key text, a list of keys when one capability maps to several keys, or `null` when the user confirmed that the tool has no equivalent (format: `formats.md`). `profile.md` records only the rationale for unusual mappings, never a mapping table.
+Tool keys and ids are tool-specific and never appear in canonical items: no tool allowlists, no tool ids of integrations, no permission or allowlist keys, no tool-specific action names. A canonical item says what it needs semantically. In prose it uses the plain wording of the capability ("read files", "run shell commands"); plain wording needs no translation. Where the rendered text must carry the exact tool key (a spawn-call example, a tool-mapping row, an allowlist), the item uses `{{tool:<capability>}}`. The mapping is exact and lives in `placeholders.json` (entry `tool:<capability>`, rule of thumb: exact values the agent copies verbatim go in `placeholders.json`, prose rules and recorded decisions go in `profile.md`). The value is the tool's exact key text, a list of keys when one capability maps to several keys, or `null` when discovery finds no equivalent (the default: recorded and reported, not asked; format: `formats.md` § 2). `profile.md` records only the rationale for unusual mappings, never a mapping table.
 
 | Capability | Plain wording in prose | Meaning |
 | --- | --- | --- |
@@ -44,16 +44,26 @@ Tool keys and ids are tool-specific and never appear in canonical items: no tool
 | `{{tool:pencil-apply-operations}}` | apply design operations | change a Pencil design document |
 | `{{tool:pencil-read-variables}}` | read design variables | read the variables of a Pencil design document |
 | `{{tool:pencil-open-document}}` | reload the design document from disk | open or reload a Pencil document |
+| `{{tool:skill-prefix}}` | skill prefix | the literal text the tool puts before a skill name the user types in chat; empty string when the tool invokes skills by bare name |
+
+`{{tool:skill-prefix}}` goes only directly before a skill name in a hand-off or usage line the user types, never in prose. It is never `null`: a tool that invokes by bare name maps it to the empty string (`formats.md` § 2).
 
 Product capabilities use `tool:<product>-<action>`: the product is named, its tool ids never are. Capability sets: `readonly` (agent frontmatter) means the capabilities `read-files`, `search-files`, `search-code` and `run-shell`; the keys come from the `tool:*` entries of those four capabilities in `placeholders.json` (an entry that is `null` contributes no key), and `profile.md` § Frontmatter rules says only how the tool lays them out (allowlist, permission keys, a native read-only flag). A capability that has no entry in `placeholders.json` is unmapped (stop, propose, approve, `adaptation.md`). A capability the tool lacks is never replaced by a fallback: it is `null` in `placeholders.json` with the reason in `profile.md` § Confirmed decisions, and the report names the items that use it (ask only when two or more plausible tools exist; `formats.md` § 2).
 
 ### Block contracts
 
-A `block:*` value is multi-line text the adapting agent authors from the tool's discovered facts and the user's confirmed decisions, shown in full in the bootstrap setup preview. It must be accurate for the tool and contain no model identifiers.
+A `block:*` value is multi-line text the adapting agent authors from the tool's discovered facts and the user's confirmed decisions, shown in full in the bootstrap setup preview. It must be accurate for the tool and contain no model identifiers. It may be `null` (`formats.md` § 2): the sentence that uses it is skipped and reported.
 
 - `block:tool-note`: one paragraph placed under a skill title. It maps the generic terms the skill uses (spawn a subagent, ask the user, browser, skills location) to the tool's own names, and says how the tool selects a model when spawning.
-- `block:tool-mapping`: a table `| Term in this rule | <tool> |` with one row per term the rest of the rule text uses (subagent spawn, subagent (any tier), ask the user, context tools, harness sync, skill location, and any other term the rule defines), each cell the tool-native equivalent; the context-tools row lists the tool keys of the capabilities read, search, write, edit, delete, shell, browser, taken from the `tool:*` entries of `placeholders.json`. A term with no equivalent is not filled with a fallback: the cell states that the tool has no equivalent and the report names the term.
+- `block:tool-mapping`: a table `| Term in this rule | <tool> |` with one row per term the rest of the rule text uses (subagent spawn, subagent (any tier), ask the user, context tools, harness sync, skill location, and any other term the rule defines), each cell the tool-native equivalent; the context-tools row lists the tool keys of the capabilities read, search, write, edit, delete, shell, browser, taken from the `tool:*` entries of `placeholders.json`. A term with no equivalent is not filled with a fallback: the cell states that the tool has no equivalent and the report names the term. A row must not contradict the rule's own sections; omit rows for terms the rule does not use.
 - `block:spawn-rule`: how to treat the model when spawning an agent in this tool: whether the agent definition pins the model (do not pass one) or the call must carry it, which model variants are never allowed, and what to do when a requested model is not permitted (stop and report). Includes any user policy recorded in `profile.md`.
+
+### Degradation
+
+- `tool:spawn-agent` null (`agent:<name>` may then be null too, `formats.md` § 2): delegation wording renders as doing the work in the main thread with the same payload; spawn-call examples are skipped and reported.
+- Skill kind `none` (`profile.md` § Targets): each skill installs through the rule kind's target, as an on-demand rule (`dir`) or a managed block (`file`), with the same text; when the rule kind is `none` too, skills are excluded through `skill:*`. References to "run the X skill" read as "follow the X instructions".
+- `path:skills` or `path:agents` null: a sentence that reads a skill file by that path renders as following that skill's instructions; any other sentence using it is skipped and reported.
+- A tool with no per-agent model or effort has no `model:<name>` or `effort:<name>` entry; its agents render the inherit form (`formats.md` § 1), which is not the unmapped protocol.
 
 ## Authoring rules
 

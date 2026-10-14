@@ -80,7 +80,7 @@ This skill is **user-scope and repo-agnostic**. It does **not** name project fil
 Is it only needed for the current implementation?
   yes → .local/
   no → Who is the primary reader?
-         agent → skill references/ or .context/ (+ update skill router or index.md)
+         agent → skill references/ (`.context/` only where the repo has no conventions skill; update the router or index.md)
          human → docs/ (+ update README.md)
 ```
 
@@ -89,7 +89,7 @@ Is it only needed for the current implementation?
 | Location | Audience | Put here | Never put here |
 |----------|----------|----------|----------------|
 | **`.agents/skills/<name>/`** | Agents | Stable conventions with discoverable `SKILL.md` frontmatter; detail in `references/` | Long HTTP specs, ops runbooks, links to **`.local/`** |
-| **`.context/`** (legacy) | Agents | Same as skills when a repo has not migrated yet | Prefer skills for new agent context |
+| **`.context/`** (legacy) | Agents | Fallback where the repo has no `project-best-practices` skill | Prefer skills for new agent context |
 | **`docs/`** | Developers | **Focused** technical and product reference — one topic per file, sized for quick reading (see § Document size) | Monolithic specs; "run these three commands" only (→ package README); disposable plans (→ `.local/`) |
 | **`<package>/README.md`** | Developers | **Concise** bootstrap: install, env vars, scripts, smoke tests, **links** into `docs/` | Full API catalogs, multi-page product spec |
 | **`.local/`** | Current work (often gitignored) | Active plans, deliverable folders, spikes, session notes | Canonical product or API truth; **`.local/archive/`**; **`.local/README.md`** (or any index at `.local/` root) |
@@ -134,7 +134,7 @@ Replace monolithic files with **stub redirects** only when external links must k
 
 ```
 Product behaviour, users, screens, domain rules, UI language vs code identifiers
-  → agent skill references/ or .context/ (extend existing product / IA / glossary files)
+  → agent skill references/ (`.context/` fallback without a conventions skill; extend existing product / IA / glossary files)
 
 HTTP/API contract, auth, authorization model, server architecture
   → docs/<area>/ (e.g. docs/server/…) + short summary in the package README
@@ -215,7 +215,7 @@ Typical filenames (vary by project): `index.md`, `project-description.md`, produ
 
 Put repo layout, links to developer docs, and onboarding prose in **`project-description.md`** (or another listed file), not in `index.md`.
 
-When adding a new agent context doc: register in the skill `SKILL.md` table or `.context/index.md`; put substance in `references/` or a sibling `.context/` file.
+When adding a new agent context doc: register in the skill `SKILL.md` table (or `.context/index.md` without a conventions skill); put substance in `references/` (or a sibling `.context/` file without one).
 
 ## `docs/` rules
 
@@ -240,10 +240,10 @@ When adding a new agent context doc: register in the skill `SKILL.md` table or `
 
 | Pattern | Role |
 |---------|------|
-| **Architecture index** (e.g. `existing-website-migration-plan.md`) | Phases, principles, open questions; one-line index of completed work |
+| **Architecture index** (e.g. an architecture tracker file) | Phases, principles, open questions; one-line index of completed work |
 | **Active sequential plan** (e.g. `*-plan.md` with `plan: true`) | Runnable open tasks only — **retire via `cleanup-plans` when complete** |
 | **Initiative folder** (e.g. `<slug>/` under a plan) | Temporary — scripts, tasks, output; **entire tree removed** when the parent plan is retired |
-| **Deliverable folder** (e.g. `page-domains/`) | Phase outputs while parent tracker is active; promote then delete per **`cleanup-plans`** |
+| **Deliverable folder** (e.g. a phase output folder) | Phase outputs while parent tracker is active; promote then delete per **`cleanup-plans`** |
 
 **Do not use `.local/archive/`** — no archive subfolder or shadow copies of completed sequential plans.
 
@@ -309,7 +309,7 @@ Repos may document repo-specific names in `references/project-description.md` or
 | `docs/README.md` | Developer doc index |
 | `<pkg>/README.md` | Runbook for that package |
 
-Search before creating: `rg -l 'Documentation layout' .agents/skills .context docs 2>/dev/null` or list those directories.
+Search before creating (search code for `Documentation layout` in `.agents/skills`, `.context` and `docs`), or list those directories.
 
 ### Generic `docs/` layout
 
@@ -335,7 +335,7 @@ Names are conventions — follow the repo's existing subdivisions.
 | `.local/` — long completed implementation brief | Deliverable folder + one-line index in architecture tracker; **delete** runner plan |
 | Product essay only in README | agent `references/` + README link |
 
-After move: delete the old copy; fix links (`rg` for old paths).
+After move: delete the old copy; fix links (search code for the old paths).
 
 ### When not to write files
 

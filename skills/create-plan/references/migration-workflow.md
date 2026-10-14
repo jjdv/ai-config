@@ -29,11 +29,11 @@ Fixtures: representative URLs, not every route unless the batch is small. Viewpo
 
 Inventory source → target mapping and candidate architecture **before** proposing tasks.
 
-**1.1 Parse scope.** Extract and confirm: routes/URLs (`/products/*`, 27 legal pages); domain slug (`legal`, `core-marketing`); source (sibling repo, production URLs, MDX/CMS export); target (monorepo package, dataset); constraints (tier, redirects, out-of-scope header/forms, deadline); parent plan (child of `existing-website-migration-plan.md` or similar). Ambiguous scope → **one** `{{tool:ask-user}}` round; never guess route lists or source repo.
+**1.1 Parse scope.** Extract and confirm: routes/URLs (`/products/*`, 27 legal pages); domain slug (`legal`, `marketing`); source (sibling repo, production URLs, MDX/CMS export); target (monorepo package, dataset); constraints (tier, redirects, out-of-scope header/forms, deadline); parent plan (child of an architecture tracker plan). Ambiguous scope → **one** `{{tool:ask-user}}` round; never guess route lists or source repo.
 
-**1.2 Conventions.** With `project-best-practices`, read at minimum `SKILL.md`, `references/placement.md`, `references/website-structure.md`; task-relevant `references/cms-blocks.md`, `references/styling.md`; `docs/website/migration-sources.md` when migrating from production siblings. Also check `docs/website/block-inventory.md`, domain foundation docs (`docs/website/*-foundation.md`), existing `.local/` plans for the domain.
+**1.2 Conventions.** With `project-best-practices`, read its `SKILL.md`, then the project's own placement, structure and migration references (`.agents/skills/project-best-practices/references/<topic>.md`, or the router) when they exist. Also check the project's block inventory and domain foundation docs when present, and existing `.local/` plans for the domain.
 
-**1.3 Source investigation.** Survey for the scoped routes: route manifest, page templates, MDX/component sequences; reusable patterns vs one-off sections; CMS shapes, images/assets, redirects; production vs source-repo inconsistencies (flag for parity policy). When scope spans **>3 routes** or multiple source files, use a read-only search subagent — **one** investigation spawn per domain slug.
+**1.3 Source investigation.** Survey for the scoped routes: route manifest, page templates, MDX/component sequences; reusable patterns vs one-off sections; CMS shapes, images/assets, redirects; production vs source-repo inconsistencies (flag for parity policy). When scope spans **>3 routes** or multiple source files, spawn one `{{tool:spawn-agent}}({{agent:standard}})` read-only scout (`{{agent:senior}}` when synthesis is needed) — **one** investigation spawn per domain slug.
 
 **1.4 Architecture dimensions.** Per route group, decide **candidates** (Phase 2 proposes):
 
@@ -42,13 +42,13 @@ Inventory source → target mapping and candidate architecture **before** propos
 | **Blocks** | Which CMS `*Block` units? New `blocks/<PageName>/` vs `blocks/<domain>/` vs extend `blocks/ui|common/`? |
 | **Components** | New `components/ui|common|<domain>|<PageName>/`? Extend primitives with `variant`? |
 | **Page types** | New `pageTypes/<PageName>/` shell? Reuse `mainPage` / domain page type? |
-| **Theme / tokens** | New palette entries, page-type SCSS, `rich_text` variant, band surfaces? **Global token change → escalate** |
-| **Utilities** | Migrator script, `mapBlocks`, GROQ in `SanityCmsService`, redirects, manifest/404 routes |
-| **Sanity** | New schemas, singletons, seed/import strategy (OAuth MCP/CLI only per `sanity-data-handling`) |
+| **Theme / tokens** | New palette entries, page-type styles, text variants, band surfaces? **Global token change → escalate** |
+| **Utilities** | Migrator script, block mapping, CMS data queries, redirects, manifest/404 routes |
+| **CMS** | New schemas, singletons, seed/import strategy (per the project's CMS data-handling reference when it exists) |
 | **Parity** | Fixture URLs, regions in/out of scope (defaults above) |
 | **Scope boundary** | Domain paths agents may edit vs global/shared (`components/ui/`, theme JSON) — propose only |
 
-Apply **placement.md** decision guides: judge by **potential** reuse; prefer extend over fork; thin domain blocks over fat page-type blocks when CMS-driven.
+Apply the project's placement decision guides when they exist: judge by **potential** reuse; prefer extend over fork; thin domain blocks over fat page-type blocks when CMS-driven.
 
 **1.5 Parity pre-analysis** (per `improve-parity`): list fixture URLs; note structural risks (merged prose, block-count mismatch, chrome bands).
 
@@ -80,9 +80,9 @@ Plan sections (patterns in `create-plan` § Optional sections; **Target vs code*
 
 | Phase | Typical tasks |
 | --- | --- |
-| **1 — Foundation** | Schemas, page type shell, tokens/SCSS entry, redirects |
+| **1 — Foundation** | Schemas, page type shell, tokens/style entry, redirects |
 | **2 — Blocks & components** | Vertical slices: schema → block → component → registry |
-| **3 — Routes & CMS** | Pages, GROQ, migrator, seed/import |
+| **3 — Routes & CMS** | Pages, data queries, migrator, seed/import |
 | **4 — Parity** | One task per coherent URL batch (e.g. listing + one story; whole domain only if ≤3 URLs) |
 | **5 — Closure** | Scoreboard sign-off, docs update, parent index link |
 
@@ -112,7 +112,7 @@ Investigation-only work is a separate report-only scout task (lowest tier per th
 After the audit returns `READY`, hand off to the user:
 
 ```
-/sequential-implementation <project-root>/.local/<slug>-plan.md
+{{tool:skill-prefix}}sequential-implementation <project-root>/.local/<slug>-plan.md
 ```
 
 ## Anti-patterns

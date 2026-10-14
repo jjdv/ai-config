@@ -8,9 +8,9 @@ description: >-
   intentional-scoping, necessary-for-ticket, pre-existing-pattern, and
   finding-legitimacy gates. Discovers per-repo `references/code-review.md` from
   project-best-practices when present. Invoke only when attached or asked (e.g.
-  /review-branch). Review only — no edits, commits, or branch checkout without
+  review-branch). Review only — no edits, commits, or branch checkout without
   permission.
-disable-model-invocation: true
+invocation: explicit
 ---
 
 # review-branch
@@ -19,9 +19,11 @@ disable-model-invocation: true
 
 Structured, **read-only** review of a git branch before merge. Produce a report the user can act on; do not implement fixes unless they ask separately.
 
+**Delegated execution (mandatory):** the whole review runs as delegated work per the base rule. Phase 0 triage and Phase 2 synthesis each run in one `senior` agent (the orchestrator); Phase 1 domain lanes run as `staff` agents with a decision-complete spec. The main thread only gates the invocation, asks the user and relays the single report.
+
 ## Invocation
 
-**Manual only.** Run this workflow only when the user attaches this skill or explicitly requests a branch review (e.g. `/review-branch`, "review branch X"). Do not infer or auto-start from unrelated messages.
+**Manual only.** Run this workflow only when the user attaches this skill or explicitly requests a branch review (e.g. `{{tool:skill-prefix}}review-branch`, "review branch X"). Do not infer or auto-start from unrelated messages.
 
 ### Review target
 
@@ -29,8 +31,8 @@ Resolve the branch under review in **Phase 0** from the user message.
 
 | Target | Trigger |
 |--------|---------|
-| **Current branch (default)** | `/review-branch`, "review current branch", or any invocation **without** a named branch — use `HEAD` (`git branch --show-current`) |
-| **Named branch** | "review branch `feature/foo`", `/review-branch feature/foo` — use that branch name |
+| **Current branch (default)** | `{{tool:skill-prefix}}review-branch`, "review current branch", or any invocation **without** a named branch — use `HEAD` (`git branch --show-current`) |
+| **Named branch** | "review branch `feature/foo`", `{{tool:skill-prefix}}review-branch feature/foo` — use that branch name |
 
 **Comparison base:** always `main` (or the repo’s default branch if not `main`). Diff scope is `<merge-base-with-main>...<review-target>` — never the working tree alone.
 
@@ -42,8 +44,8 @@ Resolve mode in **Phase 0** from the user message. **Default: `pr`.**
 
 | Mode | Trigger | Published sections |
 |------|---------|-------------------|
-| **`pr`** | Default; `/review-branch`, "before PR", "key issues" | Summary, What works, Must fix before merge, **Should fix before PR approval** |
-| **`full`** | `/review-branch --full`, "full review", "include regressions" | Above + Regression risk, Unnecessary global changes, Open questions |
+| **`pr`** | Default; `{{tool:skill-prefix}}review-branch`, "before PR", "key issues" | Summary, What works, Must fix before merge, **Should fix before PR approval** |
+| **`full`** | `{{tool:skill-prefix}}review-branch --full`, "full review", "include regressions" | Above + Regression risk, Unnecessary global changes, Open questions |
 
 **PR blocker** (eligible for numbered items in `pr` mode): runtime failure, wrong/missing render on **named** routes, unwired CMS field editors can set and runtime should consume, proven cross-boundary leak, unsafe cutover.
 
@@ -62,7 +64,7 @@ During synthesis, load core `references/false-positives.md`, repo manifest § Fa
 
 ## Hard constraints
 
-- **Review only.** Do not edit files, commit, push, stash (except to preserve unrelated work the user already asked for), patch Sanity/CMS content, or run formatters that modify the tree.
+- **Review only.** Do not edit files, commit, push, stash (except to preserve unrelated work the user already asked for), patch CMS content, or run formatters that modify the tree.
 - **Default review target is the current branch** — when no branch is named (§ Review target), review `HEAD` vs `main`; **do not switch branches or stash**. Use `git diff <merge-base-with-main>...HEAD` and `git log` for the branch delta; uncommitted working-tree changes do not require stash for the review.
 - **Named branch off HEAD** — when the user names a different branch and HEAD is not on it, **do not checkout** if you can inspect via `git fetch` + `git diff <merge-base-with-main>...origin/<branch>`.
 - **If checkout is required** (e.g. HEAD is not on the review branch and remote diff is insufficient, local branch missing, tests only runnable on that branch), **ask the user for permission first** and state why.
@@ -77,7 +79,7 @@ During synthesis, load core `references/false-positives.md`, repo manifest § Fa
 |----------|--------------|
 | New or changed lines in added/modified files on the branch | Pre-existing patterns in unchanged files (e.g. an old file the branch never edits) |
 | Refactors that move logic but change behavior or boundaries | Incidental context you read for comparison but the branch did not alter |
-| Global files the branch edits (`theme.scss`, shared `Heading`, nav) — judge the **delta** | "The whole file is 600 lines" when the branch only added 10 lines and did not worsen structure |
+| Global files the branch edits (theme stylesheet, shared primitive, nav) — judge the **delta** | "The whole file is 600 lines" when the branch only added 10 lines and did not worsen structure |
 | Extending a pre-existing pattern when the extension adds new risk (e.g. more entries in the same transform pipeline) | Criticizing the pre-existing pattern alone with no branch change |
 | **Shared code the branch changes** that can break pages the branch did not add (tokens, primitives, transforms, mappers, footer/nav defaults) | Hypothetical regressions with no changed line to cite |
 
@@ -90,11 +92,11 @@ When unsure, ask: **"Would this issue exist if we reverted only this branch's co
 | **Core (this skill)** | Branch delta, four domains, scoping gates, synthesis, report template — **no product- or repo-specific names** | Every review |
 | **Repo adapter** | Project conventions, CMS stack paths, editor schema layout, fixture locations — loaded per § Repo adapter discovery | When diff touches that repo’s app/CMS surfaces |
 
-Core rules use generic terms: **page group**, **global registry**, **scoped registry**, **route preprocessor**, **editor palette**, **shared primitive**, **page shell**. Repo adapters map those to concrete files (e.g. `pageBuilderBlocks`, `enrich*Page.ts`) — adapters **extend** core checks; they do not replace scoping gates.
+Core rules use generic terms: **page group**, **global registry**, **scoped registry**, **route preprocessor**, **editor palette**, **shared primitive**, **page shell**. Repo adapters map those to concrete files (e.g. a block registry module, a per-page-type enrichment module) — adapters **extend** core checks; they do not replace scoping gates. Project-specific examples belong in the repo's `.agents/skills/project-best-practices/references/code-review.md` when present.
 
 ## Ticket and page-group scope (mandatory, Phase 0)
 
-Before activating domain lanes, infer the branch’s **target page group(s)** and **intentional boundaries** from branch name, commits, and diff paths (new route modules, page-type folders, domain block trees, new content types, scoped editor block lists, catch-all filters, context keys such as `pageClass`).
+Before activating domain lanes, infer the branch’s **target page group(s)** and **intentional boundaries** from branch name, commits, and diff paths (new route modules, page-type folders, domain block trees, new content types, scoped editor block lists, catch-all filters, context keys such as a page-class key).
 
 Record internally (not in the user report):
 
@@ -117,9 +119,9 @@ Before any **placement** or **shared-primitive default** finding on a component 
 | **Global palette only** | Global rules apply; regressions need named routes outside the ticket group |
 | **Dual-registry** (global **and** scoped) | Apply § Dual-registry dispatch; report only **proven** leaks on global routes minus preprocessor-protected paths |
 
-**Hard stop:** If a lane candidate cites “shared `ui/` default should move to wrapper” but the block type is **scoped-palette-only**, drop it — ledger: `intentional page-group scoping` (no exception without dual-registry evidence).
+**Hard stop:** If a lane candidate cites “shared-primitive default should move to wrapper” but the block type is **scoped-palette-only**, drop it — ledger: `intentional page-group scoping` (no exception without dual-registry evidence).
 
-**Synthesis veto (mandatory):** Any finding on `components/ui/` (or repo equivalent) **defaults** for scoped-palette-only block types is **auto-dropped** unless dual-registry leak is proven with a **named** global route minus preprocessors.
+**Synthesis veto (mandatory):** Any finding on shared-primitive **defaults** for scoped-palette-only block types is **auto-dropped** unless dual-registry leak is proven with a **named** global route minus preprocessors.
 
 ## Necessary for ticket gate (mandatory before global/placement findings)
 
@@ -147,7 +149,7 @@ Complete this gate **before** emitting placement, styling, token-pipeline, “un
 | Block type **scoped-palette-only** (§ Editor placement scope matrix) | **Never** report shared-primitive defaults as Should fix or global-table rows |
 | Same default on wrapper **and** shared primitive when editor is scoped-palette-only | Redundant but harmless — omit |
 | Context-keyed dispatch on ticket routes only | Deliberate separation — not a bug by itself |
-| **Exclusive-registry dispatch** — scoped-palette-only types always route to page-group registry without `pageClass` check | Intentional when global editor **cannot** place those types; omit unless fixtures/CMS prove raw usage on global routes |
+| **Exclusive-registry dispatch** — scoped-palette-only types always route to page-group registry without page-class check | Intentional when global editor **cannot** place those types; omit unless fixtures/CMS prove raw usage on global routes |
 | Dedicated route + catch-all exclusion + new content `type` | Standard migration split when repo already uses that pattern |
 | New opt-in variant on shared primitive, passed only from wrappers | Opt-in additive |
 | Restricted editor block list on new content type | Product scope — not “missing blocks” unless ticket requires parity |
@@ -156,14 +158,14 @@ Complete this gate **before** emitting placement, styling, token-pipeline, “un
 
 | Signal | Require |
 |--------|---------|
-| Dual-registry type: global editor palette + scoped dispatch returns empty/null off-group | **Named routes** with raw content (fixtures, seed data, CMS grep) **minus** preprocessor-protected paths |
+| Dual-registry type: global editor palette + scoped dispatch returns empty/null off-group | **Named routes** with raw content (fixtures, seed data, CMS search) **minus** preprocessor-protected paths |
 | Shared primitive default changed | **Named pre-existing consumers** outside ticket group that still render through changed code |
 | Schema/query field not mapped on **new** ticket surfaces when CMS sends data editors can set | Branch-introduced wiring gap — Should fix when projection exists but mapper/transform drops fields |
 | Silent empty from dispatch/registry on routes the **global** editor can still build | Must fix when proven on live route shapes |
 
 ### Convention and docs
 
-- **Never** cite a single naming/placement bullet from docs alone — repo may be mixed (`Homepage/` vs `BlogPostPage/`).
+- **Never** cite a single naming/placement bullet from docs alone — repo may be mixed (e.g. two folder naming styles coexisting).
 - **Verify** with at least two existing repo examples **or** branch-updated project docs that describe the same pattern.
 - Convention / placement → **Should fix** only when branch pattern **contradicts** repo reality, not when it contradicts one stale doc line.
 
@@ -175,7 +177,7 @@ Drop lane candidates that are **correct** but deferrable — ledger: `below shou
 |----------|------|
 | **Comment / doc drift** | Stale comment contradicts code but behavior is correct (e.g. registry comment vs dual-list wiring) — fix in passing only if at all; not a numbered item |
 | **File / module location preference** | Moving transforms, mappers, or helpers to a “cleaner” path with no proven cross-boundary leak or import-cycle failure — architectural preference, not branch review |
-| **Intra-ticket DRY** | Duplication **introduced entirely by this branch** within the same page family (parallel block SCSS, repeated Studio field option arrays in new schema files) — extract in follow-up unless values diverge and cause inconsistent runtime |
+| **Intra-ticket DRY** | Duplication **introduced entirely by this branch** within the same page family (parallel block SCSS, repeated editor field option arrays in new schema files) — extract in follow-up unless values diverge and cause inconsistent runtime |
 | **Cosmetic on new ticket surface only** | Missing modifier class, redundant `clsx` key, DS path mismatch — omit when defect is visible only on the branch’s new routes/blocks and does not break pre-existing pages |
 | **Redundant wrapper + primitive default** | When editor placement is scoped-palette-only — omit |
 | **Opt-in global API extension** | New enum key / optional prop on shared type used only from ticket wrappers or page shell — omit until callers outside the group pass it |
@@ -208,7 +210,7 @@ When a project skill exists, load **`references/code-review.md`** from that skil
 |---------------------|--------|
 | Load | Project skill + `code-review.md`; references selected by path matrix only |
 | Brief Domain 1 | Term mapping, parity extensions, selected reference paths, preprocessor/dual-registry notes from manifest |
-| Sub-lane | When manifest § Domain 1 sub-lane conditions match → spawn **project-adapter** Domain 1 sub-lane (candidate findings only) |
+| Sub-lane | When manifest § Domain 1 sub-lane conditions match → spawn a **Domain 1 adapter sub-lane** (`staff`; decision-complete spec; candidate findings only) |
 | Synthesis | Merge core `references/false-positives.md` with manifest § False-positive patterns |
 
 **When no adapter:** run Domain 1 from diff shape and generic checklists; record assumptions in internal scope briefing only (not the user report).
@@ -246,7 +248,7 @@ Do not drop verified wiring gaps or proven cross-boundary leaks to shorten the r
 
 **Do not split subagents by report section** (must-fix vs regression vs global). The same diff hunk can be must-fix *and* regression. Split by **domain lane** (the four rows above), then **synthesize** into the report template (how severe / where to list).
 
-### Phase 0 — Triage (orchestrator, main thread)
+### Phase 0 — Triage (orchestrator, `senior` agent)
 
 1. **Identify the review target** — § Review target: if no branch named, target is current branch (`HEAD`); otherwise use the named branch. Record exact branch name; stay on `HEAD` when it is the target.
 2. **Resolve report mode** — § Report modes (`pr` default).
@@ -287,25 +289,25 @@ Split **before** spawning when a single domain lane would touch too many paths �
 
 | Condition | Split into |
 |-----------|------------|
-| ≥ 3 changed files under shared primitives / `components/ui/` (or repo equivalent) | One subagent **per changed primitive directory** (domains **3** + **2** on those paths) |
+| ≥ 3 changed files under shared primitives (or repo equivalent) | One subagent **per changed primitive directory** (domains **3** + **2** on those paths) |
 | New domain block tree with ≥ 2 new block modules | Domain **1** subagent scoped to that domain block tree |
 | `transform` / mapper pipeline refactor | Domain **2** + **3** on transform diff; domain **1** if registry/query also changed |
 | Both editor schemas and query layer changed | Domain **1** with **content stack parity** sub-checklist |
-| Repo adapter manifest loaded; Domain 1 activated; manifest § Domain 1 sub-lane conditions met | Domain **1** **project-adapter** sub-lane (manifest parity + path-matrix references only) |
+| Repo adapter manifest loaded; Domain 1 activated; manifest § Domain 1 sub-lane conditions met | Domain **1** adapter sub-lane (`staff`; manifest parity + path-matrix references only) |
 | > ~40 changed files on branch | Run **all four activated domain lanes** in parallel; split domains 2–4 by path bucket (below) |
-| **Any activated domain lane** with **≥ 8** changed files in its bucket **or** **≥ 3** top-level path prefixes (e.g. `components/ui/`, `lib/cms/`, `theme/`) | **Mandatory sub-split** that domain — never one monolithic subagent for the whole bucket |
+| **Any activated domain lane** with **≥ 8** changed files in its bucket **or** **≥ 3** top-level path prefixes (e.g. primitive, CMS-layer and theme directories) | **Mandatory sub-split** that domain — never one monolithic subagent for the whole bucket |
 | **Domain 4** (unnecessary global changes) activated and diff touches **both** shared primitives **and** transform/mapper/theme layers | **Two sub-lanes minimum:** (a) shared primitives + SCSS defaults, (b) transform/mapper/query pipeline — spawn in parallel |
-| **Domain 3** (regression) with **≥ 4** changed shared primitives | One subagent **per primitive directory** or per path prefix — not one agent for all `components/ui/` |
+| **Domain 3** (regression) with **≥ 4** changed shared primitives | One subagent **per primitive directory** or per path prefix — not one agent for all shared primitives |
 | **Domain 1** with new content type **and** **≥ 5** new block modules | (a) editor schemas + document type, (b) domain block tree + registries — parallel sub-lanes |
-| **Domain 2** with **≥ 15** changed source files | Split by path prefix (`blocks/`, `lib/`, `components/`) — cap **~10 files per sub-lane** |
+| **Domain 2** with **≥ 15** changed source files | Split by path prefix (e.g. block, library and component directories) — cap **~10 files per sub-lane** |
 
-**Sub-lane brief (mandatory):** Each subagent receives the Phase 0 scope briefing **plus** an explicit path allowlist (directories/files only — no whole-repo grep). Sub-lanes return candidate findings only; they do not write report sections.
+**Sub-lane brief (mandatory):** Each subagent receives the Phase 0 scope briefing **plus** an explicit path allowlist (directories/files only — no whole-repo search). Sub-lanes return candidate findings only; they do not write report sections.
 
-**Sub-lane time budget:** If a sub-lane cannot finish its allowlist, return partial candidates with `paths_not_reviewed: [...]` — orchestrator spawns a follow-up sub-lane for the remainder or completes on main thread before synthesis (§ Lane failure / abortion).
+**Sub-lane time budget:** If a sub-lane cannot finish its allowlist, return partial candidates with `paths_not_reviewed: [...]` — orchestrator spawns a follow-up sub-lane for the remainder or a follow-up agent completes it before synthesis (§ Lane failure / abortion).
 
 Use `staff` for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
 
-**Lane failure / abortion (mandatory):** If a domain lane subagent **times out, aborts, or returns incomplete output**, the orchestrator must either (a) finish that lane’s scope on the main thread before synthesis, or (b) record the gap in **Open questions** (e.g. “Domain 4 incomplete — global-blast table not fully verified”). Do **not** publish a complete-looking report when an activated lane did not finish.
+**Lane failure / abortion (mandatory):** If a domain lane subagent **times out, aborts, or returns incomplete output**, the orchestrator must either (a) finish that lane’s scope through a follow-up `senior` agent before synthesis, or (b) record the gap in **Open questions** (e.g. “Domain 4 incomplete — global-blast table not fully verified”). Do **not** publish a complete-looking report when an activated lane did not finish.
 
 ### Orchestrator delivery gate (mandatory)
 
@@ -319,9 +321,9 @@ At spawn time, record `lanes_spawned` (count + IDs/descriptions). **Do not start
 
 | Check | Pass when |
 |-------|-----------|
-| **All lanes finished** | `lanes_finished === lanes_spawned` — each subagent returned **successfully** (candidate findings delivered), or that lane’s scope was completed on the main thread per § Lane failure / abortion |
+| **All lanes finished** | `lanes_finished === lanes_spawned` — each subagent returned **successfully** (candidate findings delivered), or that lane’s scope was completed by a follow-up agent per § Lane failure / abortion |
 | **None still running** | No in-flight subagent; no subagent status “still running” |
-| **No aborted lane unhandled** | Timed-out or incomplete lanes were either re-run, finished on main thread, or their gap is recorded for **Open questions** — not folded into a partial report |
+| **No aborted lane unhandled** | Timed-out or incomplete lanes were either re-run, finished by a follow-up agent, or their gap is recorded for **Open questions** — not folded into a partial report |
 
 If **any** check fails → **remain in wait mode**. Forbidden: synthesizing, spot-checking findings for the report, or publishing because “most lanes are done,” a wait timer elapsed, or a system follow-up prompt arrived.
 
@@ -330,18 +332,18 @@ If **any** check fails → **remain in wait mode**. Forbidden: synthesizing, spo
 | Rule | Requirement |
 |------|-------------|
 | **Wait for lanes** | After spawning, end the turn with lane work in flight only — **no** § Report template, no numbered findings, no interim summary. |
-| **Single delivery** | After the checklist passes: Phase 2 → publish **exactly one** user-facing report in **one** message (full § Report template). |
+| **Single delivery** | After the checklist passes: Phase 2 → the main thread relays **exactly one** user-facing report in **one** message (full § Report template). |
 | **No partial or follow-up reports** | Forbidden: publishing before the checklist passes; addendum messages; “report already stands”; “one gap to add mentally”; lane status updates to the user. |
 | **Lanes complete in a later turn** | Normal when subagents outlive the spawn turn: **still wait** until the checklist passes, then Phase 2 → **one** report in that turn. Late lane output is input to synthesis, not a reason to append to an earlier message. |
 | **System / follow-up prompts** | e.g. “perform follow-up actions in response to subagent completion” — means **continue waiting** until the checklist passes, then deliver the **first and only** report. Not permission to publish early or add to a prior message. |
-| **Wait timeout** | An expired wait is **not** lane completion. On timeout: wait again, poll until all lanes finish, complete remaining scope on main thread, or end with **Open questions** only (no report) if a lane cannot be completed. |
-| **No subagents spawned** | Branches reviewed entirely on the main thread may publish in the same turn after Phase 0–2 complete. |
+| **Wait timeout** | An expired wait is **not** lane completion. On timeout: wait again, poll until all lanes finish, complete remaining scope through a follow-up agent, or end with **Open questions** only (no report) if a lane cannot be completed. |
+| **No domain lanes spawned** | Branches with no activated domain lane may be relayed in the same turn after Phase 0–2 complete. |
 
 The disposition ledger and lane merge happen **before** the single publish.
 
-### Phase 2 — Synthesis (orchestrator)
+### Phase 2 — Synthesis (orchestrator, `senior` agent)
 
-**Entry condition:** every activated domain lane from Phase 0 has finished (subagent output received or main-thread completion per § Lane failure / abortion). Do **not** start Phase 2 while any lane is still running.
+**Entry condition:** every activated domain lane from Phase 0 has finished (subagent output received or follow-up completion per § Lane failure / abortion). Do **not** start Phase 2 while any lane is still running.
 
 Lanes return **candidate** findings; the published report includes **only verified legitimate issues** (§ Finding legitimacy gate) and must not omit branch-introduced wiring gaps (§ Pre-publish gates). Investigation breadth ≠ report length, but **under-reporting real wiring gaps is worse than one extra should-fix line**; **over-reporting unverified regressions is also a failure**.
 
@@ -368,10 +370,10 @@ For each `must-fix`, `should-fix`, or `regression` candidate, confirm **at least
 | Verification | Required when candidate claims… | Pass when |
 |--------------|----------------------------------|-----------|
 | **Schema read** | CMS/editor field unwired, wrong type, silent default, dead schema type | Schema field list, `validation`, `initialValue`, and editor placement (§ Editor placement scope matrix) match the claim; drop “silent editor surprise” if schema already requires the field or sets the same `initialValue` |
-| **GROQ / query read** | Projection missing, wrong nesting, coalesce needed | Actual projection in query layer matches schema; cite which field path is fetched vs which mapper reads |
-| **Transform / main data path** | Unwired runtime, dropped dimensions, palette/stega bug | Trace mapper → `transformCmsBlock` (or repo equivalent) → component; drop “missing `stegaClean` at component” if pipeline already normalizes the same prop on **all** CMS paths |
+| **Query read** | Projection missing, wrong nesting, coalesce needed | Actual projection in query layer matches schema; cite which field path is fetched vs which mapper reads |
+| **Transform / main data path** | Unwired runtime, dropped dimensions, palette/overlay-metadata bug | Trace mapper → the transform function (or repo equivalent) → component; drop “missing overlay clean-up at component” if pipeline already normalizes the same prop on **all** CMS paths |
 | **Wrapper / page-group context** | Shared primitive default wrong; dead CSS class | Ticket wrapper always passes overriding prop/variant (scoped-palette-only); dead class is no-op on ticket routes |
-| **Consumer grep** | Regression on pre-existing pages | **Named** routes/components outside ticket group still hit changed code; subtract preprocessor-protected paths |
+| **Consumer search** | Regression on pre-existing pages | **Named** routes/components outside ticket group still hit changed code; subtract preprocessor-protected paths |
 | **Sibling parity** | Inconsistent empty-body check, validation, or mapper vs co-introduced block on same page family | Read sibling block/component on same branch; keep when inconsistency is real and affects editors or render |
 
 **Drop or downgrade (ledger required) when:**
@@ -381,14 +383,14 @@ For each `must-fix`, `should-fix`, or `regression` candidate, confirm **at least
 | Removal of render-time cleanup **already done** on main CMS data path | Drop regression — § Shared-surface classification idempotent |
 | SCSS refactor to mixin/equivalent with same computed output | Drop regression unless spot-check shows different computed style |
 | Transform `fallbackTitle` / default **duplicates** schema `initialValue` on a **required** heading field | Drop “silent English default” — below should-fix or omit |
-| Schema field projected but UI intentionally omits it (e.g. logo-only card; `actionText` used only in Studio `preview`) | Drop unwired-field finding unless frontend is supposed to render it per sibling block |
-| Hypothetical type coercion (e.g. numeric CMS value) when schema field is `string` and Sanity path delivers strings | Drop unless evidence of non-string values on live path |
-| Architecture preference (transform registered via domain definitions but logic in neutral `ui/` module; identical mapper override) | Drop global-table / Should fix unless proven behavior change |
+| Schema field projected but UI intentionally omits it (e.g. logo-only card; a CTA-text field used only in editor preview) | Drop unwired-field finding unless frontend is supposed to render it per sibling block |
+| Hypothetical type coercion (e.g. numeric CMS value) when schema field is `string` and CMS path delivers strings | Drop unless evidence of non-string values on live path |
+| Architecture preference (transform registered via domain definitions but logic in a neutral shared module; identical mapper override) | Drop global-table / Should fix unless proven behavior change |
 | Global-table row with “prefer instead: keep / intentional” | Delete row per § Global table eligibility |
 
 **Never drop without verification when:**
 
-- Branch **added** schema field + query fragment but projection nests wrong path (e.g. block-level vs `image.maxWidth`)
+- Branch **added** schema field + query fragment but projection nests wrong path (e.g. block-level vs nested image size field)
 - Branch-introduced block inconsistent with sibling empty-body / portable-text handling on same page builder
 - Dead registered schema type with zero field references
 - Cross-boundary leak with named route + fixture/CMS evidence
@@ -430,13 +432,13 @@ Classify every changed shared primitive, token, transform, or CMS field **before
 
 | Class | How to recognize | Report as |
 |-------|------------------|-----------|
-| **Page-group-scoped intentional** | Change lives in page shell, domain wrapper, context registry, or Studio list scoped to ticket routes; no proven consumer outside group | **Omit** — ledger: intentional page-group scoping. May note in **What works** if it is a clear strength |
+| **Page-group-scoped intentional** | Change lives in page shell, domain wrapper, context registry, or editor list scoped to ticket routes; no proven consumer outside group | **Omit** — ledger: intentional page-group scoping. May note in **What works** if it is a clear strength |
 | **Default-changing** | SCSS/component default changed when prop omitted; transform injects new fallback; layout/sizing change with no CMS gate — **and** unprotected pre-existing routes still hit changed code | Numbered **Regression risk** or **Should fix** — **name** affected routes (fixtures/CMS), minus preprocessor-protected paths |
-| **Idempotent / defense-in-depth** | Render-time helper duplicates logic already applied on the main data path (e.g. transform `normalizePaletteProps` then `cleanLayoutStega` then component); equivalent string refactor (`getPaletteClass` → literal class); **removing** redundant `stegaClean` when pipeline already cleans | **Not** a regression; omit or Summary spot-check only |
+| **Idempotent / defense-in-depth** | Render-time helper duplicates logic already applied on the main data path (e.g. transform normalizes, then a layout clean-up, then component); equivalent string refactor (a helper call → literal class); **removing** redundant overlay clean-up when pipeline already cleans | **Not** a regression; omit or Summary spot-check only |
 | **Refactor-equivalent** | SCSS/typography moved to mixin or level class with same variables/output; inner element still sets the same effective rule | **Not** a regression; omit unless computed style differs on a named consumer |
 | **Schema-duplicated default** | Transform injects `fallbackTitle` / default that matches schema `initialValue` on a **required** field | Omit “editor surprise” finding; below should-fix at most |
-| **Studio-preview-only field** | Schema field used in `preview.select` / Studio label but not in frontend component by design (e.g. logo-only card vs customer-story card with CTA) | Omit unwired-field finding unless sibling block type renders the same field |
-| **Correctness fix on pre-existing gap** | Maps **invalid** CMS/config value to a **valid** theme/token that never existed (e.g. `palette-white` → `palette-light` when `.palette-white` is absent from theme); prior behavior was a no-op or broken class | **Omit** from regressions; optional one-line **Summary** spot-check — not numbered |
+| **Editor-preview-only field** | Schema field used in `preview.select` / editor label but not in frontend component by design (e.g. logo-only card vs card with CTA) | Omit unwired-field finding unless sibling block type renders the same field |
+| **Correctness fix on pre-existing gap** | Maps **invalid** CMS/config value to a **valid** theme/token that never existed (e.g. a retired palette name mapped to a live one when its class is absent from theme); prior behavior was a no-op or broken class | **Omit** from regressions; optional one-line **Summary** spot-check — not numbered |
 | **Deliberate alias remap (valid → valid)** | Changes one working token to another with different visuals | **Regression risk** or **Should fix** — confirm intent |
 | **Opt-in additive** | New schema field, optional prop, or CMS knob; transform passes through only when set; no new default when omitted; new key on shared union only used by ticket wrappers | Omit from numbered regressions. Global-table row only when API surface is wide **and** values are already used outside the ticket group |
 
@@ -445,9 +447,9 @@ Classify every changed shared primitive, token, transform, or CMS field **before
 - Reporting regression because a **shared file** changed without tracing the **main data path** and naming unprotected consumers.
 - Treating **removed duplicate normalization** as regression when transforms/mappers already clean the value.
 - Flagging **transform fallbacks** as “silent English” when schema already sets the same `initialValue` on a required field.
-- Flagging **projected but unrendered** fields without checking Studio preview-only use or intentional logo-only vs CTA card patterns.
-- **Omitting** GROQ projection bugs the branch introduced (wrong field path, missing `image.*` coalesce) because they “only affect new surfaces” or a non-ticket block type.
-- **Omitting** sibling parity gaps among blocks on the same scoped page builder (e.g. `body?.length` vs `portableTextToHtml`).
+- Flagging **projected but unrendered** fields without checking editor preview-only use or intentional logo-only vs CTA card patterns.
+- **Omitting** query projection bugs the branch introduced (wrong field path, missing nested image fallback) because they “only affect new surfaces” or a non-ticket block type.
+- **Omitting** sibling parity gaps among blocks on the same scoped page builder (e.g. an empty-body check vs a rich-text conversion).
 
 **Shared component regressions:** cite the **default-changing SCSS or layout rule** first. Mention DOM/markup moves only when they add risk beyond the style/layout change.
 
@@ -457,12 +459,12 @@ Use this table when assigning numbered sections. Global table rows **supplement*
 
 | Finding type | Report section |
 |--------------|----------------|
-| **Unsafe cutover in code** — branch ships routing/`_type` split that **requires** published content with **no** documented stagger path and proven 404/wrong-doc risk on launch | **Must fix before merge** `[Routing / page model]` — rare; see § Deploy and cutover |
+| **Unsafe cutover in code** — branch ships routing/content-type split that **requires** published content with **no** documented stagger path and proven 404/wrong-doc risk on launch | **Must fix before merge** `[Routing / page model]` — rare; see § Deploy and cutover |
 | **Fragile wiring / cross-boundary leak** — silent mis-map; context dispatch returns `null` for dual-registry types on **proven** routes (named paths, not “all pages”) | **Must fix before merge** `[Don't Make Me Think]` / `[CMS blocks]` |
 | **Unwired optional field** — declared in schema/config/API but not fetched, mapped, or applied at runtime; defaults still work | **Should fix** in `full` only — in `pr` only if editors can set values that break or silently drop on ticket routes |
 | **New surface parity** — branch-introduced unit inconsistent with siblings | **Should fix** only when verified wiring gap (editor can set → runtime ignores) — not empty-guard cosmetics |
 | **Shell/context fragility** — dispatch or rendering depends on a side-effect enrichment step instead of the primary builder | **Should fix** `[Routing / page model]` |
-| **Convention / placement** — wrong layer vs **verified** repo examples | **Should fix** only with cross-group impact or two contradicting repo examples — not ticket-scoped `ui/` + wrapper pattern |
+| **Convention / placement** — wrong layer vs **verified** repo examples | **Should fix** only with cross-group impact or two contradicting repo examples — not ticket-scoped shared-primitive + wrapper pattern |
 | **Default-changing shared primitive** — style/component default when prop omitted; affects **pre-existing** consumers | **Regression risk** `[Regression]` |
 | **Invalid-token alias remap** — maps CMS value with no theme/CSS counterpart to a valid token; prior render was broken or unstyled | **Summary** spot-check only — **not** numbered (see § Shared-surface classification) |
 | **Deliberate alias remap (valid → valid)** on shared code | **Regression risk** or **Should fix** (confirm intent) |
@@ -496,10 +498,10 @@ When the branch adds context-keyed dispatch (scoped registry checked before glob
 
 ### Exclusive-registry dispatch (domains 1 and 3)
 
-When dispatch routes **exclusive** (scoped-palette-only) types to the page-group registry **without** a `pageClass` guard:
+When dispatch routes **exclusive** (scoped-palette-only) types to the page-group registry **without** a page-class guard:
 
 1. Confirm the type is **not** in the global editor palette — only in the scoped registry for the ticket page group.
-2. If scoped-palette-only → **omit** “missing `pageClass` guard” findings — ledger: intentional page-group scoping. Defense-in-depth is below should-fix without proven global-route content.
+2. If scoped-palette-only → **omit** “missing page-class guard” findings — ledger: intentional page-group scoping. Defense-in-depth is below should-fix without proven global-route content.
 3. Report only when fixtures, seed data, or CMS samples show the exclusive type on a **global** route the editor can still build — same evidence bar as § Dual-registry dispatch.
 
 ### Global table eligibility
@@ -538,10 +540,10 @@ Apply during Phase 2 after reconciliation; these govern severity and section cho
 | **Evidence bar for edge cases** | Path normalization, trailing forms, locale/timezone, auth edge cases → Should fix or Regression only when the diff introduces a mismatch **and** evidence shows the bad form is accepted (fixtures, validation, production URLs, API examples). Otherwise omit or one-line Summary. |
 | **Peer asymmetry** | Missing field/option vs a sibling document/route/API type introduced on the **same branch** → **Should fix** when editors can set values runtime ignores, or when sibling uses constrained controls (radio/list) and new type uses free-text for the same field. Omit only when both forms work and ticket scope does not require parity. |
 | **Same-theme dedup** | Multiple findings on one convention (e.g. token pipeline on several new files) → one numbered item with representative paths, unless severities differ. |
-| **Intentional scoping first** | Page-shell SCSS, domain wrappers, restricted Studio lists, context dispatch → apply § Intentional scoping gate before convention or “unnecessary global” findings. |
+| **Intentional scoping first** | Page-shell SCSS, domain wrappers, restricted editor lists, context dispatch → apply § Intentional scoping gate before convention or “unnecessary global” findings. |
 | **Consumer naming** | Regression and leak findings must name **specific routes or preprocessor gaps** — never “all pages” / “site-wide” from shared file path alone. |
 | **Legitimacy before severity** | Apply § Finding legitimacy gate before assigning Must fix / Should fix / Regression; unverified lane candidates stay in ledger as dropped — not in the user report. |
-| **Branch-introduced wiring** | GROQ projection path errors, dead schema types, and sibling parity on the ticket’s page builder are **Should fix** when verified — not deferred as “new surface only” without proof they work. |
+| **Branch-introduced wiring** | Query projection path errors, dead schema types, and sibling parity on the ticket’s page builder are **Should fix** when verified — not deferred as “new surface only” without proof they work. |
 | **Contingent regression** | When Must fix unblocks a code path on pre-existing routes, check default-changing shared primitives on **those same routes** — one Regression item or Summary spot-check. |
 | **SOLID/DRY on wrappers** | Registry passthrough, transform wiring via domain definitions, thin wrappers, intra-ticket duplication, module path preferences → not findings unless proven leak or inconsistent runtime. |
 
@@ -561,10 +563,10 @@ The **four domain lanes** are the evaluation lenses. This section is a reference
 
 | Sub-lens | Look for |
 |----------|----------|
-| **Placement** | Blocks/components in correct layer (`ui` → `common` → domain → page-type); domain imports from `ui`, not the reverse |
+| **Placement** | Blocks/components in correct layer (shared primitives → common → domain → page-type); domain imports from shared primitives, not the reverse |
 | **CMS blocks** | Checklist followed (schema, query, registry, transform, group entry); block metadata colocated with render; extend vs new block — use manifest § Content stack parity when adapter loaded |
 | **Styling** | Token pipeline respected on **cross-group** shared surfaces; page-shell SCSS and domain wrapper scoping per § Intentional scoping gate — not automatic violations |
-| **Routing / page model** | Correct route/page-type assembly; catch-all vs dedicated routes; deploy order; page shell — use § Routing / deploy sub-checklist when `pages/` or `_type` split changes |
+| **Routing / page model** | Correct route/page-type assembly; catch-all vs dedicated routes; deploy order; page shell — use § Routing / deploy sub-checklist when a page-directory or content-type split changes |
 
 ### Domain 2 — Code principles
 
@@ -573,7 +575,7 @@ The **four domain lanes** are the evaluation lenses. This section is a reference
 | **DRY** | Duplicated PT/HTML/SCSS, parallel mappers, near-duplicate blocks/components the branch added |
 | **KISS** | Unnecessary abstraction, oversized new files, indirect control flow the branch introduced |
 | **Clean Code** | Naming, small units, clear boundaries; inverted dependencies the branch created |
-| **SOLID** | SRP at block/component level; dependency direction (`ui` must not depend on domain); narrow props |
+| **SOLID** | SRP at block/component level; dependency direction (shared primitives must not depend on domain); narrow props |
 | **Don't Make Me Think** | Ambiguous block choice, hidden domain behavior in generic-looking APIs, surprising defaults |
 
 ### Domain 3 — Regression on existing pages
@@ -582,8 +584,8 @@ The **four domain lanes** are the evaluation lenses. This section is a reference
 
 | Surface (branch delta) | Check on pre-existing pages |
 |------------------------|----------------------------|
-| **Generated tokens / `theme.scss` / `palettes.json`** | Body text, link, border, and palette-class colors site-wide |
-| **Shared primitives** (`Heading`, `Image`, `Grid`, `SectionContainer`, `RichText`, `TwoColumn`, `Card`, …) | Every block/component that imports the changed module — grep call sites |
+| **Generated tokens / global theme files** | Body text, link, border, and palette-class colors site-wide |
+| **Shared primitives** (e.g. heading, image, grid, card, rich text) | Every block/component that imports the changed module — search call sites |
 | **Transform / mapper pipeline** | Existing content/block types still map and render with same props/layout |
 | **Query projections** (shared fragments, existing block types) | Pages already fetching those fields — missing or renamed projections |
 | **Theme / palette resolution** | Run § Pipeline vs render normalization first. Deliberate alias remaps are **default-changing**. Duplicate normalization on an already-normalized main path is usually **idempotent** |
@@ -596,7 +598,7 @@ For each regression finding: name the **changed file**, the **behavior delta**, 
 
 | Lens | Look for |
 |------|----------|
-| **Scope vs ticket** | Changes to `palettes.json`, `typography.json`, `theme.scss`, shared primitives, nav/footer — could they be page-/domain-scoped? **Skip rows** that are already intentional per § Intentional scoping gate (page shell, wrappers, opt-in variants). |
+| **Scope vs ticket** | Changes to global theme and token files, shared primitives, nav/footer — could they be page-/domain-scoped? **Skip rows** that are already intentional per § Intentional scoping gate (page shell, wrappers, opt-in variants). |
 | **Overlap with domain 3** | Default-changing globals with **unprotected** consumers get a **numbered** regression in domain 3; domain 4 table adds “prefer instead” |
 
 ## Report template
@@ -655,7 +657,7 @@ Add after Should fix (continuous numbering):
 - **Do not** paste large diffs, repeat the user's question, or list every changed file.
 - **Do not** inflate "What works" — keep it short so fixes stay the focus.
 - **Do not** add a **By principle** section — scope tags in brackets on each numbered item are sufficient.
-- **Global table** — omit rows that duplicate a numbered Must fix / Regression item unless the row adds a distinct “prefer instead” beyond the fix hint; never list Studio-only ui defaults in the table; delete rows whose “Prefer instead” endorses keeping the change.
+- **Global table** — omit rows that duplicate a numbered Must fix / Regression item unless the row adds a distinct “prefer instead” beyond the fix hint; never list editor-only shared-primitive defaults in the table; delete rows whose “Prefer instead” endorses keeping the change.
 - **User-facing report only** — publish § Report template sections only; never append disposition ledger, domain reconciliation tables, subagent status, or “withdraw/keep” verdict matrices.
 - **Single consolidated delivery** — one report message, published only after every spawned lane has finished successfully; never split across turns
 
@@ -673,11 +675,11 @@ Add after Should fix (continuous numbering):
 - **Category-first subagents** (one agent for “must fix”, one for “regression”) instead of **domain** lanes
 - **Separate CMS parity or migration lanes** — those are domain-1 sub-checklists, not parallel lanes
 - **Regression without behavior delta** — numbered `[Regression]` from shared-file path or diff hunk alone, without named pre-existing consumer and verified non-idempotent change
-- **Unverified lane echo** — publishing lane candidate verbatim without orchestrator schema/GROQ/transform spot-check per § Finding legitimacy gate
-- **False unwired-field alarm** — `actionText` / optional card fields projected but intentionally not rendered, or Studio-preview-only, without sibling-block comparison
-- **Missed branch wiring** — omitting verified GROQ projection mismatch, dead schema type, or sibling parity gap on scoped page builder because “below should-fix” or “new surface only”
+- **Unverified lane echo** — publishing lane candidate verbatim without orchestrator schema/query/transform spot-check per § Finding legitimacy gate
+- **False unwired-field alarm** — CTA-text / optional card fields projected but intentionally not rendered, or editor-preview-only, without sibling-block comparison
+- **Missed branch wiring** — omitting verified query projection mismatch, dead schema type, or sibling parity gap on scoped page builder because “below should-fix” or “new surface only”
 - **Schema-default blind spot** — “silent English fallback” when transform duplicates schema `initialValue` on required heading
-- **Idempotent cleanup as regression** — `stegaClean` / normalization removed at component when pipeline already normalizes the same prop
+- **Idempotent cleanup as regression** — overlay clean-up / normalization removed at component when pipeline already normalizes the same prop
 - **Refactor-equivalent SCSS as regression** — typography moved to mixin/level class without computed-style change on named route
 - **Publishing before all lanes finish** — running Phase 2 or publishing § Report template before the § Lane-completion checklist passes
 - **Partial or follow-up reports** — addendum messages, “report already stands,” “one gap to add mentally,” or any second user-facing report chunk for the same review
@@ -691,16 +693,16 @@ Add after Should fix (continuous numbering):
 - **Silent drop** — omitting a lane’s regression candidate during dedup without merge, downgrade rationale, or § Shared-surface classification
 - **Disposition ledger skipped** — publishing without reconciling every lane `must-fix` / `should-fix` / `regression` candidate
 - **Deploy cutover auto-elevated** — treating standard migration splits as Must fix **or numbered Should fix** code defects; one-line cutover note in Summary is enough when intentional
-- **Page-group scoping as defect** — flagging page-shell SCSS, domain wrappers, restricted Studio block lists, or context dispatch as token-pipeline / placement / “unnecessary global” violations when they match ticket boundaries
-- **Stale doc convention** — citing one naming/placement bullet (e.g. “no Page suffix”) without verifying mixed `pageTypes/` reality or branch-updated docs
+- **Page-group scoping as defect** — flagging page-shell SCSS, domain wrappers, restricted editor block lists, or context dispatch as token-pipeline / placement / “unnecessary global” violations when they match ticket boundaries
+- **Stale doc convention** — citing one naming/placement bullet (e.g. a naming-suffix rule) without verifying mixed folder reality or branch-updated docs
 - **Site-wide regression from path** — reporting regression because a shared file changed without naming unprotected consumers and subtracting preprocessor-protected routes
 - **Preprocessor-blind regression** — claiming routes break on a dual-registry type when preprocessors replace or remove that type before render
-- **SOLID/DRY wrapper noise** — registry passthrough, transform wiring via domain definitions, thin domain wrappers, intra-ticket SCSS/Studio duplication, or module path preferences as Should fix without a proven leak
+- **SOLID/DRY wrapper noise** — registry passthrough, transform wiring via domain definitions, thin domain wrappers, intra-ticket SCSS/editor duplication, or module path preferences as Should fix without a proven leak
 - **Deploy order demoted** — putting **unsafe** cutover (no stagger path, proven launch 404) only in Open questions — use Must fix per § Deploy and cutover
 - **Regression demoted to global table only** — default-changing shared primitives listed only in Unnecessary global changes with no numbered regression item
 - **Branch-introduced parity dropped** — omitting wiring or layout parity on **new** ticket code as “not key” because it only affects the new surface
-- **Media resolver branch drop missed** — transform mapper reads `maxWidth`/`maxHeight`/etc. but shared media resolver omits them on CMS ref (or other) branch
-- **Exclusive dispatch as leak** — “missing `pageClass` guard” for scoped-palette-only exclusive types without proven global-route content
+- **Media resolver branch drop missed** — transform reads size fields (e.g. max width/height) but the shared media resolver omits them on one branch
+- **Exclusive dispatch as leak** — “missing page-class guard” for scoped-palette-only exclusive types without proven global-route content
 - **Invalid-token remap as regression** — treating legacy CMS value → valid theme token as visual regression when the old value had no CSS counterpart
 - **Global table as dumping ground** — rows that say keep/appropriate/none-until-passed, or duplicate numbered items without a distinct narrower-scope alternative
 - **Lane abortion ignored** — publishing after a domain lane timed out/aborted without finishing that scope or noting incomplete coverage
@@ -714,7 +716,7 @@ Add after Should fix (continuous numbering):
 - **When in doubt, keep the finding** — superseded by § Investigation architecture “When in doubt” table; default is **omit** for regression/global/placement
 - **Publishing Domain 4 rows in `pr` mode** — Domain 4 is `full`-only unless user explicitly requests global-blast analysis
 - **Schema/query parity without behavior delta** — numbered Should fix from projection wider than schema slice
-- **Placement on scoped-palette-only `ui/` defaults** — when wrapper exists and no dual-registry leak
+- **Placement on scoped-palette-only shared-primitive defaults** — when wrapper exists and no dual-registry leak
 - **Necessary-for-ticket global change as global-table row** — when revert breaks ticket routes
 - **Pre-existing pattern reported as branch defect** — without `revert_test: branch_introduced` or `branch_worsened`
 - Adding branch stats, nice-to-have items, or passing checklist noise to the report
@@ -723,8 +725,8 @@ Add after Should fix (continuous numbering):
 
 ## Example invocation
 
-User attaches this skill: `/review-branch` (on branch `feature/account-settings`).
+User attaches this skill: `review-branch` (on branch `feature/account-settings`).
 
-Agent: Phase 0 — review target = current branch `feature/account-settings` vs `main`; mode = `pr`; discover repo adapter (`code-review.md` when present); triage (diff inventory + activate matching **four domain lanes**) → Phase 1 parallel subagents (domains 1–4 as triggered; content-stack/routing sub-checklists and **project-adapter** sub-lane when manifest triggers) → **wait until every spawned lane finishes successfully** → Phase 2 synthesis (**§ Finding legitimacy gate** on every candidate) → **one** report (§ Report template) → **no file edits**.
+Agent: Phase 0 — review target = current branch `feature/account-settings` vs `main`; mode = `pr`; discover repo adapter (`code-review.md` when present); triage (diff inventory + activate matching **four domain lanes**) → Phase 1 parallel subagents (domains 1–4 as triggered; content-stack/routing sub-checklists and adapter sub-lane when manifest triggers) → **wait until every spawned lane finishes successfully** → Phase 2 synthesis (**§ Finding legitimacy gate** on every candidate) → **one** report (§ Report template) → **no file edits**.
 
 Named branch variant: "Review branch `feature/account-settings`" — same workflow; target is the named branch, not inferred from a different `HEAD`.

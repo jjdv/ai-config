@@ -18,9 +18,9 @@ Structure for Phase 2 chat output; expand sections only on request.
 | Page types | new / reuse | … |
 | Blocks | new / extend | `blocks/…` — … |
 | Components | new / extend | `components/…` — … |
-| Utilities | new | migrator, GROQ, redirects, … |
-| Theme / tokens | override / none | page-type SCSS, `rich_text` variant, palettes |
-| Sanity | schemas / import | … |
+| Utilities | new | migrator, data queries, redirects, … |
+| Theme / tokens | override / none | page-type styles, text variants, palettes |
+| CMS | schemas / import | … |
 
 ## Route → page-type map (summary)
 

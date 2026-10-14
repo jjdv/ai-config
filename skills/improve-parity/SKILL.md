@@ -6,12 +6,14 @@ description: >-
   vs original-inconsistency), fix CSS-fixable issues, and report structural /
   reference problems before pixel-chasing. Use when pages drifted after refactors,
   migration parity regressed, or the user asks for visual/CSS parity, improve-parity,
-  production match, or 1:1 styling vs uploadcare.com.
+  production match, or 1:1 styling vs the reference site.
 ---
 
 # Improve parity
 
 {{block:tool-note}}
+
+Tool-heavy steps (browser compare, shell, edits) run as delegated execution per the base rule (Harness skill workflows); the main thread only gates, asks the user and relays.
 
 Repeatable **CSS-first, then visual** compare → fix loop between an **implemented page** (local dev) and a **reference page** (production URL and/or reference repo source).
 
@@ -21,7 +23,7 @@ Repeatable **CSS-first, then visual** compare → fix loop between an **implemen
 
 Skip Phase A entirely only when the user explicitly asks for **visual only** (e.g. “visual compare only”). Skip Phase B when the user asks for **css only**.
 
-Migration plans (e.g. `uploadcare.com/.local/customers-migration-plan.md`) should **delegate parity work to this skill** — do not duplicate compare/fix steps in the plan body. Plans may cap **iterations per phase** and maintain a **parity scoreboard**; this skill defines execution and scoring.
+Migration plans (the project's migration plan) should **delegate parity work to this skill** — do not duplicate compare/fix steps in the plan body. Plans may cap **iterations per phase** and maintain a **parity scoreboard**; this skill defines execution and scoring.
 
 ## Defaults
 
@@ -44,23 +46,25 @@ Parse overrides from the **same message** that invokes this skill. **`N rounds`*
 | --- | --- | --- |
 | 0 | **Live production (Tier A truth)** | Mapped key elements: local computed styles vs same element on production @ each scoped viewport |
 | 1 | **Active plan locked targets** | Advisory for disputes, original-inconsistency resolution, and fix direction — **not** a substitute for live prod diff |
-| 2 | **Domain foundation doc** | e.g. `customers-foundation.md` — default when prod is ambiguous |
+| 2 | **Domain foundation doc** | The project's domain foundation doc — default when prod is ambiguous |
 | 3 | **Consistent production / source repo** | Same component/region behaves the same across fixture URLs in reference repo |
 | 4 | **Inconsistent production** | Differs across stories for the **same role** → survey corpus prevalence if plan requires; else document and propose **one** rule — **Tier D / approved divergence last resort** after gap analysis + fix slices |
 
-**Plan autonomy:** Respect plan § **Scope boundary** — `domain` fixes in-scope; `global` (shared theme, `components/ui/`, site-wide tokens) → propose only, return `ESCALATE: global-scope`. See `create-plan` § Scope boundary.
+**Plan autonomy:** Respect plan § **Scope boundary** — `domain` fixes in-scope; `global` (shared theme, `components/ui/`, site-wide tokens) → propose only; stop and return **Questions for parent** asking approval for the global-scope change (a step that needs a higher tier returns `needs upgrade: <tier> - <reason>` instead). See `create-plan` § Scope boundary.
 
 ## Reference sources
 
 | Role | Typical source |
 | --- | --- |
-| Production UI (truth) | `https://uploadcare.com/<route>` |
-| Local implementation | `http://localhost:4321/<route>` (confirm dev server) |
-| Source patterns / values | Sibling repo `uploadcare-website` at `/Users/jacek/Projects/uploadcare-website` |
-| Project conventions | `uploadcare.com` → `.agents/skills/project-best-practices/`, `docs/website/tokens.md` |
-| Domain foundation docs | e.g. `docs/website/customers-foundation.md`, `docs/website/blog-foundation.md` |
+| Production UI (truth) | The reference site's production URL for the route (from the project reference) |
+| Local implementation | The local dev server URL for the route (confirm dev server) |
+| Source patterns / values | The reference repo (path from the project reference) |
+| Project conventions | `.agents/skills/project-best-practices/`, the project's tokens doc |
+| Domain foundation docs | The project's domain foundation docs |
 
-For **uploadcare.com core-marketing**, also read `.local/core-marketing-visual-parity-process.md` (route order, in/out of scope).
+When `.agents/skills/project-best-practices/references/improve-parity.md` exists, read it: it supplies site routes and URLs, the reference repo path, the tokens doc and generate command, route-set order and process docs, and example invocations.
+
+---
 
 ## In / out of scope (per invocation)
 
@@ -98,12 +102,12 @@ Every gap found in Phase A or B must be tagged **one** primary type:
 - Block-boundary / wrapper-vs-inner probe fails while typography probes pass
 - Region height Δ &gt; ~100px with similar text content (block count or wrapper padding)
 - Local `content[]` block count ≪ production MDX component sequence
-- Wrong ecru band / quote surface despite correct token (wrapper layer issue)
+- Wrong tinted band / quote surface despite correct token (wrapper layer issue)
 - CMS variant flags missing where reference source is explicit (band context, spacing tier, media controls)
 
 **Original-inconsistency signals** (any → classify Original-inconsistency):
 
-- Same shortcode/component (e.g. `Paragraph`, `StoryBreak`, `Link`) yields **different** spacing, underline, or typography on two+ fixture URLs in `uploadcare-website`
+- Same shortcode/component (e.g. `Paragraph`, `StoryBreak`, `Link`) yields **different** spacing, underline, or typography on two+ fixture URLs in the reference repo
 - Production spot-check contradicts foundation **and** another story’s production behavior
 - Chasing one story’s prod values would **break** foundation or another fixture URL
 
@@ -194,7 +198,7 @@ Property bundles on **paired same-role nodes** are insufficient when local and p
 | --- | --- | --- |
 | **Text → text** (vertical) | Distance from bottom edge of innermost text in row N to top edge of innermost text in row N+1 | List `gap` matches but in-row `line-height` / link margin inflates gap |
 | **Text → text** (horizontal) | Gap between adjacent inline labels, values, and links in one row | Flex `gap` on parent only; label/value link spacing wrong |
-| **Text → surface edge** | Distance from innermost text to visible background/border of its component (ecru band, card, quote figure) | Padding on wrong wrapper layer |
+| **Text → surface edge** | Distance from innermost text to visible background/border of its component (tinted band, card, quote figure) | Padding on wrong wrapper layer |
 | **Surface → surface** | Gap between adjacent component backgrounds or border boxes in the same region | Block-boundary margin on wrong sibling |
 | **Media ink → text** | Distance from bottom of rendered image/video to top of following text ink | Block `padding-bottom` matches reference wrapper but **inner media layout** omits slack below the asset |
 | **Text → border** | Distance from text to decorative rule, avatar ring, or figure border when it defines rhythm | Border on wrapper; text inset not probed |
@@ -300,7 +304,7 @@ After key-element diff, run **supplemental** checks where DOM consolidation hide
 | **Icons beside text** | Link label typography only | Media tier on inline SVG/icon in mapped interactive components |
 | **Repeat order** | Styles match on sample card | Full grid/list: count + stable identity sequence vs prod |
 | **Layout breakpoints** | Pass at primary width only | `grid-template-*`, band padding, column count @ **each** scoped viewport |
-| **Quote surface context** | All large quotes get ecru band | Background per quote vs source intent (band vs inline) |
+| **Quote surface context** | All large quotes get a tinted band | Background per quote vs source intent (band vs inline) |
 | **Chrome nav inventory** | Assumed prev/next symmetry | Link **text**, **href**, and **count** vs production |
 | **DOM / landmark inventory** | CSS on existing nodes only | Interactive elements present, absent, or extra vs production |
 | **All declared viewports** | Primary width only | Re-run key-element diff + supplements @ **each** viewport in scope |
@@ -338,7 +342,7 @@ Run **N** compare→fix iterations (default **2**): A1 → A2 → A1 → A2 … 
 
 ### A2 — CSS fix
 
-- Fix **CSS-fixable** issues only (tokens → `pnpm generate:tokens` when JSON changes).
+- Fix **CSS-fixable** issues only (tokens → the project's token generate command when token sources change).
 - Do **not** implement workarounds for **Structural** or **Original-inconsistency** issues in A2 unless the plan explicitly authorizes a structural task in this invocation.
 - **DOM-preserving fix ladder (mandatory):** Before changing component/block **architecture** (TSX/template structure, wrapper nesting, CMS block splits, migrator merge profiles), exhaust CSS-only options on the **existing** tree:
   1. **Margin / padding / gap** on nodes already present (`margin`, `padding`, `gap`, `line-height`, `min-height`).
@@ -365,7 +369,7 @@ Run **N** compare→fix iterations (default **2**, same N as Phase A unless user
 - Resize to target viewport(s) — default **1250px**; when user names breakpoints (e.g. **1250 / 900 / 320**), run B1 at **each** width before B2.
 - Load local and production side by side (or capture both).
 - Visual diff + DOM structure; confirm CMS content present (no empty fixture fallbacks unless user scoped that).
-- Screenshots → `.tmp/playwright-mcp/` or `.tmp/{{path:browser-tmp}}/` only.
+- Screenshots → `.tmp/{{path:browser-tmp}}/` only; artifacts of `playwright` → `.tmp/playwright-mcp/`.
 - Output: **≤10 visual issues**, ranked by impact; **type** per issue; likely fix paths.
 - For each failing region, note whether residual gap is **CSS-fixable**, **Structural**, or **Original-inconsistency** (use height Δ + A1 classification).
 - When body/chrome Tier B is sub-99% but § Vertical rhythm spacing probes pass, report **probe pass** separately — do not imply margins are still wrong.
@@ -436,7 +440,7 @@ Domain foundation docs may mirror notes; the **plan scoreboard** is the migratio
 ```
 
 - **Subtype:** `fixable` (domain component/block/layout) · `divergent` (needs global scope or Tier D)
-- **Scope:** `domain` · `global` — **global → escalate; do not implement in parity invocation**
+- **Scope:** `domain` · `global` — **global → return Questions for parent asking approval; do not implement in parity invocation**
 - **Effort:** S (&lt;1 implementation spawn) · M (1 spawn) · L (plan task / schema+migrator)
 - **Blocks Tier B:** yes = do not spend more B2 on margin-chasing until fixable path implemented or user accepts divergence
 
@@ -469,7 +473,7 @@ Agents **propose** approved divergence rows; **only the user or plan** marks the
 2. **Plan task** — gap matrix rows needing analysis or implementation beyond one small task (e.g. `Block-root spacing variants [S1]`, …), split by `create-plan` — **not** open key-element CSS diffs (those belong in (1))
 3. **Approve divergence** — **Structural — divergent** or original-inconsistency only after (1)–(2) exhausted **and** key-element CSS parity passes for that region — user confirms. **Do not** Tier C open CSS diffs
 4. **Re-run parity** — after (2) or (3), which URLs/regions only; include **spacing probe matrix** when rhythm was the focus
-5. **Escalate global scope** — any fix touching shared theme / `components/ui/` / site-wide tokens — user before implement
+5. **Global scope approval** — any fix touching shared theme / `components/ui/` / site-wide tokens — return **Questions for parent** asking approval; user decides before implement
 ```
 
 Say **stop pixel-chasing** only when gaps are **Structural — divergent** or **Original-inconsistency** with no fixable path — not when **Structural — fixable** gap matrix rows remain or **key-element CSS diffs** still fail (**mis-bucketing as Tier C is an anti-pattern**).
@@ -499,54 +503,52 @@ One coherent chunk per spawn (~15min). **Do not bundle multiple full invocations
 
 | Step | Subagent |
 | --- | --- |
-| A1 CSS compare + inconsistency cross-check | `playwright` or `standard` |
+| A1 CSS compare + inconsistency cross-check | `{{agent:playwright}}` or `standard` |
 | A2 CSS fix | `standard` |
-| B1 Visual compare | `playwright` (prefer headless script) |
+| B1 Visual compare | `{{agent:playwright}}` (prefer headless script) |
 | B2 Visual fix | `standard` |
 | Structural report synthesis | supervisor or `senior` read-only |
 
+`playwright` is a special agent, not a tier. Spawn prompts follow base Delegation step 5: the agent's level, the comments constraint, the naming-references constraint and an authorization block, plus a decision-complete spec for the step.
+
 Supervisor relays **product choices** (approved divergence, plan extension) to the user — agents propose, user accepts; each choice is named by its title with the ID in brackets and worded per the **ask-questions** skill.
 
-## Core-marketing page order
+## Route-set order
 
-When scope is “core-marketing” without a single route, process in order (full **A→B** per route before next):
-
-1. `/` 2. `/pricing/` 3. `/schedule-demo/` 4. `/file-infrastructure-platform/` 5. `/api/` 6. `/partners/` 7. `/migrate-from-filestack/` 8. `/discover/file-uploader/` 9. `/uploader1/` 10. `/404`
-
-Then **nav + footer** as a separate invocation if requested.
+When scope names a route set without a single route, take the order from the project reference and process each in full (**A→B** per route before next). Then nav + footer as a separate invocation if requested.
 
 ## Deliverables
 
 - **Chat (mandatory):** parity scoreboard · structural issues · original inconsistencies (or “none detected”) · recommended next steps · below threshold · explicit **targets not met** line when any in-scope URL fails and is not approved divergence.
 - **Per page:** CSS % @ each scoped viewport + aggregate; visual % (worst viewport); pass/fail vs 100% / 99% or approved divergence.
-- **Optional file:** migration plans may ask for `.tmp/<tool>/<slug>/parity-report.md` mirroring the chat sections.
-- **Temp artifacts:** screenshots under `.tmp/<tool>/` only.
+- **Optional file:** migration plans may ask for `.tmp/{{path:browser-tmp}}/<slug>/parity-report.md` mirroring the chat sections.
+- **Temp artifacts:** screenshots under `.tmp/{{path:browser-tmp}}/` only; artifacts of `playwright` under `.tmp/playwright-mcp/`.
 - **User-facing names:** structural issues, original inconsistencies, approved-divergence rows and phases are named by title (phases e.g. `Phase A — CSS parity`); an ID such as S1 or O1 appears only in brackets after its title, never alone.
 
 ## Invocation examples
 
 ```
-/improve-parity /customers/gempages/ — 1250/900/320, 5 rounds
+{{tool:skill-prefix}}improve-parity /<route>/ — 1250/900/320, 5 rounds
 ```
 
 ```
-/improve-parity homepage after styling refactor
+{{tool:skill-prefix}}improve-parity homepage after styling refactor
 ```
 
 ```
-/improve-parity core-marketing — 3 rounds per phase
+{{tool:skill-prefix}}improve-parity <route-set> — 3 rounds per phase
 ```
 
 ```
-/improve-parity /pricing/ — visual only, 2 rounds
+{{tool:skill-prefix}}improve-parity /<route>/ — visual only, 2 rounds
 ```
 
 ```
-/improve-parity /customers/ css only
+{{tool:skill-prefix}}improve-parity /<route>/ css only
 ```
 
 ```
-/improve-parity /api/ and /partners/
+{{tool:skill-prefix}}improve-parity /<route-a>/ and /<route-b>/
 ```
 
 (`N rounds` = N compare→fix iterations in each phase; default **2** if omitted.)

@@ -3,19 +3,18 @@ name: check-plan
 description: >-
   Single owner of plan readiness rules, used by create-plan (authoring audit) and
   sequential-implementation (pre-flight). Verifies an implementation plan is
-  handoff-ready for /sequential-implementation in a fresh chat — structure,
+  handoff-ready for sequential-implementation in a fresh chat — structure,
   Decisions and Change log sections, open-only implementation order, linked task
   and note files, small tasks with acceptance checks and bounded scope, agents
   (principal/expert user-agreed), autonomy/scope when claimed. Invoke with the plan
   file path. Read-only audit; use create-plan to fix gaps.
-disable-model-invocation: false
 ---
 
 # Check plan
 
 {{block:tool-note}}
 
-Answer: **Is this plan file a single entry point for `/sequential-implementation` in a fresh chat?**
+Answer: **Is this plan file a single entry point for `sequential-implementation` in a fresh chat?**
 
 **Read-only.** Never edit the plan, task files or notes. Fixes belong to **`create-plan`**.
 
@@ -26,7 +25,7 @@ This skill owns the readiness checklist. `create-plan` reads it before authoring
 The user (or a calling skill) provides **one plan file path** (required):
 
 ```
-/check-plan <plan-path>
+{{tool:skill-prefix}}check-plan <plan-path>
 ```
 
 Resolve the path relative to a workspace root when not absolute. If no path is given, ask once.
@@ -35,9 +34,10 @@ Resolve the path relative to a workspace root when not absolute. If no path is g
 
 1. **Read** the plan file end-to-end.
 2. **Resolve project root** from the `**Project root:**` line, or the parent of `.local/` if missing (flag fail).
-3. **Run every check** in § Checklist. Verify on disk where applicable: open and read the linked files, do not assume.
-4. **Emit report** (§ Output format).
-5. **Verdict:** `READY` only if every applicable check passes (zero **fail**). Warnings do not block `READY` but must be listed.
+3. **Run the mechanical script** `scripts/check_plan_mechanical.py <plan-path>` (in this skill's directory; python3, standard library only; when python3 or the script is unavailable, run the checks it covers by hand). It prints `CHECK | LOCATION | MESSAGE` per finding and exits 1 when it prints any line, including `PARSE`. It covers A5, A6, A7, A8, B1, B4, C9, C10 and C11; every line it prints is a finding to carry into the report, and a `PARSE` line (a format it could not parse reliably) must be checked by hand.
+4. **Run every other check** in § Checklist and **record every finding**. Verify on disk where applicable: open and read the linked files, do not assume. The audit never stops at the first failing check: all checks run, over every task, before the report is emitted.
+5. **Emit report** (§ Output format) once, after all checks have run, with every finding in one table.
+6. **Verdict:** `READY` only if every applicable check passes (zero **fail**). Warnings do not block `READY` but must be listed.
 
 If `status: complete` and **Implementation order** is empty with every task done in the phase tables, the verdict is `COMPLETE` (nothing to run).
 
@@ -48,6 +48,10 @@ If `status: complete` and **Implementation order** is empty with every task done
 - **skip**: not applicable (a conditional check whose condition is absent).
 
 Every check below is **fail** unless its row says **warn**.
+
+## Single-pass rule
+
+One audit run reports **every** finding. The report lists each finding as one row with the check ID, the location (plan line, or task ID plus file path), what is wrong and the concrete fix. Findings are never split across runs: a run that reports only the first failing check, or only one task's problems while others have the same kind, is incomplete. A check that fails for several tasks produces one row per task and location. A re-run after fixes should find nothing that the earlier run could already have found.
 
 ## Checklist
 
@@ -67,8 +71,10 @@ Every check below is **fail** unless its row says **warn**.
 | A10 | **Agent approvals table** | `## Agent approvals` exists with columns Task ID, Agent, Justification, Agreed by user (rows only for `principal`/`expert` tasks; empty otherwise) |
 | A11 | **Plan maintenance** | Section present with per-task update rules |
 | A12 | **Fresh chat handoff** | `### Fresh chat handoff` (or equivalent) with numbered steps naming the next task ID and skills to load |
-| A13 | **Single entry point** | Handoff includes the exact `/sequential-implementation <plan-path>` invocation matching this file |
+| A13 | **Single entry point** | Handoff includes the exact `{{tool:skill-prefix}}sequential-implementation <plan-path>` invocation matching this file |
 | A14 | **Open questions** | Table present; **Blocks** column empty or only IDs that are truly ⏸ blocked |
+| A15 | **Decision Affects** (**warn**) | Each Decision's **Affects** list names every task whose task file or plan row cites that Decision; `all ...` wording covers every task |
+| A16 | **Superseded log rows** (**warn**) | A **Change log** row whose change a later row reverses or replaces is marked superseded (for example `Superseded by <date>` in its Change cell) |
 
 ### B — Linked artifacts (verify on disk)
 
@@ -103,15 +109,17 @@ Read each open task (plan row and linked task file). A task is **small**: one ou
 | C13 | **Agent approvals** | Every task with a `principal` or `expert` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a Delegation scope table criterion (well-scoped high complexity, or critical high-impact decision); a justification citing size or breadth alone fails; none are unapproved |
 | C14 | **Blocked tasks** | Any ⏸ task has its reason in **Open questions** or the phase row, and is not listed in **Implementation order** ahead of its unblock |
 | C15 | **Runnable next task** | At least one delegable open task passes C1–C13, or the plan is legitimately `complete` |
+| C16 | **No contradictions** | No two statements contradict each other across **Decisions**, the plan's **Change log** and the task files (for example a Decision value that a task contradicts, a task acceptance that a later Change log row reversed, two tasks owning the same outcome with different values); each contradiction is one finding naming both locations |
+| C17 | **Acceptance commands verified** (**warn**) | Every command named in a task's **Acceptance** is run by that task's **Verification**, or is covered by the plan's verification gate that the task cites |
 
-A vertical slice (one GROQ → props → UI path, tokens plus styles for one surface, a deletion sweep) is one outcome even across several files; unrelated packages or layers bundled without a single slice are not.
+A vertical slice (one data query → props → UI path, tokens plus styles for one surface, a deletion sweep) is one outcome even across several files; unrelated packages or layers bundled without a single slice are not.
 
 ### D — Conditional (when the plan claims them)
 
 | ID | Check | Pass when |
 | --- | --- | --- |
 | D1 | **Autonomy** | If the plan says "autonomous" or has auto-decisions: § **Autonomy & authorization** with pre-approved operations, auto-decisions, user escalation, and a delegation **Authorization** template |
-| D2 | **Scope boundary** | If parity/migration touches theme or shared architecture: § **Scope boundary** with domain vs global paths |
+| D2 | **Scope boundary** | If the plan changes shared or root configuration (root config files, theme, shared architecture) or a parity/migration plan touches theme or shared architecture: § **Scope boundary** with domain vs global paths. **fail** when such a plan has no § **Scope boundary** (never downgraded to a warning) |
 | D3 | **Plan lineage** | If a banner says "continues in child plan": parent `status: complete`, child path exists and is linked |
 | D4 | **Operator handoff** | Commit, deploy, import and other external steps are in **Operator handoff** or pre-approved in § Autonomy; no task mutates a remote environment otherwise |
 | D5 | **Scoreboard / parity** | If parity plan: baseline scoreboard or link to audit file; `improve-parity` in handoff or context when verify tasks exist |
@@ -122,8 +130,8 @@ A vertical slice (one GROQ → props → UI path, tokens plus styles for one sur
 | ID | Check | Pass when |
 | --- | --- | --- |
 | E1 | **project-best-practices** | If `<project-root>/.agents/skills/project-best-practices/SKILL.md` exists: listed in **Context references**, and **Fresh chat handoff** mentions it for implementation tasks |
-| E2 | **Task-relevant references** | Plan touches blocks/components: `placement.md` and `website-structure.md` in context or handoff; styling tasks: `styling.md`; CMS blocks: `cms-blocks.md` |
-| E3 | **Sanity siblings** | Plan has Sanity schema/GROQ/Studio/content tasks: `sanity-best-practices` and/or `sanity-data-handling` in **Context references** or handoff per task type |
+| E2 | **Task-relevant references** | When `project-best-practices` exists and its router names references per task type: for each task type in the plan, the matching `.agents/skills/project-best-practices/references/<topic>.md` is in **Context references** or handoff; skip when it names none |
+| E3 | **Sibling skills** | When the project-best-practices router names sibling skills for a task type present in the plan: those skills are in **Context references** or handoff |
 | E4 | **code user rule** | Open tasks edit source: **Fresh chat handoff** requires the **code** user rule checklist before marking tasks done |
 
 ## Output format
@@ -137,7 +145,7 @@ A vertical slice (one GROQ → props → UI path, tokens plus styles for one sur
 
 ## Summary
 
-<1–2 sentences>
+<1–2 sentences: counts of fails and warns>
 
 ## Checks
 
@@ -146,29 +154,27 @@ A vertical slice (one GROQ → props → UI path, tokens plus styles for one sur
 | A1 | pass / fail / warn / skip | … |
 | … | | |
 
-## Failed checks (fix before /sequential-implementation)
+## Findings
 
-1. **Implementation order** [A6] — …
-2. …
-
-## Warnings (non-blocking)
-
-- …
+| # | Check | Location | Finding | Fix |
+|---|-------|----------|---------|-----|
+| 1 | A6 (fail) | plan line 482, task 2.3 | … | … |
+| 2 | A15 (warn) | plan line 94, D4 | … | … |
 
 ## Fresh chat entry
 
 \`\`\`
-/sequential-implementation <plan-path>
+{{tool:skill-prefix}}sequential-implementation <plan-path>
 \`\`\`
 
 **Next task:** `<id>` · **Task spec:** `<path>`
 ```
 
-Per-task checks (section C) are reported per task ID in Notes.
+The **Findings** table holds every fail and every warn, fails first, in check order within each group. `Fix` is concrete (the exact edit), never "review" or "consider". With no findings the table is replaced by `None.`. Per-task checks (section C) are reported per task ID in Notes and in Findings.
 
 ## After NOT READY
 
-1. Tell the user to fix the gaps (or offer to fix with **`create-plan`** if they ask).
+1. Tell the user to fix the gaps (or offer to fix with **`create-plan`** if they ask); the complete **Findings** table goes to whoever fixes them.
 2. Re-run **`check-plan`** on the same path after edits.
 3. **`sequential-implementation`** does not start until the verdict is `READY`.
 
@@ -183,6 +189,7 @@ Per-task checks (section C) are reported per task ID in Notes.
 ## Do not
 
 - Mark `READY` with any **fail** row
+- Stop at the first failing check or report findings across several runs
 - Assume task or note files exist without reading disk
 - Edit the plan, task files or notes during a check
 - Substitute chat history for missing plan sections

@@ -9,10 +9,10 @@ description: >-
 
 ## Role of the canonical file
 
-Convention: **`designs/design-system.pen`** at the repo root (adjust path if the project differs).
+Library location and file roles follow the `pen-library` skill; this skill owns what the canonical file contains.
 
 - **Canonical** source for **`themes`**, **`variables`**, a **pure token gallery** (stable id e.g. `ds_gallery`), and **atom/base components** (e.g. `ds_components`).
-- **Product screens** in other `.pen` files should **reuse the same variables** (synced from here), not fork ad hoc hex values.
+- **Product screens** in other `.pen` files should **reuse the same variables** (synced per the `pen-library` skill), not fork ad hoc hex values.
 - **Separation:** tokens document design decisions; the atoms frame shows how tokens compose into reusable UI. Product copy and screen flows live in **band** files—not in the token gallery.
 
 ---
@@ -101,7 +101,7 @@ Avoid empty spacer frames with no children.
 
 ### Atoms column
 
-- Flow: canonical design system → `components.pen` (or equivalent) → band screens.
+- Components and bands consume these atoms per the `pen-library` skill.
 - Buttons, inputs, selects, badges: document states (default, hover, active, focus, disabled) with clear naming.
 
 ---
@@ -110,7 +110,7 @@ Avoid empty spacer frames with no children.
 
 - Variables: `--token-name`; bindings: `$--token-name`.
 - **Product:** `--color-brand-*`, `--color-semantic-*`, `--space-*`, `--layout-*`, `--font-*`, `--leading-*`.
-- **Pencil-only (often stripped on sync to bands):** `--ds-doc-background`, `--ds-doc-surface-panel`, `--ds-doc-border`, `--ds-doc-foreground*`.
+- **Pencil-only documentation chrome (sync rules in `pen-library`):** `--ds-doc-background`, `--ds-doc-surface-panel`, `--ds-doc-border`, `--ds-doc-foreground*`.
 
 ---
 
@@ -124,15 +124,14 @@ Avoid empty spacer frames with no children.
 
 ## Maintenance
 
-- Prefer **`scripts/`** at repo root to rebuild the gallery and **sync variables** to band/component files.
-- Doc-only tokens (`--ds-doc-*`) typically stay in the canonical file only; sync scripts may strip them from copies.
+- Prefer a regeneration script under **`scripts/`** to rebuild the gallery; variable sync to other files follows `pen-library`.
 - After manual layout experiments, align rebuild scripts or expect the next rebuild to overwrite structure.
 
 ---
 
 ## Agent tools and editor reality
 
-- **Pencil MCP** for encrypted `.pen`; plain JSON repos may also use IDE/scripts—stay consistent with team workflow.
+- **The Pencil integration** for encrypted `.pen`; plain JSON repos may also use IDE/scripts—stay consistent with team workflow.
 - Disk file and Pencil editor buffer can **diverge** until Save; reloading the document from disk may discard unsaved editor changes—warn before refresh.
 
 ---

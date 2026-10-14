@@ -34,6 +34,13 @@ Use this template when delegating page inspection/debug tasks to the Playwright 
 - Sensitive data constraints:
 - Non-goals:
 
+## Delegation
+
+- Agent level: 3 (playwright; never spawns).
+- Comments constraint: add no comments or docs to code; temporary `DEBUG_TMP:` logs are the only instrumentation and are removed before completion.
+- Naming-references constraint: refer to steps, findings and checks by title; an id may follow only in brackets.
+- Authorization: project root <project root>; read and write only under it, temporary output only under `.tmp/playwright-mcp/`; no commit, checkout or stash.
+
 ## Obstacle Policy
 
 If blocked, pause and return:

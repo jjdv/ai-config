@@ -216,9 +216,9 @@ Before status `approved`:
 ```text
 {{tool:spawn-agent}}(
   {{agent:standard}},
-  run_in_background=false,
-  description="gather: <aspect>",
-  prompt="…"
+  run in the foreground,
+  short description "gather: <aspect>",
+  prompt "…"
 )
 ```
 

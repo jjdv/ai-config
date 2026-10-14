@@ -5,7 +5,7 @@ always: false
 
 # Temp files — ephemeral output location
 
-When running or debugging tests (Playwright e2e, Playwright MCP, {{tool:browser}}, manual agent exploration, or similar), put **temporary** files only under:
+When running or debugging tests (Playwright e2e, browser automation, manual agent exploration, or similar), put **temporary** files only under:
 
 ```
 <project root>/.tmp/<tool-name>/

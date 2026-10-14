@@ -1,14 +1,16 @@
 ---
 name: pr-review
-description: Review GitHub pull requests using jjdv's review style and process, including temporary stash handling and restore.
-disable-model-invocation: true
+description: Review GitHub pull requests in the repo's review style and process, including temporary stash handling and restore.
+invocation: explicit
 ---
 
-# PR Review (Manual, jjdv style)
+# PR Review (Manual)
+
+Tool-heavy steps (repo lookup, git, `gh`, diff reading) run as delegated execution per the base rule (Harness skill workflows); the main thread only gates, asks the user and relays.
 
 ## Purpose
 
-Review a GitHub PR, draft comments in jjdv style, and show proposed comments first.
+Review a GitHub PR, draft comments in the repo's review style, and show proposed comments first.
 Do not submit anything to GitHub unless the user explicitly asks.
 
 ## Required Input
@@ -70,76 +72,45 @@ gh pr view "$PR_URL" --json files --jq '.files[].path'
 git status --porcelain
 ```
 
-4. If any local changed file overlaps PR-changed files, stash them:
+4. Ask the user before any stash or checkout: state which local files will be stashed (or that nothing will be), and which PR branch will be checked out. Proceed only on an explicit yes; on no, stop.
+
+5. If any local changed file overlaps PR-changed files, stash them:
 
 ```bash
 git stash push -u -m "tmp: temporary stash for PR review (<owner>/<repo>#<number>)"
 ```
 
-5. If there is no overlap, do not stash.
+6. If there is no overlap, do not stash.
 
-6. Check out the PR branch:
+7. Check out the PR branch:
 
 ```bash
 gh pr checkout "$PR_URL"
 ```
 
-7. Verify local HEAD matches PR head SHA:
+8. Verify local HEAD matches PR head SHA:
 
 ```bash
 PR_HEAD_SHA=$(gh pr view "$PR_URL" --json headRefOid --jq '.headRefOid')
 test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
 ```
 
-8. Track whether stash was created and store original branch/HEAD for step 7 restore.
+9. Track whether stash was created and store original branch/HEAD for the restore in §7.
 
 ---
 
 ## 3) Review Rules (Checklist + Style)
 
-Apply these checks, derived from jjdv review history across:
-- `tiugotech/website-utils#10`
-- `tiugotech/website-generator#167`
-- `tiugotech/website-generator#166`
-- `tiugotech/website-generator#171`
+If `.agents/skills/project-best-practices/references/pr-review.md` exists in the reviewed repo, read it and apply its checklist and comment style; it overrides the defaults below.
 
-### A. Architecture and Ownership
+Default checklist (when no project reference exists):
 
-- [ ] Keep **single source of truth** (derive types/options from one registry/config).
-- [ ] Preserve **encapsulation** (export only what consumers actually need).
-- [ ] Avoid hardcoded branching that breaks **open/closed principle**.
-- [ ] Place logic/style in the correct owner (avoid cross-component implementation leakage).
-
-### B. API and Type Design
-
-- [ ] Prefer clear, short names (`score` over verbose variants when equivalent).
-- [ ] Remove redundant fields when decision belongs outside the service layer.
-- [ ] Avoid unnecessary casts and defaults hidden deep in logic.
-- [ ] Keep interfaces minimal; add fields only when they serve explicit use cases.
-
-### C. Simplicity and Maintainability
-
-- [ ] Follow KISS: remove unnecessary abstractions, wrappers, and helper methods.
-- [ ] Avoid flexibility that does not provide product value (extra slots/options without use).
-- [ ] Reuse existing primitives/components instead of re-implementing behavior.
-- [ ] Keep naming and file conventions consistent (e.g. expected prefixes).
-
-### D. Styling and Component Boundaries
-
-- [ ] Define class styling in the component that owns/applies that class.
-- [ ] Prefer component style config or scoped styles over scattered overrides.
-- [ ] Avoid patterns that hurt code searchability and long-term maintenance.
-
-### E. Behavior, UX, and Integration
-
-- [ ] Validate questionable UX choices with targeted questions (for example multiselect semantics).
-- [ ] Prefer mature library features when they improve accessibility/completeness.
-- [ ] Ensure defaults are applied at the correct boundary (input mapping vs render layer).
-
-### F. Consistency and Accuracy
-
-- [ ] If prior feedback was mistaken, explicitly correct it in-thread.
-- [ ] Keep comments actionable and tied to concrete code locations.
+- [ ] Single source of truth, encapsulation, logic and style placed in the correct owner (architecture and ownership).
+- [ ] Clear short names, minimal interfaces, no redundant fields, no unnecessary casts (API and type design).
+- [ ] KISS: no unnecessary abstractions or unused flexibility; reuse existing primitives (simplicity).
+- [ ] Styling defined in the component that owns it (component boundaries).
+- [ ] Questionable UX choices raised as targeted questions; defaults applied at the correct boundary (behavior and integration).
+- [ ] Earlier mistaken feedback corrected in-thread; comments actionable and tied to concrete code locations (consistency and accuracy).
 
 ### G. Clean Code and Micro-Refactors
 
@@ -165,45 +136,20 @@ Run this **after** architecture/API/behaviour; use for **readability, DRY, and l
 
 **Docs parity**
 
-- [ ] If clean-up touches public behaviour, **one line** reminding to sync README/types (avoid duplicating full docs review from §F).
+- [ ] If clean-up touches public behaviour, **one line** reminding to sync README/types (avoid duplicating a full docs review).
 
 When producing the draft artifact, you may add a **`### Clean code / micro-refactors`** (or **`### Nits`**) subsection so the author can batch-triage low-risk edits.
 
 ---
 
-## 4) Comment Style Rules (jjdv voice)
+## 4) Comment Style Rules
 
-### Tone
+Follow the project reference style when present. Defaults:
 
-- Concise, direct, constructive, non-hostile.
-- **Default length:** friendly **one to two sentences** per comment. Use a short question when that fits better than a lecture. Expand only when the reader cannot act without more context (architecture, security, or non-obvious product tradeoff).
-- Use soft certainty when appropriate: "Probably", "I think", "It would be better...".
-- Prefer collaborative wording when the team already agrees on direction: e.g. **"Let's update …"** instead of only **"Could we update …"** (use the latter when you are genuinely unsure or need maintainer buy-in).
-
-### Structure
-
-Prefer one of these formats:
-
-1. **Direct suggestion**
-   - "It would be better to ..."
-2. **Need/ownership check**
-   - "Is it needed?"
-   - "Not needed here - this should be handled in ..."
-3. **Principle-backed suggestion**
-   - "Based on KISS ..."
-   - "Check O in SOLID ..."
-4. **Question for product intent**
-   - "Should this field be multiselect?"
-5. **Assumption-stated rationale** (when the author gave explicit product rules)
-   - State the assumption in one clause, then the action: e.g. *If we assume X, Y isn’t needed and can be removed.*
-
-### Content quality bar
-
-- Reference exact symbol/file intent (not vague feedback).
-- Offer a concrete alternative path when suggesting a change.
-- Keep each comment focused on one issue.
-- **Do not add praise sections** unless the user explicitly asks for them; skip "optional praise" in the default draft artifact.
-- When the user clarifies design intent in-thread (e.g. *inner captcha reuses the same main options as the outer instance; only `checks` differ*), fold that into the **next draft** as a **single factual suggestion** ending with a period — avoid tacking on redundant "does the code match?" tails unless ambiguity remains.
+- Concise, direct, constructive, non-hostile; default one to two sentences per comment, a short question when it fits better.
+- Reference the exact symbol or file intent and offer a concrete alternative; one issue per comment.
+- When the user clarifies design intent in-thread, fold it into the next draft as a single factual suggestion.
+- Do not add praise sections unless the user explicitly asks.
 
 ---
 
@@ -232,7 +178,7 @@ Produce a draft review artifact and show it to the user in chat.
 For **final review handoff** after iteration, a **flat list** grouped by file (with short comments only) is acceptable — match whatever structure the user asked for in-session. When §3.G applies, include **nits** in the draft (subsection or inline with file headers).
 
 Rules:
-- Do not call `gh pr review` or submit via API in this phase unless the user explicitly moves to step 7.
+- Do not call `gh pr review` or submit via API in this phase unless the user explicitly moves to the submission gate (§7).
 - Keep comment count focused; prefer highest-impact findings.
 - Iterate on wording with the user until they confirm submission.
 - For each proposed comment, include code context from the referenced change when helpful:
@@ -260,9 +206,10 @@ Only when user clearly says to submit/push review comments:
 1. Reconfirm target PR.
 2. Submit agreed comments using one of the approaches below.
 3. Report what was submitted (count + links).
-4. Return to the original branch captured in step 2:
+4. Ask the user before restoring: state the branch to return to and, if a stash was created, that it will be popped. Proceed only on an explicit yes.
+5. Return to the original branch captured in §2:
    - `git checkout "$ORIGINAL_BRANCH"` (or restore by `ORIGINAL_HEAD` if branch no longer resolves).
-5. If this run created a temporary stash in step 2, restore it and clean it up:
+6. If this run created a temporary stash in §2, restore it and clean it up:
    - Prefer `git stash pop` for the tracked stash entry.
    - If conflicts occur, stop and report conflict details to the user.
    - Ensure the temporary stash entry created for this review is not left behind.

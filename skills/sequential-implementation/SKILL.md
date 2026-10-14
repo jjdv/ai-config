@@ -7,7 +7,7 @@ description: >-
   run the task's Agent, verify, update plan status. Plan issues trigger a
   replan via create-plan. Use when the user asks to implement, execute, or
   continue a plan step-by-step.
-disable-model-invocation: true
+invocation: explicit
 ---
 
 # Sequential implementation
@@ -26,7 +26,7 @@ A plan task is small: one goal, bounded scope, acceptance check or verification 
 
 | Mode | When | Source |
 | --- | --- | --- |
-| **File** | User gives a plan path (e.g. `.local/date-input-migration-plan.md`) | Read from disk; pre-flight below |
+| **File** | User gives a plan path (e.g. `.local/feature-plan.md`) | Read from disk; pre-flight below |
 | **Pasted** | User pastes the plan in the prompt | Use only what is pasted; if a task lacks goal, scope or verification, report it as a plan issue; add progress tracking per Plan templates if missing |
 
 ## Pre-flight (file plans)
@@ -47,7 +47,7 @@ Repeat until a stop condition applies:
 5. **Verify** deliverables: paths touched, verification command result, diff free of redundant comments (have them removed), drive-by churn and rule violations; when `project-best-practices` exists, compliance with it; when source files changed, the **code** user rule checklist.
 6. **Update the plan** (Progress tracking), then decide the next action (After a task).
 
-Sequential only: one task at a time unless the user explicitly requests parallel runs. Only the supervisor edits the plan; subagents never do. Brief the user after each task, naming tasks by title with the ID in brackets (`Title [T02]`), including progress and next-task lines.
+Sequential only: one task at a time unless the user explicitly requests parallel runs. Only the supervisor edits the plan; subagents never do. Report to the user once, at the end or at a stop condition, naming tasks by title with the ID in brackets (`Title [T02]`); per-task progress lives in the plan file.
 
 ### Task prompt
 
@@ -65,7 +65,8 @@ Reference: <paths to Decisions or docs the task needs, omit when none>
 Conventions: <only when project-best-practices exists: read `.agents/skills/project-best-practices/SKILL.md` first, then the task-relevant `references/` and `docs/` paths from the plan's Context references; write all code in compliance with it. For source edits also apply the **code** user rule checklist (intention-revealing names, small units, KISS/DRY, project conventions) before finishing>
 Context: <`.context/` paths the plan lists, omit when none>
 Comments: add no comments or doc comments unless the spec requires them; none that restate the code.
-Return: summary, paths touched, verification result, blockers; or `needs upgrade: <tier> - <reason>`; or `needs split: <subtasks, each with suggested tier>`; or `plan issue: <description>`
+Naming: refer to any section, task, finding or decision by its title, with an id in brackets only as extra, never alone.
+Return: summary, paths touched, verification result, blockers; or `needs upgrade: <tier> - <reason>`; or `needs split: <subtasks, each with suggested tier>`; or `question: <question>`; or `plan issue: <description>`
 Do not update the plan; the supervisor does.
 
 ## Authorization
@@ -88,7 +89,7 @@ Never pick a heavier Agent than the plan records, except by escalation per **Del
 - `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a `principal` or `expert` Agent still needs user approval, recorded in the plan's **Agent approvals**, and only for a criterion in the Delegation scope table, never for size: an oversized task is split instead).
 - `needs split: <subtasks>`: the task is oversized; **Replan flow**.
 - `plan issue: <description>`: **Replan flow**.
-- Questions: relay per **Delegation**, worded per the **ask-questions** skill and naming the task by title with its ID in brackets; mark the task `⏸ Blocked` with the question in **Open questions** until answered, then resume with the answer.
+- `question: <question>`: relay per **Delegation**, worded per the **ask-questions** skill and naming the task by title with its ID in brackets; mark the task `⏸ Blocked` with the question in **Open questions** until answered, then resume with the answer.
 
 ## Replan flow
 
@@ -116,15 +117,17 @@ Progress lives in the plan file (file mode) or in the plan text maintained in re
 
 Apply in order, from the result alone:
 
-1. **Pause** when user input is required per the plan's § **User escalation required** (or the agent returned `ESCALATE`), or a question is relayed; the escalation names the task by title with its ID in brackets.
+1. **Pause** when user input is required per the plan's § **User escalation required** (or the agent returned `needs upgrade: <tier> - <reason>`), or a question is relayed; the escalation names the task by title with its ID in brackets.
 2. **Escalate or follow up** per **Delegation** step 4 for a failed task (never retried at the same tier) or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
-3. **Next task**: otherwise delegate the next open task immediately.
+3. **Next task**: otherwise delegate the next open task immediately; when none remains, go to step 4.
+4. **Final review**: spawn one `staff` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions and Conventions; it returns findings only. Fix accepted findings per step 2, then report.
 
 ### Stop conditions
 
 - User input required (including approvals per **Delegation**)
 - Unresolvable blocker without user action
-- All plan tasks complete
+- All plan tasks complete and the final review done
+- The end of the chunk the user asked for, unless the user asked to continue through all tasks
 - The user explicitly limited scope (e.g. "only 1.1")
 
 One task succeeding is not a stop condition.
@@ -158,6 +161,6 @@ For a single task, a `## Current task` block with `**ID:** T01 · **Status:** [ 
 
 ## Example invocation (user)
 
-> Run sequential implementation on `.local/date-input-migration-plan.md`
+> Run sequential implementation on `.local/feature-plan.md`
 
 > Implement this plan step by step: [pasted plan]

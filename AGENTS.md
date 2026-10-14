@@ -34,7 +34,7 @@ Capabilities are written semantically (read files, run shell commands, browser a
 
 1. Edit the canonical item under the layering rule.
 2. Run the lints in section 6.
-3. Run `update-harness` for the named items.
+3. Run `update-harness` for the named items (or `merge-ai-config` for a full reconcile).
 4. Commit.
 
 ## 4. Capabilities and placeholders
@@ -43,7 +43,7 @@ The vocabulary is closed and lives in `skills/update-harness/references/placehol
 
 ## 5. Models and effort
 
-Model and effort are tool-local. A model change is a local edit of the installed agent or of `placeholders.json`, handled by `update-harness`; never edit the repo for it.
+Model and effort are tool-local. A model change is a local edit of the installed agent or of `placeholders.json`, handled by `update-harness`; never edit the repo for it. Tier agents pin `model` and `effort`; special agents may omit them.
 
 ## 6. Lint
 
@@ -55,12 +55,14 @@ Structural:
 
 ```
 CANON=$(git ls-files -co --exclude-standard skills rules agents | grep -v '^skills/update-harness/references/')
-echo "$CANON" | xargs grep -nE '\{\{#|\{\{/'
-echo "$CANON" | xargs grep -ohE '\{\{[^}]*\}\}' | sort -u | grep -vE '^\{\{(agent|model|effort):[a-z-]+\}\}$' | grep -vxFf <(grep -ohE '\{\{(tool|path|block):[a-z-]+\}\}' skills/update-harness/references/placeholders.md | sort -u)
-echo "$CANON" | grep -v '^agents/' | xargs grep -nE '\{\{(model|effort):'
+echo "$CANON" | xargs grep -nE '\{\{#|\{\{/' 2>/dev/null
+echo "$CANON" | xargs grep -ohE '\{\{[^}]*\}\}' 2>/dev/null | sort -u | grep -vE '^\{\{(agent|model|effort):[a-z-]+\}\}$' | grep -vxFf <(grep -ohE '\{\{(tool|path|block):[a-z-]+\}\}' skills/update-harness/references/placeholders.md | sort -u)
+echo "$CANON" | grep -v '^agents/' | xargs grep -nE '\{\{(model|effort):' 2>/dev/null
+grep -nE '\{\{(model|effort):' agents/*.md | grep -vE ':[0-9]+:(model|effort): '
+echo "$CANON" | xargs grep -ohE '\{\{(agent|model|effort):[a-z-]+\}\}' 2>/dev/null | sed -E 's/.*:([a-z-]+)\}\}/\1/' | sort -u | while read n; do [ -f agents/$n.md ] || echo "unknown agent: $n"; done
 ```
 
-The second command passes only when every placeholder in use is in the vocabulary of `placeholders.md` (the allowed `tool`, `path` and `block` tokens are read from that file); the third when `{{model:` and `{{effort:` appear only under `agents/`. Canonical frontmatter keys are those of `formats.md` section 1.
+The second command passes only when every placeholder in use is in the vocabulary of `placeholders.md` (the allowed `tool`, `path` and `block` tokens are read from that file); the third when `{{model:` and `{{effort:` appear only under `agents/`; the fourth when, under `agents/`, they appear only on the frontmatter `model:` and `effort:` lines; the fifth when every `{{agent:`, `{{model:` and `{{effort:` name has a matching `agents/<name>.md`. Canonical frontmatter keys are those of `formats.md` section 1.
 
 Installed locations (the directories listed in each `profile.md` under Targets; expect no output):
 
@@ -82,10 +84,10 @@ grep -vE '^[A-Z][a-z]+$' $S/keys > $S/exact
 then add to `$S/ids`, one per line, the display names from the Tool section of each `~/.config/ai/*/profile.md` and the model and vendor words you know, and run:
 
 ```
-echo "$FILES" | xargs grep -niwFf $S/ids
-echo "$FILES" | xargs grep -nwFf $S/exact
-echo "$FILES" | xargs grep -nFf $S/plain
-echo "$FILES" | xargs grep -nE '~/\.[a-z]' | grep -v '~/\.config/ai'
+echo "$FILES" | xargs grep -niwFf $S/ids 2>/dev/null
+echo "$FILES" | xargs grep -nwFf $S/exact 2>/dev/null
+echo "$FILES" | xargs grep -nFf $S/plain 2>/dev/null
+echo "$FILES" | xargs grep -nE '~/\.[a-z]' 2>/dev/null | grep -v '~/\.config/ai'
 ```
 
 Single capitalized plain words (for example a tool key that is also an English word) are matched only inside backticks, so ordinary prose does not produce hits; every other key is matched as a case-sensitive whole word. Any path under the home directory other than `~/.config/ai` is flagged as tool-specific; `.agents/skills/project-best-practices` is allowed everywhere.

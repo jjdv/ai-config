@@ -38,10 +38,10 @@ Each question must make **scope obvious** in the `prompt`:
 
 - Name the **behavior or artifact**, not jargon alone.
 - Keep labels scannable (roughly one line).
-- Put the recommended option **first** and suffix **`(Recommended)`** when you have a clear default **and** the user may still override.
+- Put the recommended option **first** and suffix **`(Recommended)`** when you have a clear default **and** the user may still override. State the reason for the recommendation in the question's prompt, as propose-plan requires.
 - Do not hide “do nothing / defer” — add an explicit option when valid.
 
-**When to use `allow_multiple: true`**
+**When to allow several answers**
 
 - Independent concerns that can combine (e.g. “enforce on server **and** hide in UI”).
 - Not for mutually exclusive product choices — use single-select.
@@ -67,7 +67,7 @@ Each question must make **scope obvious** in the `prompt`:
 
 1. **Identify blockers** — list only choices that change scope, policy, or acceptance criteria.
 2. **Draft prompts** — decision + context + options per question.
-3. **Call `{{tool:ask-user}}`** — use stable `id`s (kebab-case); set `allow_multiple` only when options may combine. The payload `id` stays internal; question text and option labels must not depend on it.
+3. **Call `{{tool:ask-user}}`** — give each question a stable kebab-case `id`; allow several answers only when options may combine. Ids stay internal; question text and option labels must not depend on them.
 4. **Stop** — no implementation, delegation, or speculative defaults until the user answers.
 5. **Reflect answers** — one short sentence confirming what was chosen, then continue.
 
@@ -81,8 +81,8 @@ Each question must make **scope obvious** in the `prompt`:
 
 | id | prompt (pattern) | options |
 | --- | --- | --- |
-| `ready-expiry` | **When should a meter stop being pickable for install?** After midnight (Europe/Warsaw), should it stay `READY` in DB but be hidden until re-read, or demote to `ACCEPTED`? | Stay READY, hide until re-read (Recommended) · Demote to ACCEPTED · Other |
-| `ready-errors` | **What counts as “wM-Bus read without errors” for ready-for-install?** This defines magazyn eligibility. | Decode/decrypt success only · Also exclude health anomalies · Also require full parameter backfill · Other |
+| `trial-expiry` | **When should a trial account stop being eligible for upgrade?** Recommended: stop at trial end, because billing and access rules already assume it; a grace period needs its own support path. | Stop at trial end (Recommended) · Keep a 7-day grace period · Other |
+| `trial-reminders` | **Which channels should warn trial users before expiry?** Recommended: email plus an in-app banner, because email alone is often missed; each channel adds consent and support load. | Email only · Email and in-app banner (Recommended) · Other |
 
 ## Subagents
 

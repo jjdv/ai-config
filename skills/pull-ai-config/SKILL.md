@@ -2,14 +2,13 @@
 name: pull-ai-config
 description: >-
   Pulls latest origin/main into the local ai-config clone (stash WIP, rebase, restore stash
-  with conflict care, drop stash), then runs /merge-ai-config for the current tool. Direct invocation only —
-  /pull-ai-config.
-disable-model-invocation: true
+  with conflict care, drop stash), then runs merge-ai-config for the current tool. Direct invocation only.
+invocation: explicit
 ---
 
 # pull-ai-config
 
-Update the **ai-config** clone from `origin/main`, then sync the current tool via **`/merge-ai-config`**. Works from any tool and any workspace. Never pushes; never touches other repos.
+Update the **ai-config** clone from `origin/main`, then sync the current tool via **`merge-ai-config`**. Works from any tool and any workspace. Never pushes; never touches other repos.
 
 ## Repo root
 
@@ -25,7 +24,7 @@ Run git in the repo root.
 4. **Stash apply** — `git stash apply` (not `pop`). Same conflict handling and approval gate.
 5. **Commit (conditional)** — only if conflicts needed resolving and those resolutions are uncommitted: use the commit skill on the conflicted files only; wait for explicit approval ("go", "yes", "commit" — not "ok"). No conflicts → no commit.
 6. **Drop stash** — only if apply succeeded and any resolutions are approved; match by the `pull-ai-config:` message.
-7. **Merge** — follow the `merge-ai-config` skill (`/merge-ai-config`), honoring its ask-before-write pauses.
+7. **Merge** — follow the `merge-ai-config` skill, honoring its ask-before-write pauses.
 
 ## Safety
 

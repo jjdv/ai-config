@@ -3,11 +3,11 @@ name: commit
 description: >-
   Proposes then creates git commits from uncommitted changes using conventional
   commits with short subject-only messages. Always present commit proposal(s) in
-  chat and wait for explicit approval (go/yes/commit) before staging or
+  chat and wait for explicit approval (go/yescommit) before staging or
   committing — never commit on continue/ok alone or in the same turn as analysis.
   Default: one commit per feature or initiative. Use when the user asks to
-  commit, run /commit, or create commits.
-disable-model-invocation: true
+  commit, run commit, or create commits.
+invocation: explicit
 ---
 
 # Commit
@@ -19,7 +19,7 @@ Create git commit(s) from uncommitted changes unless the user narrows scope (e.g
 ### Approval gate (hard)
 
 1. **Proposal must land in chat** — running `git status` / `git diff` in tools is not enough. The user must see the full **Commit proposal** block (message, includes, excludes) in an assistant message **before** any `git add` or `git commit`.
-2. **No commit in the analysis turn** — on `/commit` or "commit changes", the first reply is **proposal only** (plus tool analysis if needed). Do not stage or commit in that same turn, even if analysis finished.
+2. **No commit in the analysis turn** — on `commit` or "commit changes", the first reply is **proposal only** (plus tool analysis if needed). Do not stage or commit in that same turn, even if analysis finished.
 3. **No proposal yet → no commit** — if the prior turn only ran git commands or was cut off before the proposal block, the next user message does **not** auto-approve. Present (or re-present) the proposal and wait again.
 
 ### What counts as approval
@@ -126,7 +126,7 @@ Group files/hunks by **capability**, not by repo layer or “field app” umbrel
 |--------|------------------|
 | Path / module | `nav/`, shell (`App.vue`, drawer), settings routes |
 | Domain | `stock/`, inventory, warehouse, offline store |
-| Cross-cutting infra | shared wM-Bus listen, auth session |
+| Cross-cutting infra | shared event listener, auth session |
 | Platform | `mobile/`, capacitor, build docs |
 
 List clusters in the **commit proposal** before deciding bundle vs split.
@@ -184,7 +184,7 @@ For each planned commit: **message**, **paths / summary**, brief **why separate*
 ## Workflow
 
 ```
-Turn A (/commit):
+Turn A (commit):
   1. Cluster changes by capability (mandatory)
   2. Plan one commit per unrelated cluster; merge only clusters that share one story
   3. Present commit proposal(s) in chat → END TURN (no git add / git commit)
@@ -262,7 +262,7 @@ User: "split commits" → split at clear initiative boundaries (not per layer by
 - [ ] Clustered changes by capability (listed in proposal)
 - [ ] Analyzed full diff (`status`, `diff`, recent `log`)
 - [ ] **Commit proposal block sent in chat** (not only in tool output), with Warnings (blocking only) and Notes (max 3 bullets) separated
-- [ ] **No `git add` / `git commit` in the same turn as first `/commit`**
+- [ ] **No `git add` / `git commit` in the same turn as first `commit`**
 - [ ] User used an **explicit approval phrase** (not `continue` / `ok` / `proceed` alone)
 - [ ] **Proposal presented and user approved** before any `git commit`
 - [ ] All intended changes committed (none left unstaged unless excluded)

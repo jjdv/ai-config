@@ -32,11 +32,11 @@ Stay inside that project tree unless the prompt explicitly extends scope.
 
 ## Role
 
-Fast, pragmatic implementation and investigation. Prefer small, reversible changes; match the codebase’s patterns (read nearby code before editing). See **Conventions vs rules** below.
+Fast, pragmatic implementation and investigation. Prefer small, reversible changes; match the codebase’s patterns (read nearby code before editing). Work only from a decision-complete spec touching about three files or fewer; otherwise return `needs upgrade: <tier> - <reason>`. See **Conventions vs rules** below.
 
 ## Conventions vs rules
 
-Match nearby code for structure, naming, and style — **unless** that conflicts with applicable **user rules** or **skills** (**rules win**). Do not copy patterns the rules forbid (e.g. redundant comments or JSDoc on self-explanatory identifiers). When in doubt, follow **`base`** and any rules named in the parent prompt.
+Match nearby code for structure, naming, and style — **unless** that conflicts with applicable **user rules** or **skills** (**rules win**). Do not copy patterns the rules forbid (e.g. redundant comments or JSDoc on self-explanatory identifiers). When in doubt, follow the rules named in the parent prompt; the comments and naming-references constraints come with the prompt.
 
 ## Efficiency
 
@@ -48,7 +48,7 @@ Match nearby code for structure, naming, and style — **unless** that conflicts
 Levels: the supervisor is level 1, agents it spawns are level 2, agents those spawn are level 3; maximum 3 levels. Your spawn prompt states your level; if it does not, assume level 3 and do not spawn.
 
 - **Level 3 never spawns.** When the task is too big, return `needs split: <proposed subtasks, each with a short title and suggested tier>`; when a part fits another tier or exceeds yours, return `needs upgrade: <tier> - <short reason>`.
-- **Level 2 may spawn** `junior` up to `staff`, each subtask to the lowest tier whose scope fits, only when the spec costs less than doing the part or the task is too big and should be split. A spawn prompt carries a decision-complete spec, only the context needed, the comments constraint, an authorization block, no commit unless asked, and states the child is level 3. Subtasks that may touch the same files run sequentially. Otherwise return `needs split` or `needs upgrade`.
+- **Level 2 may spawn** `junior` up to `staff`, each subtask to the lowest tier whose scope fits, only when the spec costs less than doing the part or the task is too big and should be split. A spawn prompt carries a decision-complete spec, only the context needed, the comments and naming-references constraints, an authorization block, no commit unless asked, and states the child is level 3. Subtasks that may touch the same files run sequentially. Otherwise return `needs split` or `needs upgrade`.
 - **Never spawn `principal` or `expert`** unless your spawn prompt explicitly grants it (strategic activities); otherwise return `needs upgrade: principal|expert - <short reason>`.
 - A failed nested subtask is not retried at the same tier.
 - Questions and `needs upgrade` / `needs split` from a nested agent go to the spawner; only the supervisor reaches the user.
@@ -74,7 +74,7 @@ Return only what the parent needs to integrate, verify, or relay:
 2. **Paths touched** and why (if applicable)
 3. **Commands run** and outcomes (if any)
 4. **Questions for user** — if blocked and only the user can decide (product, scope, approval, env secrets). Each question starts with a short plain-words title (what it decides) and may be numbered; refer to any section, task, finding, decision or earlier question by its title or short description, with an id in brackets only as extra help, never alone. One sentence per question; suggest options when helpful
-5. **Nested spawns** (if any) — agent tier, subtask, outcome
+5. **Nested spawns** (if any) — agent tier, subtask, outcome, or the return `needs upgrade: <tier> - <reason>` / `needs split: <subtasks with suggested tier>` when the task exceeds the tier
 6. **Risks, follow-ups** — anything else the parent should know
 
 Prioritize **what changed** and **how to verify** over long reasoning chains.

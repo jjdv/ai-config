@@ -2,7 +2,7 @@
 name: debug-in-browser
 description: >-
   ALWAYS use when browser debugging is needed. Route lightweight checks to
-  {{tool:browser}}; delegate deep automation (evaluate, caret, console/network,
+  browser tooling; delegate deep automation (evaluate, caret, console/network,
   flaky repro) to the playwright subagent. Evidence-first workflow with
   mandatory cleanup of DEBUG_TMP instrumentation.
 ---
@@ -10,6 +10,8 @@ description: >-
 # Debug in browser
 
 {{block:tool-note}}
+
+**Delegated execution (mandatory).** The main thread only gates the check, asks the user and relays results. Routing, browser checks and the playwright brief run as delegated work per the base rule: a `senior` agent executes the steps and spawns the playwright agent with the scenario packet below.
 
 ## Goal
 
@@ -21,22 +23,22 @@ Phrases like **debug in browser**, **browser debugging**, **test in the browser*
 
 Compare the check to the table. Do **not** run two browser stacks in parallel for the same check.
 
-| Prefer **{{tool:browser}}** (IDE-integrated) | Prefer **playwright subagent** (deep automation) |
+| Prefer **browser tooling** (IDE-integrated) | Prefer **playwright subagent** (deep automation) |
 | --- | --- |
 | Reproduce with **clicks, typing, keys** | Need **`page.evaluate` / in-page JS** (selection, ranges, offsets) |
 | **Accessibility snapshot** or screenshots are enough | Need **precise DOM or selection state** around the caret |
 | Quick **smoke check** after a change | **Flaky** or timing-sensitive repro; structured capture and retries |
 | Console / network forensics **not** required | Need **console, network, or evaluate** tied to one hypothesis |
 
-**Default:** try **{{tool:browser}}** first when the check fits the left column.
+**Default:** try **browser tooling** first when the check fits the left column.
 
-**Escalation:** If {{tool:browser}} cannot falsify the hypothesis, start a **new** loop with the playwright subagent (new hypothesis, explicit stop condition). Stop after **two** iterations without improving confidence; ask the user.
+**Escalation:** If browser tooling cannot falsify the hypothesis, start a **new** loop with the playwright subagent (new hypothesis, explicit stop condition). Stop after **two** iterations without improving confidence; ask the user.
 
-## Tooling rules (main agent)
+## Tooling rules (executing agent)
 
-| Path | Main agent may |
+| Path | Executing agent may |
 | --- | --- |
-| **{{tool:browser}}** | Use the integrated browser tooling ({{tool:browser}}) directly |
+| **Browser tooling** | Use the integrated browser tooling directly |
 | **Playwright MCP** | **Must not** call Playwright MCP directly — delegate via `{{tool:spawn-agent}}({{agent:playwright}})` with a scenario packet |
 
 ## Workflow
@@ -69,6 +71,10 @@ Write a **scenario packet** before delegating. Task prompt **must** require sess
 
 ```markdown
 Scenario: <short name>
+Agent level: 3 (playwright; never spawns)
+Comments constraint: add no comments or docs to code; temporary `DEBUG_TMP:` logs are the only instrumentation and are removed before completion.
+Naming-references constraint: refer to steps, findings and checks by title; an id may follow only in brackets.
+Authorization: project root <project root>; read and write only under it, temporary output only under `.tmp/playwright-mcp/`; no commit, checkout or stash.
 Theory under test: <single falsifiable statement>
 Objective: <what this run proves or disproves>
 Target URL(s): <exact environment/page>
@@ -114,11 +120,11 @@ Fill the brief from `references/playwright-brief-template.md` (in this skill), t
 
 ## Approval
 
-Assume task-level debugging is approved. If MCP prompts block progress, ask the user to enable persistent trust for the relevant MCP server, then resume with the same scenario and no scope drift.
+Assume task-level debugging is approved. If tool approval prompts block progress, ask the user to enable persistent trust for the relevant tool server, then resume with the same scenario and no scope drift.
 
 ## Output contract
 
-1. Route used ({{tool:browser}} or playwright subagent)
+1. Route used (browser tooling or playwright subagent)
 2. Scenario executed
 3. Evidence summary (high-signal only)
 4. Root cause hypothesis + confidence

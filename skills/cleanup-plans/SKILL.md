@@ -1,19 +1,19 @@
 ---
 name: cleanup-plans
 description: >-
-  Retire finished implementation plans (sequential YAML or alternate trackers):
+  Retire finished implementation plans (markdown with `plan: true` frontmatter, or alternate trackers):
   promote durable content to docs/, agent references, and committed code; relocate
   operational scripts out of .local/; then delete the entire plan footprint so
   .local/ holds only active work. Requires the user to name the plans directory;
   discover candidates by probing markdown in that folder's root — not by filename.
   Use when the user asks to cleanup plans, clean up .local/, or retire completed
   trackers after sequential-implementation — without leaving orphaned subfolders.
-disable-model-invocation: true
+invocation: explicit
 ---
 
 # Cleanup plans
 
-Retire **finished** plans — sequential YAML (`plan: true`) **or** alternate-format trackers. **`.local/` (or any `PLANS_DIR`) is temporary:** it holds plans only while they are being created or executed. When a plan completes, this skill **promotes** what must persist, **relocates** operational tooling into committed project paths, then **deletes the entire plan footprint** — no orphaned initiative folders, scripts, or output caches.
+Retire **finished** plans — sequential (`plan: true` frontmatter) **or** alternate-format trackers. **`.local/` (or any `PLANS_DIR`) is temporary:** it holds plans only while they are being created or executed. When a plan completes, this skill **promotes** what must persist, **relocates** operational tooling into committed project paths, then **deletes the entire plan footprint** — no orphaned initiative folders, scripts, or output caches.
 
 Pair with **`create-plan`** / **`sequential-implementation`** and the **`documentation`** skill.
 
@@ -39,7 +39,7 @@ Optional **narrowing** (user may add):
 
 ## Candidate discovery (mandatory)
 
-Scan **only markdown files (`*.md`) directly in `PLANS_DIR` root** — not recursive. Do not walk `tasks/`, initiative subfolders, `GUS-*`, or other nested trees looking for plans.
+Scan **only markdown files (`*.md`) directly in `PLANS_DIR` root** — not recursive. Do not walk `tasks/`, initiative subfolders, vendor doc trees, or other nested trees looking for plans.
 
 For each root `*.md`, read the **first 40 lines** (identification window). If the file starts with `---` and the closing `---` is not in those 40 lines, extend the read to the closing `---` or **line 80**, whichever comes first.
 
@@ -103,24 +103,25 @@ For each eligible plan, build its **footprint**: every path under `PLANS_DIR` th
 Include **all** of the following when they exist and belong to the plan:
 
 1. The plan file itself
-2. Every path in **Context references**, initiative links, or equivalent
+2. Every path under `PLANS_DIR` in **Context references**, initiative links, or equivalent
 3. Every `tasks/<id>.md` linked from **Details** (or equivalent) in phase tables
 4. Every **initiative folder** explicitly referenced (e.g. `<slug>/` under `PLANS_DIR`) — **entire tree**, including:
    - `scripts/`, `lib/`, `package.json`, `node_modules/`
    - `output/`, scratch NDJSON, convert caches
    - brief, architecture, notes, parity notes, reports, probes
 5. Scope / tracker files the plan links as its task list (e.g. `scopes/I01-….md`)
-6. Any other path named in the plan body as a deliverable location for that initiative (e.g. `.local/customers-migration/`)
+6. Any other path named in the plan body as a deliverable location for that initiative (e.g. `.local/<initiative>/`)
 
 **Footprint = full subtree** for referenced initiative folders. Do not leave `scripts/` or `output/` behind “because the runbook still points here” — **relocate first**, then delete.
 
 ### Never in a footprint (unless user explicitly overrides)
 
 - Another plan/tracker file that **failed** the eligibility gate (and that plan's own footprint)
-- Reference fixtures with **no plan parent**: `*.csv`, `*.xlsx`, `*.xml`, `*.pdf`, `*.wsdl`, third-party doc trees (e.g. `GUS-*`)
+- Reference fixtures with **no plan parent**: `*.csv`, `*.xlsx`, `*.xml`, `*.pdf`, `*.wsdl`, third-party doc trees
 - Spike notes, import readmes, scratch with no eligible-plan parent
 - `.gitignore` and other config at `PLANS_DIR` root
 - `tasks/<id>.md` not linked from the plan(s) being retired
+- A parent plan whose child plan links its artifacts: do not delete the parent plan
 
 **Forbidden:**
 
@@ -171,7 +172,7 @@ Anything in the footprint that must **keep working** after cleanup moves to **co
 
 | Was in footprint | Relocate to |
 |------------------|-------------|
-| Migrator / convert scripts | `scripts/<topic>/` (match repo precedent, e.g. `scripts/blog-migration/`) |
+| Migrator / convert scripts | `scripts/<topic>/` (match repo precedent, e.g. an existing `scripts/<topic>/` folder) |
 | Redirect merge scripts | `scripts/<topic>/` or `scripts/redirects/` |
 | `package.json` scripts | Root or package `package.json` — wire to new paths |
 | Runbook commands pointing at `.local/…` | Update to `scripts/…` in the runbook **in the same pass** |
@@ -179,7 +180,7 @@ Anything in the footprint that must **keep working** after cleanup moves to **co
 **Do not relocate:**
 
 - Regenerable output (`output/*.ndjson`, convert caches) — delete with footprint
-- `node_modules/` under `.local/` — delete; document `npm install` in runbook for the new `scripts/` path
+- `node_modules/` under `.local/` — delete; document the project's install command in the runbook for the new `scripts/` path
 - One-off scratch with no ongoing use
 
 If relocation is non-trivial and the user did not authorize scope expansion → **stop**, report what must move, and ask.
@@ -189,6 +190,8 @@ If relocation is non-trivial and the user did not authorize scope expansion → 
 Search committed docs, runbooks, `package.json`, and agent references for paths on the footprint. Replace with canonical `docs/`, `scripts/`, or conventions targets. Re-run until **nothing** points at paths you will delete.
 
 ### 6. Delete (footprint only)
+
+Show the pre-delete manifest and wait for the user's confirmation before deleting anything.
 
 Delete **exactly** the paths on the pre-delete manifest:
 
@@ -288,19 +291,19 @@ After retirement of a completed plan: **no** `<slug>/` folder and **no** plan fi
 ## Example invocation
 
 ```
-/cleanup-plans /home/me/proj/.local
+{{tool:skill-prefix}}cleanup-plans /home/me/proj/.local
 
-Clean advance-settlement.md and meter-lifecycle.md.
+Clean checkout-redesign.md and search-index.md.
 ```
 
 ```
-/cleanup-plans .local
+{{tool:skill-prefix}}cleanup-plans .local
 
-Clean all eligible plans; keep GUS and CSV fixtures.
+Clean all eligible plans; keep the vendor doc tree and CSV fixtures.
 ```
 
 ```
-/cleanup-plans .local
+{{tool:skill-prefix}}cleanup-plans .local
 
-Retire customers-migration-plan — relocate migrator to scripts/, then remove .local/customers-migration/.
+Retire import-tool-plan — relocate importer to scripts/, then remove .local/import-tool/.
 ```
