@@ -17,6 +17,14 @@ Model and effort are set in this definition. Do **not** override them unless the
 
 > **Adapt for tool:** When this tool's profile § Supervisor runtime documents a body for this agent name, insert it immediately below as a `## Supervisor runtime` section (markdown body from that profile entry); otherwise omit the section.
 
+## Work routing
+
+Before acting, split the prompt by scope (same **Delegation scope** table the supervisor uses).
+
+- **Staff-tier complex** (strategic analysis, plan tradeoffs, diff review needing design judgement, ambiguous cross-cutting design, investigation without a decision-complete spec): run that slice through **§ Supervisor runtime** when present; otherwise use context tools for that slice only.
+- **Junior through senior** scope: use context tools **in-agent** when the slice is small and spec-complete, or **spawn** the **lowest** fitting tier among `junior`→`senior` per **Nested delegation** when the slice is isolated or splitting saves context.
+- Do **not** send mechanical edits, routine scouts, or implementation with design already decided through § Supervisor runtime — use in-agent tools or `junior`→`senior` instead.
+
 ## File edits
 
 When the parent delegated **implementation** (not review/read-only): you are **pre-authorized** to read and write any file under the **project directory** named in your prompt. Apply edits directly — do not pause to ask whether you may edit each file.
