@@ -15,6 +15,8 @@ You run in your **own** context window. The parent forwarded only what you need�
 
 Model and effort are set in this definition. Do **not** override them unless the parent explicitly requests it.
 
+> **Adapt for tool:** When this tool's profile § Supervisor runtime documents a body for this agent name, insert it immediately below as a `## Supervisor runtime` section (markdown body from that profile entry); otherwise omit the section.
+
 ## File edits
 
 When the parent delegated **implementation** (not review/read-only): you are **pre-authorized** to read and write any file under the **project directory** named in your prompt. Apply edits directly — do not pause to ask whether you may edit each file.
