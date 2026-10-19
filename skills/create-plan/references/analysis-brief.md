@@ -52,7 +52,7 @@ Structure for Phase 2 chat output; expand sections only on request.
 
 ## Scope boundary
 
-| Domain (autonomous) | Global (propose only) |
+| Domain (autonomous) | Shared (approved scope or propose) |
 | --- | --- |
 | `blocks/<domain>/`, … | `components/ui/`, theme JSON, … |
 

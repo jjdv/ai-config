@@ -34,7 +34,7 @@ Resolve the path relative to a workspace root when not absolute. If no path is g
 
 1. **Read** the plan file end-to-end.
 2. **Resolve project root** from the `**Project root:**` line, or the parent of `.local/` if missing (flag fail).
-3. **Run the mechanical script** `scripts/check_plan_mechanical.py <plan-path>` (in this skill's directory; python3, standard library only; when python3 or the script is unavailable, run the checks it covers by hand). It prints `CHECK | LOCATION | MESSAGE` per finding and exits 1 when it prints any line, including `PARSE`. It covers A5, A6, A7, A8, B1, B4, C9, C10 and C11; every line it prints is a finding to carry into the report, and a `PARSE` line (a format it could not parse reliably) must be checked by hand.
+3. **Run the mechanical script** `scripts/check_plan_mechanical.py <plan-path>` (in this skill's directory; python3, standard library only; when python3 or the script is unavailable, run the checks it covers by hand). It prints `CHECK | LOCATION | MESSAGE` per finding and exits 1 when it prints any line, including `PARSE`. It covers A5, A6, A7, A8, B1, B4, C9, C10 and C11; every line it prints is a finding to carry into the report, enriched with the check name and task or decision title before user-facing output, and a `PARSE` line (a format it could not parse reliably) must be checked by hand.
 4. **Run every other check** in § Checklist and **record every finding**. Verify on disk where applicable: open and read the linked files, do not assume. The audit never stops at the first failing check: all checks run, over every task, before the report is emitted.
 5. **Emit report** (§ Output format) once, after all checks have run, with every finding in one table.
 6. **Verdict:** `READY` only if every applicable check passes (zero **fail**). Warnings do not block `READY` but must be listed.
@@ -51,7 +51,11 @@ Every check below is **fail** unless its row says **warn**.
 
 ## Single-pass rule
 
-One audit run reports **every** finding. The report lists each finding as one row with the check ID, the location (plan line, or task ID plus file path), what is wrong and the concrete fix. Findings are never split across runs: a run that reports only the first failing check, or only one task's problems while others have the same kind, is incomplete. A check that fails for several tasks produces one row per task and location. A re-run after fixes should find nothing that the earlier run could already have found.
+One audit run reports **every** finding. The report lists each finding as one row with the check title (optional ID in brackets), the location (plan line, or task title plus file path), what is wrong and the concrete fix. Findings are never split across runs: a run that reports only the first failing check, or only one task's problems while others have the same kind, is incomplete. A check that fails for several tasks produces one row per task and location. A re-run after fixes should find nothing that the earlier run could already have found.
+
+## User-facing wording
+
+Name checks, findings, tasks, decisions and sections by title or short plain-language description in every user-facing report, including audit tables, locations and next-task handoffs. IDs may follow in brackets; they are never the sole subject. Keep machine IDs in plan tracking and raw script output internally; resolve them to meaningful names before presenting the report.
 
 ## Checklist
 
@@ -70,7 +74,7 @@ One audit run reports **every** finding. The report lists each finding as one ro
 | A9 | **Change log section** | `## Change log` exists, recording replans (what changed, why); may be empty on a never-replanned plan |
 | A10 | **Agent approvals table** | `## Agent approvals` exists with columns Task ID, Agent, Justification, Agreed by user (rows only for `principal`/`expert` tasks; empty otherwise) |
 | A11 | **Plan maintenance** | Section present with per-task update rules |
-| A12 | **Fresh chat handoff** | `### Fresh chat handoff` (or equivalent) with numbered steps naming the next task ID and skills to load |
+| A12 | **Fresh chat handoff** | `### Fresh chat handoff` (or equivalent) with numbered steps naming the next task by title (optional ID in brackets) and skills to load |
 | A13 | **Single entry point** | Handoff includes the exact `{{tool:skill-prefix}}sequential-implementation <plan-path>` invocation matching this file |
 | A14 | **Open questions** | Table present; **Blocks** column empty or only IDs that are truly ⏸ blocked |
 | A15 | **Decision Affects** (**warn**) | Each Decision's **Affects** list names every task whose task file or plan row cites that Decision; `all ...` wording covers every task |
@@ -125,6 +129,18 @@ A vertical slice (one data query → props → UI path, tokens plus styles for o
 | D5 | **Scoreboard / parity** | If parity plan: baseline scoreboard or link to audit file; `improve-parity` in handoff or context when verify tasks exist |
 | D6 | **Target vs code** | If target docs differ from current code: banner under the title marks **target** vs **current**, and canonical specs are in **Context references** |
 
+### F — User work and execution gates (mandatory)
+
+Inspect existing task files, handoffs, maintenance, approvals, open questions and authorization sections; no additional plan section is required.
+
+| ID | Check | Pass when |
+| --- | --- | --- |
+| F1 | **Executor-owned bookkeeping** | The executor owns plan and task-file updates, approvals, questions and status; the user may report answers and manual outcomes in chat only, with no duplicated file edits |
+| F2 | **Justified manual gates** | Each required manual action or pause has a concrete authority, access or unresolved product/policy reason; checks runnable by the executor locally are executor work; no redundant phase confirmations or approvals for `junior` through `staff` |
+| F3 | **Grouped user inputs** | Independent questions knowable together are collected in one round and compatible manual milestones are grouped; dependent questions or authorization boundaries are not collapsed; safe independent work may continue within sequencing and dependency limits while required input is pending |
+| F4 | **Persistent authorization** | Handoffs honor recorded approvals and confirmed scope, including specific shared paths and actions; only scope expansion, unapproved shared changes or genuinely unresolved decisions require renewed input |
+| F5 | **Title-first handoff** | User-facing instructions, reports and next-task handoffs name tasks, decisions and checks by title or short description, with IDs only optional bracketed references |
+
 ### E — Project conventions (conditional)
 
 | ID | Check | Pass when |
@@ -149,17 +165,17 @@ A vertical slice (one data query → props → UI path, tokens plus styles for o
 
 ## Checks
 
-| ID | Status | Notes |
-|----|--------|-------|
-| A1 | pass / fail / warn / skip | … |
+| Check | Status | Notes |
+|-------|--------|-------|
+| Frontmatter [A1] | pass / fail / warn / skip | … |
 | … | | |
 
 ## Findings
 
 | # | Check | Location | Finding | Fix |
 |---|-------|----------|---------|-----|
-| 1 | A6 (fail) | plan line 482, task 2.3 | … | … |
-| 2 | A15 (warn) | plan line 94, D4 | … | … |
+| 1 | Implementation order [A6] (fail) | plan line 482, Add cache layer [2.3] | … | … |
+| 2 | Decision Affects [A15] (warn) | plan line 94, Cache invalidation [D4] | … | … |
 
 ## Fresh chat entry
 
@@ -167,16 +183,16 @@ A vertical slice (one data query → props → UI path, tokens plus styles for o
 {{tool:skill-prefix}}sequential-implementation <plan-path>
 \`\`\`
 
-**Next task:** `<id>` · **Task spec:** `<path>`
+**Next task:** <task title> [<id>] · **Task spec:** `<path>`
 ```
 
-The **Findings** table holds every fail and every warn, fails first, in check order within each group. `Fix` is concrete (the exact edit), never "review" or "consider". With no findings the table is replaced by `None.`. Per-task checks (section C) are reported per task ID in Notes and in Findings.
+The **Findings** table holds every fail and every warn, fails first, in check order within each group. `Fix` is concrete (the exact edit), never "review" or "consider". With no findings the table is replaced by `None.`. Per-task checks (section C) are reported by task title, with optional bracketed IDs, in Notes and in Findings.
 
 ## After NOT READY
 
-1. Tell the user to fix the gaps (or offer to fix with **`create-plan`** if they ask); the complete **Findings** table goes to whoever fixes them.
-2. Re-run **`check-plan`** on the same path after edits.
-3. **`sequential-implementation`** does not start until the verdict is `READY`.
+1. Return the complete report and **Findings** table to the caller; a standalone audit remains read-only and does not instruct the user to edit files.
+2. When called by `sequential-implementation`, pass the full findings to `create-plan` for repair within the original goal, scope and approved Decisions, then re-audit automatically; no additional proceed approval is needed. Only genuinely user-dependent decisions or authorization halt for input.
+3. Do not repeat an unchanged repair/audit failure without progress: stop and explain the concrete blocker. Execution starts or resumes only on `READY`.
 
 ## Related skills
 

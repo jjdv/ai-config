@@ -29,7 +29,7 @@ Fixtures: representative URLs, not every route unless the batch is small. Viewpo
 
 Inventory source → target mapping and candidate architecture **before** proposing tasks.
 
-**1.1 Parse scope.** Extract and confirm: routes/URLs (`/products/*`, 27 legal pages); domain slug (`legal`, `marketing`); source (sibling repo, production URLs, MDX/CMS export); target (monorepo package, dataset); constraints (tier, redirects, out-of-scope header/forms, deadline); parent plan (child of an architecture tracker plan). Ambiguous scope → **one** `{{tool:ask-user}}` round; never guess route lists or source repo.
+**1.1 Parse scope.** Extract already-confirmed scope; ask only about missing or changed details: routes/URLs (`/products/*`, 27 legal pages); domain slug (`legal`, `marketing`); source (sibling repo, production URLs, MDX/CMS export); target (monorepo package, dataset); constraints (tier, redirects, out-of-scope header/forms, deadline); parent plan (child of an architecture tracker plan). Ambiguous scope → **one** `{{tool:ask-user}}` round; never guess route lists or source repo.
 
 **1.2 Conventions.** With `project-best-practices`, read its `SKILL.md`, then the project's own placement, structure and migration references (`.agents/skills/project-best-practices/references/<topic>.md`, or the router) when they exist. Also check the project's block inventory and domain foundation docs when present, and existing `.local/` plans for the domain.
 
@@ -46,7 +46,7 @@ Inventory source → target mapping and candidate architecture **before** propos
 | **Utilities** | Migrator script, block mapping, CMS data queries, redirects, manifest/404 routes |
 | **CMS** | New schemas, singletons, seed/import strategy (per the project's CMS data-handling reference when it exists) |
 | **Parity** | Fixture URLs, regions in/out of scope (defaults above) |
-| **Scope boundary** | Domain paths agents may edit vs global/shared (`components/ui/`, theme JSON) — propose only |
+| **Scope boundary** | Domain paths agents may edit vs global/shared (`components/ui/`, theme JSON) — execute approved specific paths/actions, propose unapproved changes |
 
 Apply the project's placement decision guides when they exist: judge by **potential** reuse; prefer extend over fork; thin domain blocks over fat page-type blocks when CMS-driven.
 
@@ -58,11 +58,11 @@ Apply the project's placement decision guides when they exist: judge by **potent
 
 Present **only**: (1) scope recap — routes, source, out-of-scope; (2) architecture summary — layer → new/extend/reuse; (3) page-type & styling — new shells, token/variant overrides, **global** items called out; (4) CMS & data — schemas, migrator/import approach; (5) phases sketch — 3–6 phase names with one-line outcomes (no task IDs); (6) parity approach (fixtures, viewports, iterations); (7) numbered open points, using `{{tool:ask-user}}` for decisions that change implementation. No full file trees or route dumps unless asked.
 
-**Escalate to the user before Phase 3 when:** global theme / `components/ui/` changes; duplicate vs consolidate blocks (merge profile / megablock); production inconsistency with no foundation rule; CMS import to the production dataset; redirect policy, retired routes, Tier D divergence; parity scope (include nav/footer or not).
+**Escalate to the user before Phase 3 only for unresolved choices or missing authorization:** unapproved global theme / `components/ui/` changes; duplicate vs consolidate blocks (merge profile / megablock); production inconsistency with no foundation rule; CMS import to the production dataset; redirect policy, retired routes, Tier D divergence; parity scope (include nav/footer or not).
 
 ## Phase 3 — Agree (gate)
 
-Iterate Phase 2 until the user confirms explicitly ("agreed", "looks good", "create the plan"). On agreement, **lock** in a chat summary: final block/component/page-type placement; scope boundary (domain vs global); parity fixtures, viewports, iterations; deferred/out-of-scope items; child vs parent plan relationship.
+Honor existing agreement covering the proposal; otherwise iterate Phase 2 until the user confirms explicitly ("agreed", "looks good", "create the plan"). On agreement, **lock** in a chat summary: final block/component/page-type placement; scope boundary (domain vs global); parity fixtures, viewports, iterations; deferred/out-of-scope items; child vs parent plan relationship.
 
 ## Phase 4 — Author
 

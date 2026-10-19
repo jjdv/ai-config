@@ -6,7 +6,7 @@ description: >-
   decision-complete run-time spec from the task, its Decisions and its notes,
   run the task's Agent, verify, update plan status. Plan issues trigger a
   replan via create-plan. Use when the user asks to implement, execute, or
-  continue a plan step-by-step, or run /sequential-implementation on a plan path.
+  continue a plan step-by-step, or run sequential-implementation on a plan path.
 invocation: explicit
 ---
 
@@ -41,7 +41,7 @@ A plan task is small: one goal, bounded scope, acceptance check or verification 
 ## Pre-flight (file plans)
 
 1. Spawn a read-only `senior` subagent given the path of `check-plan`'s SKILL.md and the plan path; it returns the audit report.
-2. Start only on verdict `READY`. On `NOT READY`, stop and report the failed checks by check name or plain description (not audit IDs alone); **`create-plan`** fixes them. On `COMPLETE`, report that nothing is left to run.
+2. Start only on verdict `READY`. On `NOT READY`, automatically enter **Replan flow** with the complete findings, then re-audit; repair within the original goal, scope and approved Decisions needs no extra proceed approval. On `COMPLETE`, report that nothing is left to run.
 3. Flag ⏸ blocked tasks to the user before delegating (name each task by title; say what blocks it and what you need from the user, per **User actions** below when input is required).
 4. Resolve the project root from the plan's `**Project root:**` line. Check whether `<project-root>/.agents/skills/project-best-practices/SKILL.md` exists (it governs the Conventions block below).
 
@@ -95,11 +95,11 @@ Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (th
 
 Task Agents run as level 2 (this supervisor is level 1): per **Delegation** they may spawn subtasks, or return `needs split` / `needs upgrade`.
 
-Never pick a heavier Agent than the plan records, except by escalation per **Delegation** step 4.
+Use the recorded Agent; escalation per **Delegation** step 4 may select the lowest fitting higher tier. Update the recorded **Agent** before execution and re-audit structural plan changes; `junior` through `staff` upgrades do not require user approval.
 
 ## Returns from an executing agent
 
-- `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a `principal` or `expert` Agent still needs user approval, recorded in the plan's **Agent approvals**, and only for a criterion in the Delegation scope table, never for size: an oversized task is split instead). Relay approval to the user with **User actions** (what to approve and why). On approval in chat, apply **User-reported results** (write **Agent approvals** in the plan); do not ask the user to edit the plan.
+- `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a `principal` or `expert` Agent needs user approval only when not already covered by the plan's recorded **Agent approvals**, and only for a criterion in the Delegation scope table, never for size: an oversized task is split instead). When approval is missing, request it with **User actions** (what to approve and why). On approval in chat, apply **User-reported results** (write **Agent approvals** in the plan); do not ask the user to edit the plan.
 - `needs split: <subtasks>`: the task is oversized; **Replan flow**.
 - `plan issue: <description>`: **Replan flow**.
 - `question: <question>`: relay per **Delegation**, worded per the **ask-questions** skill; name the task by title (optional id in brackets only to disambiguate). Give the user **User actions** steps to answer. Mark the task `⏸ Blocked` with the question in **Open questions** until answered; on the user's chat reply, apply **User-reported results** and resume with the answer in the spec.
@@ -108,8 +108,8 @@ Never pick a heavier Agent than the plan records, except by escalation per **Del
 
 Triggered by a `plan issue:` result, an oversized task, a task whose spec cannot be written, or a task needing a follow-up spawn for the same ID.
 
-1. Stop the loop. Spawn a `staff` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
-2. Re-run the `check-plan` audit (Pre-flight step 1); resume only on `READY`.
+1. Suspend affected delegations. Spawn a `staff` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
+2. Re-run the `check-plan` audit (Pre-flight step 1); repair remaining findings automatically within the replan limits and resume only on `READY`. If an unchanged failure repeats with no progress, stop and explain the concrete blocker instead of looping.
 3. Report the replan to the user in 1-2 lines (what changed and why, by task or decision **title**), even when no approval was needed. If the user must approve or act before you resume, follow **User actions** — do not send them to the plan alone.
 
 Replan limits (defined in `create-plan`): edits only unfinished tasks, within the original goal and scope, no reversal of user-approved Decisions, no `principal` or `expert` assignment without recorded user approval. Anything beyond needs the user's approval before the plan changes; spell out what you need in chat per **User actions**.
@@ -132,6 +132,8 @@ Progress lives in the plan file (file mode) or in the plan text maintained in re
 
 When user input or action is required (approval, answer, env secret, scope choice, or unblocking a `⏸ Blocked` task), give **ready-to-use step-by-step instructions** in chat: what to do, in order, with enough context to execute without opening the plan. Say explicitly that they may **reply in chat only** — they are not required to edit the plan or linked task files; you update those from their reply per **User-reported results**. Include a short **why** (one line) per step or for the request overall. Do not ask the user to mirror progress, **Agent approvals**, **Open questions**, or task **Status** in the plan. Do not substitute "see the plan", "update Implementation order", or "fill Agent approvals in the plan" for a chat answer. If the plan holds the only copy of a value the user must choose, summarize the options and your recommendation in chat; plan paths are optional reference only.
 
+Batch independent questions already known into one input round and group compatible manual milestones. Do safe independent work while awaiting required input only when the plan's sequential order and dependencies permit it; do not start parallel tasks without authorization. Never guess an answer or bypass required approval. Confirmed scope and approvals persist, including specific shared paths/actions; ask again only for scope expansion, unapproved shared changes or a genuinely unresolved decision. Run locally available checks yourself and own all bookkeeping.
+
 ## User-reported results
 
 When the user reports an outcome in chat (approval, answer, scope choice, env or access ready, blocker cleared, or "done" on a manual step you requested), treat the message as authoritative. Parse what applies to the current pause (task by **title**, decision, **Agent approvals**, **Open questions**, or blocked status). Update the plan per **Progress tracking** and the plan's **Plan maintenance** (including linked task files' `**Status:**` lines when present). Then resume the loop from **After a task** — do not ask the user to duplicate the same information in the plan.
@@ -140,7 +142,7 @@ When the user reports an outcome in chat (approval, answer, scope choice, env or
 
 Apply in order, from the result alone:
 
-1. **Pause** when user input is required per the plan's § **User escalation required** (or the agent returned `needs upgrade: <tier> - <reason>`), or a question is relayed. Name the task by title (**User-facing reports**). Tell the user exactly what to do per **User actions** (concrete approval wording or answer shape when you know it — not "update the plan" alone). On their next chat message that supplies it, **User-reported results** then continue at step 2 or 3 as appropriate.
+1. **Pause affected work** when user input is required per the plan's § **User escalation required** (including an upgrade needing approval not already recorded), or a question is relayed. Name the task by title (**User-facing reports**). Tell the user exactly what to do per **User actions** (concrete approval wording or answer shape when you know it — not "update the plan" alone). On their next chat message that supplies it, **User-reported results** then continue at step 2 or 3 as appropriate.
 2. **Escalate or follow up** per **Delegation** step 4 for a failed task (never retried at the same tier) or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
 3. **Next task**: otherwise delegate the next open task immediately; when none remains, go to step 4.
 4. **Final review**: spawn one `staff` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions and Conventions; it returns findings only. Fix accepted findings per step 2, then report.
@@ -149,7 +151,7 @@ Apply in order, from the result alone:
 
 Stop **only** when one of these is true:
 
-- User input required (including approvals per **Delegation**): paused per **After a task** step 1; a chat reply ends the stop once **User-reported results** is applied
+- User input required (including missing approvals per **Delegation**) and no safe independent work can proceed within sequential/dependency limits: paused per **After a task** step 1; a chat reply ends the stop once **User-reported results** is applied
 - Unresolvable blocker without user action
 - All plan tasks complete and the final review done
 - The user **explicitly** limited scope in the **same** message that invoked this skill (e.g. "only 8.3", "one task", "stop after phase 8 matrix"). Vague "continue the plan" or `/sequential-implementation` on a path is **not** a chunk limit.
@@ -162,7 +164,7 @@ Stop **only** when one of these is true:
 - Asking whether to continue, or phrasing that puts continuation on the user ("say if you want…", "I can keep going through 8.5…", "want me to continue?") — after one task or after many
 - Ending the turn after a successful task when the next ID in **Implementation order** is runnable and no stop condition applies
 - Starting the next task in the parent context instead of delegating
-- Choosing an Agent not recorded in the plan, or a `principal` or `expert` Agent not recorded in **Agent approvals**
+- Executing with an Agent before recording an approved escalation in the plan, or with a `principal` or `expert` Agent lacking applicable recorded **Agent approvals**
 - Passing the full plan or chat history into a task prompt
 - Omitting the Conventions block when `project-best-practices` exists, or accepting code that ignores it
 - Delegating a task you cannot write a spec for, instead of replanning
