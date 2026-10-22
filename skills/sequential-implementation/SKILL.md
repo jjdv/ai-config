@@ -95,7 +95,7 @@ Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (th
 
 Task Agents run as level 2 (this supervisor is level 1): per **Delegation** they may spawn subtasks, or return `needs split` / `needs upgrade`.
 
-Use the recorded Agent; escalation per **Delegation** step 4 may select the lowest fitting higher tier. Update the recorded **Agent** before execution and re-audit structural plan changes; `junior` through `staff` upgrades do not require user approval.
+Use the recorded Agent; escalation per **Delegation** step 4 may select the lowest fitting higher tier. Update the recorded **Agent** before execution and re-audit structural plan changes; `junior` through `senior` upgrades do not require user approval.
 
 ## Returns from an executing agent
 
@@ -108,7 +108,7 @@ Use the recorded Agent; escalation per **Delegation** step 4 may select the lowe
 
 Triggered by a `plan issue:` result, an oversized task, a task whose spec cannot be written, or a task needing a follow-up spawn for the same ID.
 
-1. Suspend affected delegations. Spawn a `staff` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
+1. Suspend affected delegations. Spawn a `senior` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
 2. Re-run the `check-plan` audit (Pre-flight step 1); repair remaining findings automatically within the replan limits and resume only on `READY`. If an unchanged failure repeats with no progress, stop and explain the concrete blocker instead of looping.
 3. Report the replan to the user in 1-2 lines (what changed and why, by task or decision **title**), even when no approval was needed. If the user must approve or act before you resume, follow **User actions** — do not send them to the plan alone.
 
@@ -145,7 +145,7 @@ Apply in order, from the result alone:
 1. **Pause affected work** when user input is required per the plan's § **User escalation required** (including an upgrade needing approval not already recorded), or a question is relayed. Name the task by title (**User-facing reports**). Tell the user exactly what to do per **User actions** (concrete approval wording or answer shape when you know it — not "update the plan" alone). On their next chat message that supplies it, **User-reported results** then continue at step 2 or 3 as appropriate.
 2. **Escalate or follow up** per **Delegation** step 4 for a failed task (never retried at the same tier) or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
 3. **Next task**: otherwise delegate the next open task immediately; when none remains, go to step 4.
-4. **Final review**: spawn one `staff` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions and Conventions; it returns findings only. Fix accepted findings per step 2, then report.
+4. **Final review**: spawn one `senior` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions and Conventions; it returns findings only. Fix accepted findings per step 2, then report.
 
 ### Stop conditions
 

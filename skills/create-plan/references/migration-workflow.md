@@ -8,7 +8,7 @@ Loaded by `create-plan` for a website/page-group migration (routes or domains fr
 
 ## Execution
 
-Phases 1 and 2 run on `staff`; Phase 4 follows `create-plan` § Execution (scouts write to `notes/`, `staff` authors, then the `check-plan` audit). Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `staff` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
+Phases 1 and 2 run on `staff` (advisory only); Phase 4 follows `create-plan` § Execution (scouts write to `notes/`, `senior` authors, then the `check-plan` audit). Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `senior` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
 
 ## Required skills (load before Phase 1)
 

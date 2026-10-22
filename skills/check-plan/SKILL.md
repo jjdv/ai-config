@@ -110,7 +110,7 @@ Read each open task (plan row and linked task file). A task is **small**: one ou
 | C10 | **Notes in** | Every `Notes in` entry refers to a note that exists on disk or is listed in the `Notes out` of an **earlier** task in **Implementation order** |
 | C11 | **Notes out** | Every `Notes out` path lies in the plan's `notes/` folder; no scout or analysis task omits `Notes out` |
 | C12 | **Agent field** | Every task row in **Phases** has an **Agent** value that follows the Delegation scope table (lowest tier that fits) |
-| C13 | **Agent approvals** | Every task with a `principal` or `expert` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a Delegation scope table criterion (well-scoped high complexity, or critical high-impact decision); a justification citing size or breadth alone fails; none are unapproved |
+| C13 | **Agent approvals** | Every task with a `principal` or `expert` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a Delegation scope table criterion (highest-complexity recommendation, or critical high-impact recommendation among options); a justification citing size or breadth alone fails; none are unapproved |
 | C14 | **Blocked tasks** | Any ⏸ task has its reason in **Open questions** or the phase row, and is not listed in **Implementation order** ahead of its unblock |
 | C15 | **Runnable next task** | At least one delegable open task passes C1–C13, or the plan is legitimately `complete` |
 | C16 | **No contradictions** | No two statements contradict each other across **Decisions**, the plan's **Change log** and the task files (for example a Decision value that a task contradicts, a task acceptance that a later Change log row reversed, two tasks owning the same outcome with different values); each contradiction is one finding naming both locations |
@@ -136,7 +136,7 @@ Inspect existing task files, handoffs, maintenance, approvals, open questions an
 | ID | Check | Pass when |
 | --- | --- | --- |
 | F1 | **Executor-owned bookkeeping** | The executor owns plan and task-file updates, approvals, questions and status; the user may report answers and manual outcomes in chat only, with no duplicated file edits |
-| F2 | **Justified manual gates** | Each required manual action or pause has a concrete authority, access or unresolved product/policy reason; checks runnable by the executor locally are executor work; no redundant phase confirmations or approvals for `junior` through `staff` |
+| F2 | **Justified manual gates** | Each required manual action or pause has a concrete authority, access or unresolved product/policy reason; checks runnable by the executor locally are executor work; no redundant phase confirmations or approvals for `junior` through `senior` |
 | F3 | **Grouped user inputs** | Independent questions knowable together are collected in one round and compatible manual milestones are grouped; dependent questions or authorization boundaries are not collapsed; safe independent work may continue within sequencing and dependency limits while required input is pending |
 | F4 | **Persistent authorization** | Handoffs honor recorded approvals and confirmed scope, including specific shared paths and actions; only scope expansion, unapproved shared changes or genuinely unresolved decisions require renewed input |
 | F5 | **Title-first handoff** | User-facing instructions, reports and next-task handoffs name tasks, decisions and checks by title or short description, with IDs only optional bracketed references |

@@ -6,7 +6,7 @@ description: >-
   a Decisions section for cross-task choices, notes/ for scout findings, and
   check-plan as the single owner of readiness rules (read before authoring, run
   as the final audit until READY). Authoring is delegated (scouts at the lowest
-  fitting tier, staff author). Includes replan mode when sequential-implementation reports a plan
+  fitting tier, senior author). Includes replan mode when sequential-implementation reports a plan
   issue. Use when drafting a plan, extending phases, re-syncing after completed
   tasks, replanning, or before telling the user to run sequential-implementation.
   Author plans to minimize user manual work and execution-time gates (gate budget,
@@ -36,7 +36,7 @@ Produce and maintain plans structured for **`sequential-implementation`**. A tas
 Main thread is a supervisor; plan authoring is delegated:
 
 1. **Scouts:** `{{tool:spawn-agent}}` at the lowest tier per the Delegation scope table (`{{agent:standard}}` for narrow scouting), split by area (code, docs, conventions, external sources). Scouts are read-only for the repo; their only write is their own notes file under `.local/<slug>/notes/`, named in the authorization block of the spawn prompt.
-2. **Author:** `{{tool:spawn-agent}}({{agent:staff}})` writes the plan, passing this skill's text, `check-plan`'s SKILL.md path, project root, scope, the brief path (when present) and the note paths. The author is the sub-supervisor for the activity: the spawn prompt explicitly grants it to spawn any tier from `junior` to `expert`, without user approval, for its own analysis, scouting and authoring subtasks; `principal` and `expert` only for the criteria in the Delegation scope table, never for size.
+2. **Author:** `{{tool:spawn-agent}}({{agent:senior}})` writes the plan, passing this skill's text, `check-plan`'s SKILL.md path, project root, scope, the brief path (when present) and the note paths. The author is the sub-supervisor for the activity: the spawn prompt explicitly grants it to spawn `junior` through `senior` without user approval for scouting and authoring subtasks, and `staff` through `expert` only for advisory analysis per the Delegation scope table, never for size or implementation.
 3. **Questions:** a subagent cannot ask the user. It returns questions and proposed `principal` or `expert` Agents; the supervisor batches them into as few `{{tool:ask-user}}` rounds as possible (see **User-facing wording**), then re-spawns the author with the answers.
 4. **Audit:** the supervisor runs the `check-plan` audit after the author returns (Workflow step 7).
 
@@ -91,7 +91,7 @@ Minimize how often execution pauses for the user and how much they do outside th
 
 | Lever | Use |
 | --- | --- |
-| **Decisions + brief** | Resolve cross-task choices at authoring (scouts, brief, **Decisions**); split so `staff`/`standard` agents run without per-task approval. |
+| **Decisions + brief** | Resolve cross-task choices at authoring (scouts, brief, **Decisions**); split so `senior`/`standard` agents run without per-task approval. |
 | **Autonomy & authorization** | When multi-session work justifies it, pre-approve safe ops (dev server, read-only prod compare, plan-scoped edits) so routine environment use does not pause the run. |
 | **Operator handoff** | Explicit user steps only for rare milestones: deploy, prod credentials, irreversible external effects, only when authority, access or an unresolved product/policy decision prevents executor action; group compatible milestones and keep locally runnable checks with the executor. |
 | **Open questions** | Few rows; **Blocks** only tasks that truly cannot proceed; resolve at authoring when scouts or the brief can settle them. |
@@ -121,7 +121,7 @@ Add when the plan needs autonomous multi-session execution or domain-vs-global b
 | **User intent** | Autonomous within domain scope; escalate only per rules below |
 | **Pre-approved operations** | Dev server, Playwright/parity scripts, prod compare (read-only), plan-scoped edits, plan-authorized CMS import, etc. |
 | **Auto-decisions** | When the supervisor/subagent proceeds without user (clear majority target, S/M gap fixes in domain scope) |
-| **User escalation required** | Non-obvious product/policy choices, ties with global impact, unapproved global/shared changes or scope expansion (honor specific paths/actions already approved in **Scope boundary**), Tier D last resort, commit/deploy/credentials unless pre-approved here; `principal`/`expert` only per **Agent approvals** — not routine `staff`/`standard` work or per-phase check-ins |
+| **User escalation required** | Non-obvious product/policy choices, ties with global impact, unapproved global/shared changes or scope expansion (honor specific paths/actions already approved in **Scope boundary**), Tier D last resort, commit/deploy/credentials unless pre-approved here; `principal`/`expert` only per **Agent approvals** — not routine `senior`/`standard` work or per-phase check-ins |
 | **Delegation template** | **Authorization** block copied into every task prompt: project root, allowed operations, unapproved shared changes and scope expansion, "do not update the plan", escalation pointer |
 
 Overrides **External environment boundary** for operations pre-approved here (e.g. a plan-authorized CMS import).
@@ -175,7 +175,7 @@ When work finishes outside sequential-implementation:
 
 ## Replan mode
 
-Triggered when `sequential-implementation` reports a plan issue (task ID, what failed or does not fit). The supervisor spawns `{{tool:spawn-agent}}({{agent:staff}})` with this skill, `check-plan`'s SKILL.md path, the plan path, the issue report and, when the replan follows an audit, the **complete** `check-plan` Findings table (every row, fails and warns). The replan agent assesses the problematic task and its impact on the following tasks, then may edit the plan within these limits:
+Triggered when `sequential-implementation` reports a plan issue (task ID, what failed or does not fit). The supervisor spawns `{{tool:spawn-agent}}({{agent:senior}})` with this skill, `check-plan`'s SKILL.md path, the plan path, the issue report and, when the replan follows an audit, the **complete** `check-plan` Findings table (every row, fails and warns). The replan agent assesses the problematic task and its impact on the following tasks, then may edit the plan within these limits:
 
 - Edits only tasks **not yet done**. Completed tasks are never rewritten; add a corrective task instead.
 - Stays within the plan's original goal and scope.
@@ -183,7 +183,7 @@ Triggered when `sequential-implementation` reports a plan issue (task ID, what f
 - Does not assign `principal` or `expert` without recorded user approval.
 - Appends a **Change log** entry: date, task IDs, what changed, why.
 
-A change beyond these limits (goal or scope change, reversing an approved decision, an unapproved `principal` or `expert` assignment, rewriting completed work) needs user approval via `{{tool:ask-user}}` before the plan is edited; the agent returns it as a question. Upgrades within `junior` through `staff` need no extra user approval: select the lowest fitting tier and update the recorded **Agent** before execution. Existing recorded `principal`/`expert` approval persists when it covers the assignment.
+A change beyond these limits (goal or scope change, reversing an approved decision, an unapproved `principal` or `expert` assignment, rewriting completed work) needs user approval via `{{tool:ask-user}}` before the plan is edited; the agent returns it as a question. Upgrades within `junior` through `senior` need no extra user approval: select the lowest fitting tier and update the recorded **Agent** before execution. Existing recorded `principal`/`expert` approval persists when it covers the assignment.
 
 The replan agent fixes **every** finding in one pass: it works through the whole Findings table, never stops after the first fix, and reports any finding it could not fix with the reason (a finding that needs user approval is returned as a question). After editing, the agent reports what changed, finding by finding, and returns. It does not run the `check-plan` audit, spawn any auditor, or wait for a verdict. The supervisor runs the audit (Workflow step 7) in the foreground so `sequential-implementation` can resume on `READY`.
 
@@ -241,7 +241,7 @@ Follow the **`documentation`** skill. Link tasks from the plan as `[1.1.md](<slu
 
 **Scout tasks.** When later work depends on discovery (inventory, gap analysis, API survey), add a report-only scout task (lowest tier per the Delegation scope table) whose `Notes out` is a file under `notes/`, and have the later tasks list it in `Notes in`. Place the scout earlier in **Implementation order**. A scout task never also implements. Discovery done while authoring goes to `notes/` too, and tasks reference it in `Notes in`.
 
-**Agents.** Each task has an **Agent** in the **Phases** table: the lowest tier from `junior` to `staff` whose scope fits the task, per the Delegation scope table; no user approval needed. If a task stays too hard for `staff` after splitting and tightening its scope, honor applicable recorded approval for `principal` or `expert`; otherwise ask the user with `{{tool:ask-user}}` (see **User-facing wording**): propose `principal` or `expert` with a brief justification that cites one criterion from the Delegation scope table: a specific, bounded task of high complexity (`principal`), or a critical, high-impact decision or hardest deep problem in a bounded scope (`expert`). Size or breadth is never a justification; split further instead. Once agreed, write the Agent into the task row **and** a row in `## Agent approvals`. If the user declines, keep `staff` (or lower) and split further.
+**Agents.** Each implementation task has an **Agent** in the **Phases** table: the lowest tier from `junior` to `senior` whose scope fits, per the Delegation scope table; no user approval needed. Use `staff`, `principal`, or `expert` only for tasks whose sole deliverable is a recommendation or analysis (not product changes). If a task needs advisory depth beyond `senior` after splitting, honor applicable recorded approval for `principal` or `expert`; otherwise ask the user with `{{tool:ask-user}}` (see **User-facing wording**): propose `principal` or `expert` with a brief justification that cites one criterion from the Delegation scope table. Size or breadth is never a justification; split further instead. Once agreed, write the Agent into the task row **and** a row in `## Agent approvals`. If the user declines, keep `senior` (or lower) and split further.
 
 ## Required plan structure
 
@@ -418,7 +418,7 @@ Omit a References line that has no entries. The `Decisions` line holds only comm
 1. Confirm project root, scope, constraints and the brief (if any); read `check-plan`'s SKILL.md.
 2. Check `project-best-practices`; map open work to **Conventions coverage** refs.
 3. Spawn scouts by area at the lowest tier per the Delegation scope table; each writes only its own notes file under `.local/<slug>/notes/` (named in its authorization block) and returns a short summary.
-4. Spawn the `staff` author (see **Execution**) with the notes and brief: it drafts phases, small tasks, **Decisions**, scout tasks and Agents (lowest fitting tier per the Delegation scope table), and returns proposals for any `principal` or `expert` Agent.
+4. Spawn the `senior` author (see **Execution**) with the notes and brief: it drafts phases, small tasks, **Decisions**, scout tasks and Agents (lowest fitting tier per the Delegation scope table), and returns proposals for any `principal` or `expert` Agent.
 5. Relay batched questions and Agent proposals with `{{tool:ask-user}}` (see **User-facing wording**); record agreed Agents in the task rows and **Agent approvals**; re-spawn the author with the answers.
 6. The author creates `.local/<slug>/` (`tasks/`, `notes/`), the task files, then `.local/<slug>-plan.md` last.
 7. **Audit:** spawn `{{tool:spawn-agent}}({{agent:senior}})` as a read-only auditor given `{{path:skills}}/check-plan/SKILL.md` and the plan path; it returns the `check-plan` report. If not `READY`, re-spawn the author with the complete Findings table (every fail and warn row) so it fixes all of them in one pass, and repeat until `READY`. If the same failure recurs unchanged with no progress, stop and explain the blocker rather than looping; ask only for genuinely user-dependent decisions or authorization.
@@ -452,6 +452,6 @@ Omit a References line that has no entries. The `Decisions` line holds only comm
 - Write tasks whose acceptance requires another open task — reorder or split.
 - Require the user to edit plan or task files during execution, or to mirror **Implementation order** / task **Status** manually.
 - Scatter micro-approvals across tasks when one **Decisions** row or one batched authoring question suffices.
-- Add per-phase confirm tasks or optional approval rows for `staff`/`standard` work.
+- Add per-phase confirm tasks or optional approval rows for `senior`/`standard` work.
 - Structure **Fresh chat handoff** or tasks so execution must pause after each phase unless § **User escalation required** applies.
 - Load **Open questions** with non-blocking items; use `notes/` or **Decisions** instead.

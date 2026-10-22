@@ -38,8 +38,8 @@ Asking by level:
 | `junior` | Pure lookups: single facts, path and symbol inventories |
 | `standard` | Process management (brief file upkeep, decision log, status), narrow data gathering from the codebase, docs and the internet, fact sheets for higher tiers |
 | `senior` | Consolidation, aspects of moderate complexity that do not need higher tiers |
-| `staff` | Key thinking: investigation, option analysis, solution proposals, risk and trade-off judgment. Consumes `standard` fact sheets instead of gathering data itself |
-| `principal`, `expert` | Specific, bounded analysis subtasks of high complexity (`principal`) or with a critical, high-impact decision (`expert`); spawned by the `staff` thinker under the criteria in Tier selection, or by the supervisor only after user approval |
+| `staff` | Advisory key thinking: option analysis, solution and architecture recommendations, risk and trade-off judgment — no product implementation. Consumes `standard` fact sheets instead of gathering data itself |
+| `principal`, `expert` | Bounded advisory subtasks of highest complexity (`principal`) or with a critical, high-impact decision (`expert`); spawned by the `staff` thinker under the criteria in Tier selection, or by the supervisor only after user approval — recommendations only |
 
 A `staff` thinker acts as a sub-supervisor for its activity: the Delegation scope table and delegation rules apply to it, except that it may spawn `principal` and `expert` without user approval, only for the criteria in Tier selection, never for size. Its spawn prompt grants this explicitly.
 
