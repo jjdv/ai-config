@@ -6,7 +6,8 @@ description: >-
   chat and wait for explicit approval (go/yescommit) before staging or
   committing — never commit on continue/ok alone or in the same turn as analysis.
   Default: one commit per feature or initiative. Use when the user asks to
-  commit, run commit, or create commits.
+  commit, run commit, or create commits. Analysis and git commands are delegated per
+  the base rule; the supervisor presents the proposal and gates approval.
 invocation: explicit
 ---
 
@@ -14,7 +15,21 @@ invocation: explicit
 
 Create git commit(s) from uncommitted changes unless the user narrows scope (e.g. "only server", "except docs", "skip web", "split commits").
 
-**Always propose before committing.** Analyze the diff, present the planned commit(s) in your **user-visible reply**, then **stop and wait for user approval** — do not `git add` or `git commit` until the user confirms with an **explicit approval phrase** (see below) or adjusts the proposal.
+**Always propose before committing.** After delegated analysis, present the planned commit(s) in your **user-visible reply**, then **stop and wait for user approval** — do not `git add` or `git commit` until the user confirms with an **explicit approval phrase** (see below) or adjusts the proposal.
+
+## Delegation (mandatory)
+
+Per the **base** rule, the **supervisor** does not run git commands or read repo diffs in the main thread for commit work.
+
+| Phase | Who | What |
+| --- | --- | --- |
+| Analysis (Turn A) | `junior` subagent | `git status`, diffs, recent log, capability clustering, secrets screening on paths to stage, mixed-file / `git add -p` notes; return structured input for the proposal block |
+| Proposal (Turn A) | Supervisor | Format **Commit proposal** in chat from the subagent report; end turn without staging or committing |
+| Execute (Turn B+) | `junior` subagent | After explicit user approval, stage and `git commit` per the approved plan (including patch staging when the proposal says so); report SHAs and remaining `git status` |
+
+Spawn the analysis subagent in the **same turn** as `/commit` or a commit request. Include user scope exclusions and this skill's sections from **Scope analysis** through **Mixed-initiative files** in the subagent prompt.
+
+The supervisor may tighten wording in the proposal but must not invent clusters, paths, or messages without subagent evidence. If analysis is incomplete, re-spawn `junior` before showing a proposal.
 
 ### Approval gate (hard)
 
@@ -107,7 +122,7 @@ Pick one primary `type` per commit.
 
 ## Scope analysis
 
-Before committing:
+The **analysis subagent** runs before any proposal (supervisor does not substitute its own diff read):
 
 ```bash
 git status
@@ -116,7 +131,7 @@ git diff --staged
 git log -5 --oneline
 ```
 
-Run `status`, `diff`, and `log` in parallel when possible.
+Run `status`, `diff`, and `log` in parallel when possible. Return cluster list, planned commit count, subject line(s), includes/excludes, warnings, and notes for the supervisor.
 
 ### Step 1 — Cluster changes (mandatory)
 
@@ -174,6 +189,7 @@ For each planned commit: **message**, **paths / summary**, brief **why separate*
 ### Proposal rules
 
 - Show the exact **subject line(s)** the user will see in `git log`
+- When the workspace or project contains multiple repositories, group every proposed commit under a heading naming its repository, even when only one repository has proposed changes. Keep commits for the same repository together, and identify each commit within that group. When there is only one repository, keep the proposal format above.
 - List **paths or areas** included — not a raw dump of every hunk unless the diff is tiny
 - Call out **exclusions**, **secrets**, and **split rationale**
 - **Warnings** lists only things that block or endanger the commit and need the reader's action or decision: secrets detected and excluded, secrets check not run, risky deletions, files that need isolation. When there are none, write exactly `none`
@@ -185,17 +201,16 @@ For each planned commit: **message**, **paths / summary**, brief **why separate*
 
 ```
 Turn A (commit):
-  1. Cluster changes by capability (mandatory)
+  1. Spawn junior — scope analysis, clustering, secrets screen (mandatory)
   2. Plan one commit per unrelated cluster; merge only clusters that share one story
-  3. Present commit proposal(s) in chat → END TURN (no git add / git commit)
+  3. Supervisor presents commit proposal(s) in chat → END TURN (no git add / git commit)
 
 Turn B (user approves):
   4. Verify proposal was shown in a prior assistant message
   5. Verify user used an explicit approval phrase (not "continue" alone)
-  6. Stage files for that commit (or isolate per split)
-  7. Commit with HEREDOC subject
-  8. Repeat 3–7 only if a second unrelated initiative remains
-  9. Report: commit SHAs, subjects, anything left uncommitted
+  6. Spawn junior — stage files (or git add -p per split) and commit with HEREDOC subject
+  7. Repeat 6 only if a second unrelated initiative remains in the approved plan
+  8. Supervisor reports: commit SHAs, subjects, anything left uncommitted
 ```
 
 ## Staging
@@ -259,8 +274,8 @@ User: "split commits" → split at clear initiative boundaries (not per layer by
 
 ## Checklist
 
-- [ ] Clustered changes by capability (listed in proposal)
-- [ ] Analyzed full diff (`status`, `diff`, recent `log`)
+- [ ] Analysis delegated to `junior`; clusters listed in proposal
+- [ ] Subagent ran full diff (`status`, `diff`, recent `log`)
 - [ ] **Commit proposal block sent in chat** (not only in tool output), with Warnings (blocking only) and Notes (max 3 bullets) separated
 - [ ] **No `git add` / `git commit` in the same turn as first `commit`**
 - [ ] User used an **explicit approval phrase** (not `continue` / `ok` / `proceed` alone)
