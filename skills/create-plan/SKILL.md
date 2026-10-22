@@ -42,10 +42,11 @@ Main thread is a supervisor; plan authoring is delegated:
 
 Task execution later uses each task's **Agent**.
 
-**User-facing wording:** Plan and task files keep ids for tracking; **chat** matches `sequential-implementation` (**User-facing reports**, **User actions**, **User-reported results**):
+**User-facing wording:** Plan and task files keep ids for tracking; **chat** matches `sequential-implementation` (**User-facing reports**, **Operator gates**, **User actions**, **User-reported results**):
 
-- **Reports and questions:** name tasks, decisions, sections and findings by title or short plain-language description; id in brackets only when titles need disambiguation (e.g. `Cache invalidation [D2]`, `Add cache layer [2.1]`), never by id alone. Question wording follows the `ask-questions` skill.
-- **When the user must act:** **Operator handoff** and runbook text must be paste-ready for the executor as step-by-step chat instructions (what to do, in order, plus a one-line why). State that the user may **reply in chat only**; the executor updates the plan. The user is never required to edit plan or task files or to mirror **Implementation order**, **Agent approvals**, **Open questions**, or task **Status**.
+- **Reports and questions:** name tasks, decisions, **gates**, sections and findings by title or short plain-language description; id or gate code in brackets only when titles need disambiguation (e.g. `Cache invalidation [D2]`, `OVH-G1 lock test [UG3]`), **never by id or code alone**. Question wording follows the `ask-questions` skill.
+- **Operator gates:** each gate has a **human title**, **place in the flow** (phase/milestone), **purpose**, **runbook or script**, **record in** (`gate-results` section), and **unblocks** (agent milestones named by title). Group gates that the operator runs in one session into **one gate row** (one harness, one relocation day) — do not scatter many ⏸ rows for the same milestone.
+- **When the user must act:** **Operator handoff**, **Operator gates**, and runbook text must be paste-ready for the executor as step-by-step chat instructions (what to do, in order, plus a one-line why). State that the user may **reply in chat only**; the executor updates the plan and `gate-results.md`. The user is never required to edit plan or task files or to mirror **Implementation order**, **Agent approvals**, **Open questions**, or task **Status**.
 - **Authoring:** batch open product or policy choices into one `{{tool:ask-user}}` round when possible; do not structure the plan so the user must confirm each phase or approve `staff`/`standard` work task by task.
 
 **Migration planning** (website/page-group migration, "plan a migration of these pages"): read `references/migration-workflow.md` and follow it; it authors through this skill. Do not load it for other plans.
@@ -324,7 +325,27 @@ Blocks lists only task IDs that are `⏸` pending the answer, otherwise `—`. A
 
 ## Operator handoff (not plan tasks)
 
-Manual steps that are **not** plan tasks: deploy, credentials, one-off external console work, or other milestones execution cannot perform under **Autonomy & authorization** or **External environment boundary**. Group compatible milestones; justify each unavoidable gate by authority, access or an unresolved product/policy decision. Write numbered, chat-ready steps naming each milestone by title, with enough context and a one-line why; state the user may report outcomes in chat and the executor updates the plan. Do not duplicate **Phases** tasks; do not instruct the user to edit the plan for progress or **Agent approvals**.
+Manual steps that are **not** plan tasks: deploy, credentials, one-off external console work, or other milestones execution cannot perform under **Autonomy & authorization** or **External environment boundary**. Group compatible milestones; justify each unavoidable gate by authority, access or an unresolved product/policy decision. Write numbered, chat-ready steps naming each milestone by **title**, with enough context and a one-line why; state the user may report outcomes in chat and the executor updates the plan and gate evidence. Do not duplicate **Phases** tasks; do not instruct the user to edit the plan for progress or **Agent approvals**.
+
+## Operator gates (execution gates)
+
+When the initiative has operator-run verification or migration milestones, maintain a **gate catalog** the executor can relay without chat history:
+
+- **Required:** link `.local/<slug>/gates.md` (or equivalent) in **Context references** and summarize gates in **Operator handoff**.
+- **One row per grouped gate session** (not one row per legacy research spike unless it is a separate operator day).
+
+| Column | Content |
+| --- | --- |
+| **Title** | Plain-language name (primary label everywhere in chat) |
+| **Code** | Short tag optional (e.g. OP-VERIFY-HARNESS) — never the only label |
+| **Place in flow** | Strategic phase / after which agent milestone |
+| **Purpose** | What it proves; why not an agent task |
+| **Runbook / script** | Path; prefer automated scripts + `ictl exec` |
+| **Record in** | `notes/gate-results.md` section heading |
+| **Unblocks** | Agent milestones by **title** (optional id in brackets) |
+| **Status** | recorded / not recorded / N/A |
+
+Capability confirmations needed before building scripts belong **in the same phase** as the script task (minimal smoke, non-critical resources, documented in the gate row). Avoid throwaway cloud users or new buckets unless the row explains **what** and **why**.
 
 …
 
@@ -432,13 +453,14 @@ Omit a References line that has no entries. The `Decisions` line holds only comm
 4. **Progress:** the plan owns the summary table and per-task status columns (single source of truth).
 5. **Lean plan:** the plan is the **index**; cross-task choices live in **Decisions**, discovery in `notes/`; never orphan detail outside **Context references** or task links.
 6. **Self-contained:** **Context references** enumerates all files for a fresh chat; **Plan maintenance** keeps progress current; **Fresh chat handoff** is required.
-7. **External environments:** no PR/deploy/import/hosting/commit tasks by default (not even "ship"/"done" phases); hand off to the user in the runbook text and use local verify. Exceptions per **External environment boundary**.
-8. **Re-sync before handoff:** if conventions or docs changed after drafting, update the plan and re-run the audit.
-9. **Ready gate:** `status: ready` only after the audit returns `READY`.
-10. **Conventions coverage:** source-editing plans list project-best-practices (+ task-relevant references and the sibling skills its router names) and the **code** user rule in **Fresh chat handoff**.
-11. **Gate budget:** follow **Gate budget (authoring)**; prefer autonomy and **Decisions** over execution-time pauses.
-12. **Open questions:** minimize rows and blocked surface; resolve at authoring when scouts or the brief can settle them.
-13. **User plan edits:** execution never requires the user to edit plan or task files; the supervisor updates the plan from chat per **User-facing wording**.
+7. **Operator gates:** maintain `gates.md` (or equivalent) per **Operator gates**; group operator sessions; title-first unblocks; chat is source of truth for recorded pass/fail.
+8. **External environments:** no PR/deploy/import/hosting/commit tasks by default (not even "ship"/"done" phases); hand off to the user in the runbook text and use local verify. Exceptions per **External environment boundary**.
+9. **Re-sync before handoff:** if conventions or docs changed after drafting, update the plan and re-run the audit.
+10. **Ready gate:** `status: ready` only after the audit returns `READY`.
+11. **Conventions coverage:** source-editing plans list project-best-practices (+ task-relevant references and the sibling skills its router names) and the **code** user rule in **Fresh chat handoff**.
+12. **Gate budget:** follow **Gate budget (authoring)**; prefer autonomy and **Decisions** over execution-time pauses.
+13. **Open questions:** minimize rows and blocked surface; resolve at authoring when scouts or the brief can settle them.
+14. **User plan edits:** execution never requires the user to edit plan or task files; the supervisor updates the plan from chat per **User-facing wording**.
 
 ## Do not
 

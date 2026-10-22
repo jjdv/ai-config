@@ -43,7 +43,8 @@ A plan task is small: one goal, bounded scope, acceptance check or verification 
 1. Spawn a read-only `senior` subagent given the path of `check-plan`'s SKILL.md and the plan path; it returns the audit report.
 2. Start only on verdict `READY`. On `NOT READY`, automatically enter **Replan flow** with the complete findings, then re-audit; repair within the original goal, scope and approved Decisions needs no extra proceed approval. On `COMPLETE`, report that nothing is left to run.
 3. Flag ⏸ blocked tasks to the user before delegating (name each task by title; say what blocks it and what you need from the user, per **User actions** below when input is required).
-4. Resolve the project root from the plan's `**Project root:**` line. Check whether `<project-root>/.agents/skills/project-best-practices/SKILL.md` exists (it governs the Conventions block below).
+4. **Plan anchoring (mandatory):** Record the absolute **Plan path** (this plan file) and **Project root** from the plan's `**Project root:**` line. Keep both for the whole run; every task spawn repeats them in the task prompt. On **continue** or a new turn, re-read the anchored plan path from the user's message or the last run — never infer a plan from a bare task id.
+5. Check whether `<project-root>/.agents/skills/project-best-practices/SKILL.md` exists (it governs the Conventions block below).
 
 ## Per-task loop
 
@@ -52,7 +53,7 @@ Repeat until a stop condition applies:
 1. **Pick** the first runnable task in **Implementation order**.
 2. **Read** its plan row and task file, the **Decisions** it references and the notes in its `Notes in`.
 3. **Write the spec** per **Delegation**: files, exact change, interfaces, out of scope, verification command, only the context needed. If you cannot write a spec the task's Agent can execute, it is a plan issue: go to **Replan flow**.
-4. **Spawn** the task's Agent with the prompt below.
+4. **Spawn** the task's Agent with the prompt below (complete the **Supervisor spawn checklist** first).
 5. **Verify** deliverables: paths touched, verification command result, diff free of redundant comments (have them removed), drive-by churn and rule violations; when `project-best-practices` exists, compliance with it; when source files changed, the **code** user rule checklist.
 6. **Update the plan** (Progress tracking), then decide the next action (After a task).
 
@@ -60,15 +61,33 @@ Sequential only: one task at a time unless the user explicitly requests parallel
 
 **Reporting:** Per-task status lives in the plan file. In chat, give a **full** summary only when the **whole run** stops (all tasks done plus final review, or a stop condition). While the run continues, chat messages may be omitted or limited to blockers and escalations — never a "done for now" recap that invites the user to opt in to more work.
 
-**User-facing reports:** Whenever you report to the user (blockers, escalations, final summary, replan notices, relayed questions, or why a stop condition applied), name tasks, decisions, sections, and findings by **title or short plain-language description**, not by plan IDs alone. Do not point the user at plan document IDs as the primary way to understand what you mean. An optional bracketed task or decision id only when two similar titles need disambiguation. The plan file may still use IDs for progress tracking; this rule applies to **chat only**.
+**User-facing reports (mandatory in chat):** Whenever you report to the user (blockers, escalations, final summary, replan notices, relayed questions, operator gate instructions, or why a stop condition applied), name tasks, decisions, **gates**, sections, and findings by **title or short plain-language description** — whichever reads clearest. **Never** use a bare plan id, gate code, or decision id as the main label (for example do not write "do UG8" or "next is 22.1" without the title).
+
+| Bad (chat) | Good (chat) |
+| --- | --- |
+| "UG3 blocks 12.3" | "**OVH-G1 lock test** is recorded; **Lease core** can run" |
+| "Run OP-S3c for 13.18" | "Run **Observability stack install** — unblocks obs wheel tasks" |
+| "After 14.4" | "After **Retire tofu.auto.tfvars and hosts jq merge**" |
+
+Optional bracketed id **only** when two similar titles need disambiguation (e.g. `Lease core [12.3]`). The plan file may still use ids for progress tracking; this rule applies to **chat only** (and to relaying subagent output to the user).
+
+### Supervisor spawn checklist
+
+Before every spawn, confirm the task prompt includes: absolute **Plan path**; absolute **Task file** (`tasks/<id>.md` under the plan's directory); **Allowed read/write roots** from the task (typically plan **Project root** plus any secondary repo the task names); the **Forbidden** scope line; and a **qualified task id** (plan title or slug plus id, e.g. `infra-iaasw-split task 12.1` — never bare `12.1`).
 
 ### Task prompt
 
 Self-contained and small; never pass the plan body or chat history. Include only what the Agent needs:
 
 ```markdown
-Task ID: <id>
+Plan path: /absolute/path/to/plan.md
+Task file: /absolute/path/to/tasks/<id>.md
+Task ID: <qualified id — plan slug or title plus numeric id, not id alone>
 Level: 2
+Allowed read/write roots:
+- /absolute/path/to/project-root
+- <other roots the task allows, omit line when none>
+Forbidden: do not read, write, search, or glob outside allowed roots; do not discover plans by task id alone; do not search parent directories (e.g. ~/Projects/Development) for plans or task ids
 Goal: <one outcome>
 Spec: <the run-time spec: files, exact change, interfaces, out of scope>
 Verification: <command and expected result>
@@ -84,9 +103,9 @@ Do not update the plan; the supervisor does (including from user-reported result
 
 ## Authorization
 
-**Project root:** `/absolute/path/to/repo`
+**Allowed read/write roots:** (same list as above)
 
-The user already approved this task. You may read and write any file under the project root without asking for per-file permission. Do not edit outside this tree. Do not commit unless asked.
+The user already approved this task. You may read and write only under these roots without asking for per-file permission. Do not edit outside them. Do not commit unless asked.
 ```
 
 Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (the task's Agent in place of `standard`). When the plan has § **Autonomy & authorization**, use that plan's **Authorization** block instead of the generic one.
@@ -103,6 +122,10 @@ Use the recorded Agent; escalation per **Delegation** step 4 may select the lowe
 - `needs split: <subtasks>`: the task is oversized; **Replan flow**.
 - `plan issue: <description>`: **Replan flow**.
 - `question: <question>`: relay per **Delegation**, worded per the **ask-questions** skill; name the task by title (optional id in brackets only to disambiguate). Give the user **User actions** steps to answer. Mark the task `⏸ Blocked` with the question in **Open questions** until answered; on the user's chat reply, apply **User-reported results** and resume with the answer in the spec.
+
+### Resume / replace (mis-scoped subagent)
+
+After a mis-scoped subagent (wrong repo, workspace-wide search, or task id without an anchored task file), spawn a **new** agent with a full anchored task prompt. Do **not** resume the old transcript.
 
 ## Replan flow
 
@@ -128,9 +151,23 @@ Progress lives in the plan file (file mode) or in the plan text maintained in re
 
 **Note to supervisor:** IDs in **Implementation order**, task rows, and `(next: **<id>**)` are for the plan file only. In chat, follow **User-facing reports**.
 
+## Operator gates (from the plan)
+
+When the plan marks **operator gates** (in `gates.md`, **Operator handoff**, or **Operator gates** table), the executor pauses per **After a task** step 1 and follows **User actions** / **User-reported results**.
+
+For each gate pause, state in chat (title-first):
+
+1. **Gate title** (plain language; optional short code in brackets).
+2. **Place in the plan** — which strategic phase or milestone and what agent work it sits after/before (one sentence).
+3. **Purpose** — what it proves or unblocks (name unblocked work by **title**, not id list).
+4. **Steps** — numbered, runnable without opening the plan; runbook/script path as optional reference.
+5. **Paste back** — what shape to reply in chat; say **reply in chat only** — you update `gate-results.md` and the plan.
+
+Group compatible gates into **one chat session** when the plan groups them (one runbook, one harness). Do not split one grouped gate into many separate "go do X" messages. Do not ask the user to edit plan files or gate-results for outcomes they paste in chat.
+
 ## User actions
 
-When user input or action is required (approval, answer, env secret, scope choice, or unblocking a `⏸ Blocked` task), give **ready-to-use step-by-step instructions** in chat: what to do, in order, with enough context to execute without opening the plan. Say explicitly that they may **reply in chat only** — they are not required to edit the plan or linked task files; you update those from their reply per **User-reported results**. Include a short **why** (one line) per step or for the request overall. Do not ask the user to mirror progress, **Agent approvals**, **Open questions**, or task **Status** in the plan. Do not substitute "see the plan", "update Implementation order", or "fill Agent approvals in the plan" for a chat answer. If the plan holds the only copy of a value the user must choose, summarize the options and your recommendation in chat; plan paths are optional reference only.
+When user input or action is required (approval, answer, env secret, scope choice, operator gate, or unblocking a `⏸ Blocked` task), give **ready-to-use step-by-step instructions** in chat: what to do, in order, with enough context to execute without opening the plan. Say explicitly that they may **reply in chat only** — they are not required to edit the plan or linked task files; you update those from their reply per **User-reported results**. Include a short **why** (one line) per step or for the request overall. Do not ask the user to mirror progress, **Agent approvals**, **Open questions**, or task **Status** in the plan. Do not substitute "see the plan", "update Implementation order", or "fill Agent approvals in the plan" for a chat answer. If the plan holds the only copy of a value the user must choose, summarize the options and your recommendation in chat; plan paths are optional reference only.
 
 Batch independent questions already known into one input round and group compatible manual milestones. Do safe independent work while awaiting required input only when the plan's sequential order and dependencies permit it; do not start parallel tasks without authorization. Never guess an answer or bypass required approval. Confirmed scope and approvals persist, including specific shared paths/actions; ask again only for scope expansion, unapproved shared changes or a genuinely unresolved decision. Run locally available checks yourself and own all bookkeeping.
 
@@ -169,6 +206,10 @@ Stop **only** when one of these is true:
 - Omitting the Conventions block when `project-best-practices` exists, or accepting code that ignores it
 - Delegating a task you cannot write a spec for, instead of replanning
 - Omitting the plan's Authorization block when § Autonomy is present
+- Vague continuation prompts without **Plan path** and **Task file** (e.g. "do 12.1" with no anchored plan)
+- User-facing text that leads with bare task ids, gate codes, or decision ids without titles (**User-facing reports**)
+- Letting a subagent discover plans or tasks via workspace-wide glob/grep instead of paths in the prompt
+- Interpreting numeric task ids without opening the anchored **Task file**
 
 ## Plan templates
 

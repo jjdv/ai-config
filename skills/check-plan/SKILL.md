@@ -139,7 +139,11 @@ Inspect existing task files, handoffs, maintenance, approvals, open questions an
 | F2 | **Justified manual gates** | Each required manual action or pause has a concrete authority, access or unresolved product/policy reason; checks runnable by the executor locally are executor work; no redundant phase confirmations or approvals for `junior` through `senior` |
 | F3 | **Grouped user inputs** | Independent questions knowable together are collected in one round and compatible manual milestones are grouped; dependent questions or authorization boundaries are not collapsed; safe independent work may continue within sequencing and dependency limits while required input is pending |
 | F4 | **Persistent authorization** | Handoffs honor recorded approvals and confirmed scope, including specific shared paths and actions; only scope expansion, unapproved shared changes or genuinely unresolved decisions require renewed input |
-| F5 | **Title-first handoff** | User-facing instructions, reports and next-task handoffs name tasks, decisions and checks by title or short description, with IDs only optional bracketed references |
+| F5 | **Title-first handoff** | User-facing instructions, reports and next-task handoffs name tasks, decisions, **gates**, and checks by title or short description, with IDs or gate codes only optional bracketed references |
+| F6 | **Gate catalog** | Plans with operator milestones link `gates.md` (or equivalent) in **Context references**; catalog lists each grouped gate with **Title**, **Place in flow**, **Purpose**, **Record in**, and **Unblocks** (unblocks use titles, not id-only lists) |
+| F7 | **Grouped gates** | No duplicate gate codes scattered as many separate operator days without a grouped row; capability smokes live in the same phase as the script they unblock (not a distant UG*-only phase) |
+| F8 | **Chat gate relay** | **Operator handoff** or **Fresh chat handoff** states that gate outcomes are pasted in chat and the executor updates `gate-results.md` — user is not sent to edit gate files alone |
+| F9 | **Gate ⏸ labels** (**warn**) | Phase rows or **Implementation order** that block on a gate name the gate by **title** in the ⏸ text (code in brackets optional), not code-only (e.g. not `⏸ UG8` alone) |
 
 ### E — Project conventions (conditional)
 
