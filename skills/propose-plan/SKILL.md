@@ -211,7 +211,7 @@ Before status `approved`:
 
 ## Spawning
 
-{{block:spawn-rule}}
+Follow **Spawn policy** in the mandatory **base** rule.
 
 ```text
 {{tool:spawn-agent}}(
@@ -226,6 +226,7 @@ Before status `approved`:
 - Draft questions give a title for every referenced option, decision and item; an ID may follow in brackets, never alone.
 - Thinker prompts include the fact sheets, decisions so far and the proposal format; a `staff` thinker prompt grants the sub-supervisor exception explicitly.
 - Brief writer prompts include an Authorization block: project root, may write only `.local/<slug>/`, no commit.
+- Advisory spawns (`staff`, `principal`, `expert`, and gather/read-only lanes on lower tiers): **Authorization** per **base** **Advisory spawn authorization** (advisory brief on thinker spawns).
 - Parallel spawns go in the same turn; wait for the whole wave before the next phase.
 - Do not dump raw subagent output into chat; relay only what the user must decide or verify.
 

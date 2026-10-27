@@ -59,7 +59,7 @@ Repeat until a stop condition applies:
 
 Sequential only: one task at a time unless the user explicitly requests parallel runs. Only the supervisor edits the plan; subagents never do.
 
-**Reporting:** Per-task status lives in the plan file. In chat, give a **full** summary only when the **whole run** stops (all tasks done plus final review, or a stop condition). While the run continues, chat messages may be omitted or limited to blockers and escalations — never a "done for now" recap that invites the user to opt in to more work.
+**Reporting:** Per-task status lives in the plan file. In chat, give a **full** summary only when the **whole run** stops (all tasks done plus final review, or a stop condition). While the run continues, chat messages may be omitted or limited to blockers and escalations — never a "done for now" recap that invites the user to opt in to more work. **Exception:** when the next work is an **operator gate** (see **Operator gate relay** below), the chat message must include the full gate packet even if that exceeds the supervisor's usual brevity limit — do not wait for the user to ask for "step-by-step" instructions.
 
 **User-facing reports (mandatory in chat):** Whenever you report to the user (blockers, escalations, final summary, replan notices, relayed questions, operator gate instructions, or why a stop condition applied), name tasks, decisions, **gates**, sections, and findings by **title or short plain-language description** — whichever reads clearest. **Never** use a bare plan id, gate code, or decision id as the main label (for example do not write "do UG8" or "next is 22.1" without the title).
 
@@ -73,7 +73,11 @@ Optional bracketed id **only** when two similar titles need disambiguation (e.g.
 
 ### Supervisor spawn checklist
 
-Before every spawn, confirm the task prompt includes: absolute **Plan path**; absolute **Task file** (`tasks/<id>.md` under the plan's directory); **Allowed read/write roots** from the task (typically plan **Project root** plus any secondary repo the task names); the **Forbidden** scope line; and a **qualified task id** (plan title or slug plus id, e.g. `infra-iaasw-split task 12.1` — never bare `12.1`).
+Applies to **every** spawn in this run — implementation agents, read-only scouts, plan-progress bookkeeping, and operator runbook extractors — not only the task's recorded **Agent**.
+
+Before every spawn, confirm the prompt includes: absolute **Plan path** (when this run is plan-anchored); absolute **Task file** when executing a plan task (`tasks/<id>.md` under the plan's directory); **Allowed read/write roots** from the task or plan **Project root** (plus any secondary repo the task names); the **Forbidden** scope line; and a **qualified task id** when relevant (plan title or slug plus id, e.g. `infra-iaasw-split task 12.1` — never bare `12.1`).
+
+**Never** spawn plan-progress bookkeeping in parallel with the next implementation task. Finish or abort the bookkeeping spawn, update the plan, then spawn the next task.
 
 ### Task prompt
 
@@ -108,9 +112,7 @@ Do not update the plan; the supervisor does (including from user-reported result
 The user already approved this task. You may read and write only under these roots without asking for per-file permission. Do not edit outside them. Do not commit unless asked.
 ```
 
-Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (the task's Agent in place of `standard`). When the plan has § **Autonomy & authorization**, use that plan's **Authorization** block instead of the generic one.
-
-{{block:spawn-rule}}
+Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (the task's Agent in place of `standard`). When the plan has § **Autonomy & authorization**, use that plan's **Authorization** block instead of the generic one. Follow **Spawn policy** in the mandatory **base** rule.
 
 Task Agents run as level 2 (this supervisor is level 1): per **Delegation** they may spawn subtasks, or return `needs split` / `needs upgrade`.
 
@@ -133,7 +135,7 @@ Triggered by a `plan issue:` result, an oversized task, a task whose spec cannot
 
 1. Suspend affected delegations. Spawn a `senior` replan agent that follows `create-plan`'s replan mode, given the plan path and the issue.
 2. Re-run the `check-plan` audit (Pre-flight step 1); repair remaining findings automatically within the replan limits and resume only on `READY`. If an unchanged failure repeats with no progress, stop and explain the concrete blocker instead of looping.
-3. Report the replan to the user in 1-2 lines (what changed and why, by task or decision **title**), even when no approval was needed. If the user must approve or act before you resume, follow **User actions** — do not send them to the plan alone.
+3. Report the replan to the user in 1-2 lines (what changed and why, by task or decision **title**), even when no approval was needed — **unless** the next work is an operator gate; then append the full **Operator gate relay** packet in the same message. If the user must approve or act before you resume, follow **User actions** — do not send them to the plan alone.
 
 Replan limits (defined in `create-plan`): edits only unfinished tasks, within the original goal and scope, no reversal of user-approved Decisions, no `principal` or `expert` assignment without recorded user approval. Anything beyond needs the user's approval before the plan changes; spell out what you need in chat per **User actions**.
 
@@ -149,18 +151,43 @@ Progress lives in the plan file (file mode) or in the plan text maintained in re
 
 **Never** start the next delegation before the plan is updated.
 
+**Plan progress (supervisor).** Prefer updating the plan in the supervisor thread when the harness allows. If you delegate bookkeeping to `junior`, use the **Plan progress prompt** below — not a one-line "mark \<id\> complete" or ".local only".
+
+```markdown
+Plan path: /absolute/path/to/plan.md
+Completed task file: /absolute/path/to/tasks/<id>.md
+Completed task ID: <qualified id — plan slug or title plus numeric id>
+Level: 2
+Allowed read/write roots:
+- /absolute/path/to/plan-directory (plan file, tasks/, notes/ under the plan's .local slug only)
+Forbidden: do not read, write, search, or glob outside allowed roots; do not discover plans by task id alone; do not search parent directories (e.g. ~/Projects/Development) for plans or task ids
+Goal: Apply Progress tracking checklist for the completed task only; set header (next: **<next-id>**); update Fresh chat handoff next task title + task file path.
+Do not start the next implementation task; do not edit product code outside the plan directory.
+Return: paths touched, new (next: …), blockers.
+```
+
 **Note to supervisor:** IDs in **Implementation order**, task rows, and `(next: **<id>**)` are for the plan file only. In chat, follow **User-facing reports**.
 
 ## Operator gates (from the plan)
 
 When the plan marks **operator gates** (in `gates.md`, **Operator handoff**, or **Operator gates** table), the executor pauses per **After a task** step 1 and follows **User actions** / **User-reported results**.
 
+### Operator gate relay (mandatory)
+
+Emit the full gate packet in chat **proactively** whenever any of these is true — the user must not have to ask for "clear step-by-step instructions":
+
+- A **stop condition** applies because operator input is required.
+- Agent work for the current slice is done and **Implementation order**, **Fresh chat handoff**, **Open questions**, or the gate catalog says the **next** milestone is operator-only (including after `/sequential-implementation` **continue**).
+- A replan or batch of agent tasks leaves the plan blocked on a gate before the next delegable agent task.
+
+Delegate a read-only subagent to extract numbered commands from the linked runbook when needed; paste those commands (with repo roots and paths) into **Steps** below — do not substitute "see `runbooks/…`" or "follow the runbook" without the runnable commands.
+
 For each gate pause, state in chat (title-first):
 
 1. **Gate title** (plain language; optional short code in brackets).
 2. **Place in the plan** — which strategic phase or milestone and what agent work it sits after/before (one sentence).
 3. **Purpose** — what it proves or unblocks (name unblocked work by **title**, not id list).
-4. **Steps** — numbered, runnable without opening the plan; runbook/script path as optional reference.
+4. **Steps** — numbered, runnable without opening the plan; include shell commands, absolute project roots, and secret-handling notes (stdin, redaction). Runbook path is a reference only, not a substitute for this list.
 5. **Paste back** — what shape to reply in chat; say **reply in chat only** — you update `gate-results.md` and the plan.
 
 Group compatible gates into **one chat session** when the plan groups them (one runbook, one harness). Do not split one grouped gate into many separate "go do X" messages. Do not ask the user to edit plan files or gate-results for outcomes they paste in chat.
@@ -179,7 +206,7 @@ When the user reports an outcome in chat (approval, answer, scope choice, env or
 
 Apply in order, from the result alone:
 
-1. **Pause affected work** when user input is required per the plan's § **User escalation required** (including an upgrade needing approval not already recorded), or a question is relayed. Name the task by title (**User-facing reports**). Tell the user exactly what to do per **User actions** (concrete approval wording or answer shape when you know it — not "update the plan" alone). On their next chat message that supplies it, **User-reported results** then continue at step 2 or 3 as appropriate.
+1. **Pause affected work** when user input is required per the plan's § **User escalation required** (including an upgrade needing approval not already recorded), operator gate per **Operator gate relay**, or a question is relayed. Name the task by title (**User-facing reports**). Tell the user exactly what to do per **User actions** (concrete approval wording, operator **Steps**, or answer shape when you know it — not "update the plan" alone). On their next chat message that supplies it, **User-reported results** then continue at step 2 or 3 as appropriate.
 2. **Escalate or follow up** per **Delegation** step 4 for a failed task (never retried at the same tier) or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
 3. **Next task**: otherwise delegate the next open task immediately; when none remains, go to step 4.
 4. **Final review**: spawn one `senior` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions and Conventions; it returns findings only. Fix accepted findings per step 2, then report.
@@ -209,7 +236,11 @@ Stop **only** when one of these is true:
 - Vague continuation prompts without **Plan path** and **Task file** (e.g. "do 12.1" with no anchored plan)
 - User-facing text that leads with bare task ids, gate codes, or decision ids without titles (**User-facing reports**)
 - Letting a subagent discover plans or tasks via workspace-wide glob/grep instead of paths in the prompt
+- Delegating plan progress without **Plan path** and allowed plan-directory roots (e.g. ".local only", "mark 3.1 complete")
+- Spawning plan-progress bookkeeping in parallel with the next implementation task
 - Interpreting numeric task ids without opening the anchored **Task file**
+- Pausing on an operator gate with only a gate title, runbook path, or "attempt N" summary — without numbered **Steps** and paste-back shape (**Operator gate relay**)
+- Waiting for the user to ask for step-by-step instructions when **Operator gate relay** already applies
 
 ## Plan templates
 

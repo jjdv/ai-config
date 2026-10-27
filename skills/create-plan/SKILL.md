@@ -36,7 +36,7 @@ Produce and maintain plans structured for **`sequential-implementation`**. A tas
 Main thread is a supervisor; plan authoring is delegated:
 
 1. **Scouts:** `{{tool:spawn-agent}}` at the lowest tier per the Delegation scope table (`{{agent:standard}}` for narrow scouting), split by area (code, docs, conventions, external sources). Scouts are read-only for the repo; their only write is their own notes file under `.local/<slug>/notes/`, named in the authorization block of the spawn prompt.
-2. **Author:** `{{tool:spawn-agent}}({{agent:senior}})` writes the plan, passing this skill's text, `check-plan`'s SKILL.md path, project root, scope, the brief path (when present) and the note paths. The author is the sub-supervisor for the activity: the spawn prompt explicitly grants it to spawn `junior` through `senior` without user approval for scouting and authoring subtasks, and `staff` through `expert` only for advisory analysis per the Delegation scope table, never for size or implementation.
+2. **Author:** `{{tool:spawn-agent}}({{agent:senior}})` writes the plan, passing this skill's text, `check-plan`'s SKILL.md path, project root, scope, the brief path (when present) and the note paths. The author is the sub-supervisor for the activity: the spawn prompt explicitly grants it to spawn `junior` through `senior` without user approval for scouting and authoring subtasks, and `staff` through `expert` only for advisory analysis per the Delegation scope table, never for size or implementation. Advisory subtask spawns use **Authorization** per **base** **Advisory spawn authorization** (advisory brief when applicable).
 3. **Questions:** a subagent cannot ask the user. It returns questions and proposed `principal` or `expert` Agents; the supervisor batches them into as few `{{tool:ask-user}}` rounds as possible (see **User-facing wording**), then re-spawns the author with the answers.
 4. **Audit:** the supervisor runs the `check-plan` audit after the author returns (Workflow step 7).
 
@@ -94,7 +94,7 @@ Minimize how often execution pauses for the user and how much they do outside th
 | --- | --- |
 | **Decisions + brief** | Resolve cross-task choices at authoring (scouts, brief, **Decisions**); split so `senior`/`standard` agents run without per-task approval. |
 | **Autonomy & authorization** | When multi-session work justifies it, pre-approve safe ops (dev server, read-only prod compare, plan-scoped edits) so routine environment use does not pause the run. |
-| **Operator handoff** | Explicit user steps only for rare milestones: deploy, prod credentials, irreversible external effects, only when authority, access or an unresolved product/policy decision prevents executor action; group compatible milestones and keep locally runnable checks with the executor. |
+| **Operator handoff** | Explicit user steps only for rare milestones: deploy, prod credentials, irreversible external effects, only when authority, access or an unresolved product/policy decision prevents executor action; group compatible milestones and keep locally runnable checks with the executor. Each gate's runbook must include **Pre-steps** (or equivalent) as numbered, copy-paste shell blocks with paths — not narrative-only — so `sequential-implementation` can relay them without the user opening files. |
 | **Open questions** | Few rows; **Blocks** only tasks that truly cannot proceed; resolve at authoring when scouts or the brief can settle them. |
 | **Agent approvals** | Only `principal` or `expert`; no user gates for lower tiers. |
 | **Fresh chat handoff** | **Continue autonomously** through **Implementation order**; repair plan issues automatically; pause only for unresolved user input under § **User escalation required** or missing `principal`/`expert` approval. |
@@ -325,7 +325,7 @@ Blocks lists only task IDs that are `⏸` pending the answer, otherwise `—`. A
 
 ## Operator handoff (not plan tasks)
 
-Manual steps that are **not** plan tasks: deploy, credentials, one-off external console work, or other milestones execution cannot perform under **Autonomy & authorization** or **External environment boundary**. Group compatible milestones; justify each unavoidable gate by authority, access or an unresolved product/policy decision. Write numbered, chat-ready steps naming each milestone by **title**, with enough context and a one-line why; state the user may report outcomes in chat and the executor updates the plan and gate evidence. Do not duplicate **Phases** tasks; do not instruct the user to edit the plan for progress or **Agent approvals**.
+Manual steps that are **not** plan tasks: deploy, credentials, one-off external console work, or other milestones execution cannot perform under **Autonomy & authorization** or **External environment boundary**. Group compatible milestones; justify each unavoidable gate by authority, access or an unresolved product/policy decision. Write numbered, chat-ready steps naming each milestone by **title**, with enough context and a one-line why; state the user may report outcomes in chat and the executor updates the plan and gate evidence. For each gate, the linked runbook must contain the same steps as fenced or inline shell commands (project roots, wheel pin, unlock, harness invocation, secret stdin patterns) — the plan may summarize, but must not be the only place with runnable commands. Do not duplicate **Phases** tasks; do not instruct the user to edit the plan for progress or **Agent approvals**.
 
 ## Operator gates (execution gates)
 
@@ -346,6 +346,8 @@ When the initiative has operator-run verification or migration milestones, maint
 | **Status** | recorded / not recorded / N/A |
 
 Capability confirmations needed before building scripts belong **in the same phase** as the script task (minimal smoke, non-critical resources, documented in the gate row). Avoid throwaway cloud users or new buckets unless the row explains **what** and **why**.
+
+Each runbook linked from **Runbook / script** must pass **check-plan** **Operator runbook steps** [F10]: numbered operator commands the executor can paste into chat on first gate pause.
 
 …
 
@@ -376,6 +378,15 @@ Replans only (see **Replan mode**). A row whose change a later row reverses or r
 - Prefer updating the plan over leaving progress in chat only.
 - A plan issue (task cannot be done as written, wrong order, missing decision) goes back through **Replan mode**; do not patch around it in the task prompt.
 
+### Plan progress delegation
+
+When the supervisor delegates plan bookkeeping to an agent, the plan must name the anchored paths so executors never workspace-search for `tasks/<id>.md`:
+
+- **Plan path:** `<project-root>/.local/<slug>-plan.md`
+- **Plan directory (allowed writes):** `<project-root>/.local/<slug>/` (plan file may live one level up at `.local/<slug>-plan.md`)
+- **Forbidden:** no parent-directory or multi-repo search for task ids; copy the **Plan progress prompt** from `sequential-implementation` **Progress tracking**
+- **Fresh chat handoff:** repeat **Project root** and **Plan path**; warn that numeric task ids collide across open repos (e.g. another plan's `3.1` in a sibling folder)
+
 ### Fresh chat handoff
 
 **Single entry point:**
@@ -391,8 +402,9 @@ Replans only (see **Replan mode**). A row whose change a later row reverses or r
 7. Load task-specific skills listed in the task or phase (e.g. `{{path:skills}}/improve-parity/SKILL.md`, sibling skills named by project-best-practices).
 8. For each task, write its spec from the task, the **Decisions** it cites and its `Notes in`; delegate to its **Agent** with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
 9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required**, a missing `principal`/`expert` approval or other user-dependent blocker; repair plan issues automatically via **Replan mode** — not after each phase or task by default.
-10. When pausing for user action, relay per **User-facing wording** (executor uses `sequential-implementation` **User actions** and **User-reported results**).
-11. Prerequisites: …
+10. When pausing for user action, relay per **User-facing wording** (executor uses `sequential-implementation` **User actions**, **Operator gate relay**, and **User-reported results**).
+11. When **next** is operator-only (gate not yet recorded, or agent queue blocked on a gate): executor relays full numbered steps from the runbook in chat on the first stop — user does not need to ask for step-by-step instructions.
+12. Prerequisites: …
 ```
 
 Adjust steps for the initiative; **never** omit the single entry point or next task ID.
@@ -453,7 +465,7 @@ Omit a References line that has no entries. The `Decisions` line holds only comm
 4. **Progress:** the plan owns the summary table and per-task status columns (single source of truth).
 5. **Lean plan:** the plan is the **index**; cross-task choices live in **Decisions**, discovery in `notes/`; never orphan detail outside **Context references** or task links.
 6. **Self-contained:** **Context references** enumerates all files for a fresh chat; **Plan maintenance** keeps progress current; **Fresh chat handoff** is required.
-7. **Operator gates:** maintain `gates.md` (or equivalent) per **Operator gates**; group operator sessions; title-first unblocks; chat is source of truth for recorded pass/fail.
+7. **Operator gates:** maintain `gates.md` (or equivalent) per **Operator gates**; group operator sessions; title-first unblocks; chat is source of truth for recorded pass/fail; runbooks satisfy **Operator runbook steps** [F10].
 8. **External environments:** no PR/deploy/import/hosting/commit tasks by default (not even "ship"/"done" phases); hand off to the user in the runbook text and use local verify. Exceptions per **External environment boundary**.
 9. **Re-sync before handoff:** if conventions or docs changed after drafting, update the plan and re-run the audit.
 10. **Ready gate:** `status: ready` only after the audit returns `READY`.
@@ -476,4 +488,5 @@ Omit a References line that has no entries. The `Decisions` line holds only comm
 - Scatter micro-approvals across tasks when one **Decisions** row or one batched authoring question suffices.
 - Add per-phase confirm tasks or optional approval rows for `senior`/`standard` work.
 - Structure **Fresh chat handoff** or tasks so execution must pause after each phase unless § **User escalation required** applies.
+- Author operator runbooks as narrative-only without numbered, copy-paste command blocks (**Operator runbook steps** [F10]).
 - Load **Open questions** with non-blocking items; use `notes/` or **Decisions** instead.

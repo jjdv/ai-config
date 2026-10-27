@@ -79,6 +79,7 @@ Name checks, findings, tasks, decisions and sections by title or short plain-lan
 | A14 | **Open questions** | Table present; **Blocks** column empty or only IDs that are truly ⏸ blocked |
 | A15 | **Decision Affects** (**warn**) | Each Decision's **Affects** list names every task whose task file or plan row cites that Decision; `all ...` wording covers every task |
 | A16 | **Superseded log rows** (**warn**) | A **Change log** row whose change a later row reverses or replaces is marked superseded (for example `Superseded by <date>` in its Change cell) |
+| A17 | **Plan progress delegation** (**warn**) | **Plan maintenance** or **Fresh chat handoff** includes a **Plan progress delegation** line or template: anchored plan path, allowed writes limited to the plan directory (not ".local only" across repos), and the same **Forbidden** search rule as `sequential-implementation` |
 
 ### B — Linked artifacts (verify on disk)
 
@@ -144,6 +145,7 @@ Inspect existing task files, handoffs, maintenance, approvals, open questions an
 | F7 | **Grouped gates** | No duplicate gate codes scattered as many separate operator days without a grouped row; capability smokes live in the same phase as the script they unblock (not a distant UG*-only phase) |
 | F8 | **Chat gate relay** | **Operator handoff** or **Fresh chat handoff** states that gate outcomes are pasted in chat and the executor updates `gate-results.md` — user is not sent to edit gate files alone |
 | F9 | **Gate ⏸ labels** (**warn**) | Phase rows or **Implementation order** that block on a gate name the gate by **title** in the ⏸ text (code in brackets optional), not code-only (e.g. not `⏸ UG8` alone) |
+| F10 | **Operator runbook steps** | When **Fresh chat handoff**, **Operator handoff**, **Open questions**, or the gate catalog shows the next milestone is an operator gate (or agent tasks are ⏸ until a gate is recorded): the linked runbook (or **Operator handoff** itself) contains numbered, runnable shell steps with enough path context to execute without opening the plan. **Warn** when the handoff only says "run runbook X" with no command summary; **fail** when the runbook exists but has no numbered command blocks in Pre-steps / §1–§3 (or equivalent) |
 
 ### E — Project conventions (conditional)
 
