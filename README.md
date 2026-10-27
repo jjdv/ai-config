@@ -2,6 +2,14 @@
 
 The custom harness config: the single source of truth for the whole custom harness. It holds the harness items (today agents, rules and skills) and the processes that sync and maintain them across tools and machines: bootstrap, pull, merge, update, set-local, and the verification and lint procedures. The definition is canonical and tool-agnostic; an agent adapts it to each tool on each machine, and nothing tool-specific is committed. The set of items and processes is expected to grow. Maintainers: read `AGENTS.md` first (layering rule).
 
+## Usage and community
+
+Fork and adapt this config freely for your own setup. The upstream repository is a reference implementation, not a shared product backlog: issues are disabled here, so do not use it for bug reports or feature requests. Pull requests to upstream are not accepted; keep your changes on your fork.
+
+## License
+
+Released under the [MIT License](LICENSE.md).
+
 ## New machine
 
 Clone the repo, open the tool, and ask its agent to read `BOOTSTRAP.md` and bootstrap the tool. This runs once per tool and writes per-machine state to `~/.config/ai/<tool-id>/`. The bootstrap backs up the tool's config first, brings over the approved items in the same run, and writes a migration report; later runs use `merge-ai-config`.
