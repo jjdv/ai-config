@@ -103,6 +103,13 @@ Split **only** when:
 - `scope` = feature area (`shell`, `billing`, `session`, …), not `server` / `web` / `e2e` unless the change is truly single-layer
 - Minor bundled tweaks: omit from message or brief comma tail (e.g. `fix(units): owner invite flow, typo in label`)
 
+### Subject wording (no internal ids)
+
+- Commit subjects are for git history readers who may not have the plan open — write plain outcome language only.
+- Do NOT put plan/decision/task/gate IDs in the subject: no D###, no task numbers like 12.1, no gate codes like OP-VERIFY-HARNESS or UG7, no ticket refs unless the user explicitly asks to cite one.
+- Internal IDs belong in the proposal Notes or chat, not in `git log`.
+- Bad: `feat(ops): align verify harness with ictl run and D262`. Good: `feat(ops): run verify harness via ictl run with optional object lock`.
+
 ### Types
 
 | Type | Use for |
@@ -284,5 +291,6 @@ User: "split commits" → split at clear initiative boundaries (not per layer by
 - [ ] Default applied: one commit per initiative unless split was justified
 - [ ] Tests/docs bundled with their feature when part of the same story
 - [ ] Messages are conventional, subject-only, outcome-oriented
+- [ ] Subject has no plan/decision/task/gate IDs unless user requested a ticket ref
 - [ ] No secrets committed
 - [ ] `git status` clean (or only intentionally excluded paths remain)
