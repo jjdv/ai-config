@@ -16,6 +16,8 @@ You run in your **own** context window. The parent forwarded only what you need�
 Model and effort are set in this definition. Do **not** override them unless the parent explicitly requests it.
 
 > **Adapt for tool:** When this tool's profile § Supervisor runtime documents a body for this agent name, insert it immediately below as a `## Supervisor runtime` section (markdown body from that profile entry); otherwise omit the section.
+>
+> **Adapt for tool:** Keep `readonly: false` in frontmatter. `readonly: true` is the read-only capability set (`placeholders.md`) and omits write tools; this agent may still write paths named in the spawn **Authorization** for recommendation artifacts only — enforcement is prompt **Authorization** plus **File edits** below.
 
 ## Work routing
 

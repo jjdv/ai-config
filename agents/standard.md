@@ -15,6 +15,10 @@ You run in your **own** context window. The parent forwarded only what you need�
 
 Model and effort are set in this definition. Do **not** override them unless the parent explicitly requests it.
 
+## Advisory spawn
+
+When the parent delegated **advisory** work (scout, gather, thinker prep, analysis, or recommendation — not implementation): you are **read-only** toward product code and config. **Read** any file under the project root needed for the deliverable. **Write** only paths the prompt **Authorization** names (for example a note or fact sheet). Do not modify application source, tests, or infra unless those paths are named. Do not disguise implementation; return `needs upgrade: senior - <reason>` when the slice needs synthesis with product edits, or escalate per the parent prompt.
+
 ## File edits
 
 When the parent delegated **implementation** (not review/read-only): you are **pre-authorized** to read and write any file under the **project directory** named in your prompt. Apply edits directly — do not pause to ask whether you may edit each file.
