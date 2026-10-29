@@ -52,7 +52,7 @@ Repeat until a stop condition applies:
 
 1. **Pick** the first runnable task in **Implementation order**.
 2. **Read** its plan row and task file, the **Decisions** it references and the notes in its `Notes in`.
-3. **Write the spec** per **Delegation**: files, exact change, interfaces, out of scope, verification command, only the context needed. For **user-facing** UI work, require the task's Agent to run **`internal-ux-pass`** (internal pass before the first product edit) and name that skill in the spawn spec. If you cannot write a spec the task's Agent can execute, it is a plan issue: go to **Replan flow**.
+3. **Write the spec** per **Delegation**: files, exact change, interfaces, out of scope, verification command, only the context needed. For **user-facing surfaces** (UI or CLI), require the task's Agent to run **`internal-ux-pass`** (internal pass before the first product edit) and name that skill in the spawn spec. If you cannot write a spec the task's Agent can execute, it is a plan issue: go to **Replan flow**.
 4. **Spawn** the task's Agent with the prompt below (complete the **Supervisor spawn checklist** first).
 5. **Verify** deliverables: paths touched, verification command result, diff free of redundant comments (have them removed), drive-by churn and rule violations; when `project-best-practices` exists, compliance with it; when source files changed, the **code** user rule checklist; when the task scope or diff matches **`documentation`** **Do persist**, updated doc paths or explicit **N/A** with reason per **Post-change sync (mandatory)**.
 6. **Update the plan** (Progress tracking), then decide the next action (After a task).
@@ -94,7 +94,7 @@ Allowed read/write roots:
 Forbidden: do not read, write, search, or glob outside allowed roots; do not discover plans by task id alone; do not search parent directories (e.g. ~/Projects/Development) for plans or task ids
 Goal: <one outcome>
 Spec: <the run-time spec: files, exact change, interfaces, out of scope>
-UX: <when user-facing UI: load internal-ux-pass; complete internal pass before first product edit; omit line when not user-facing>
+UX: <when user-facing surfaces (UI or CLI): load internal-ux-pass; complete internal pass before first product edit; omit line when not user-facing>
 Verification: <command and expected result>
 Notes in: <paths to note files the task reads, omit when none>
 Notes out: <paths the task must write, omit when none>
