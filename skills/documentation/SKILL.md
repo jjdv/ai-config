@@ -5,8 +5,9 @@ description: >-
   docs, package README, .local). When the repo has project-best-practices,
   treat it as part of the documentation set — update references/ alongside docs/.
   Use when creating, moving, or restructuring docs, READMEs, specs, runbooks,
-  agent context, implementation plans, API documentation, glossaries, or when
-  the user asks where documentation belongs.
+  agent context, implementation plans, API documentation, glossaries, after
+  implementation or recorded decisions that change durable project facts (not
+  only create/move docs), or when the user asks where documentation belongs.
 ---
 
 # Project documentation
@@ -259,6 +260,19 @@ Repos may document repo-specific names in `references/project-description.md` or
 
 - Reference **stable** paths: `.agents/skills/…/references/…`, `.context/…`, `docs/…`.
 - Avoid `.local/…` except transient pointers during active work.
+
+## Post-change sync (mandatory)
+
+After implementation or a recorded decision changes durable facts, sync the **project documentation set** before the parent reports done.
+
+| Role | Action |
+| --- | --- |
+| **Supervisor** | When **Do persist** applies (see **When not to write files**), delegate **`documentation`** in the same session with absolute project root and the touched areas or diff summary; verify the deliverable below before relaying done. |
+| **Executor** (`documentation` or task agent when docs are in scope) | Follow **Step 0**, then the **Checklist (new or moved doc)** for every layer that changed. |
+
+**Deliverable:** list paths updated, or state **N/A** with a one-line reason when **When not to write files** applies (answer-only, no durable impact, generated artifact already canonical).
+
+When a sequential plan or `.local/` initiative retires, align with **Promotion from completed work** and the **`cleanup-plans`** skill for promote-then-delete — not a substitute for updating live `references/` and `docs/` during active work.
 
 ## Checklist (new or moved doc)
 

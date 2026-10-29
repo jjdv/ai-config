@@ -110,6 +110,7 @@ When the user invokes or attaches a harness skill whose procedure includes **rep
 
 Applies to **all** edits — code, types, config, docs, rules — in the main thread and in delegated work.
 
+- **Documentation** here means inline comments and JSDoc in source — not project docs (`docs/`, skill `references/`, READMEs); those follow **Workflow**.
 - Do **not** add comments, JSDoc, or documentation unless the user explicitly asks.
 - Do **not** add comments that only restate what the code already says. Prefer clear names and structure over inline narration for the obvious.
 - Comment only when something is **non-obvious** without context (domain invariant, external API quirk, performance tradeoff, security edge case).
@@ -133,4 +134,6 @@ After **creating, updating, renaming, or deleting** any rule, skill, or agent in
 
 ## Workflow
 
-- After work that changes project facts (product scope, layout, naming, process) — delegate an update of the affected project-best-practices references, or of `.context/` where the project still uses it (main thread does not edit them directly).
+- After delegated work changes the **durable project surface** (product scope, layout, naming, process, contracts, env, ops, agent context) — in the **same session, before reporting done**, delegate a documentation sync subtask (typically `standard` tier) with the project root and touched areas; whether to persist is defined by **`documentation`** **Do persist** and **When not to write files** (by section title — do not duplicate that checklist here).
+- The main thread does not edit agent `references/`, legacy `.context/`, or other durable docs directly — same pattern as harness sync: delegate, then verify paths updated or explicit N/A with reason in the subtask result.
+- Chat-recorded product, process, or contract decisions that will be implemented in the same initiative — record in the anchored plan **Decisions** (plan path required per **Delegation**) **or** include them in the same documentation sync delegation when no plan is anchored.

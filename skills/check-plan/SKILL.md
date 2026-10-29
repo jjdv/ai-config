@@ -113,9 +113,10 @@ Read each open task (plan row and linked task file). A task is **small**: one ou
 | C12 | **Agent field** | Every task row in **Phases** has an **Agent** value that follows the Delegation scope table (lowest tier that fits) |
 | C13 | **Agent approvals** | Every task with a `principal` or `expert` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a Delegation scope table criterion (highest-complexity recommendation, or critical high-impact recommendation among options); a justification citing size or breadth alone fails; none are unapproved |
 | C14 | **Blocked tasks** | Any ⏸ task has its reason in **Open questions** or the phase row, and is not listed in **Implementation order** ahead of its unblock |
-| C15 | **Runnable next task** | At least one delegable open task passes C1–C13, or the plan is legitimately `complete` |
+| C15 | **Runnable next task** | At least one delegable open task passes C1–C18, or the plan is legitimately `complete` |
 | C16 | **No contradictions** | No two statements contradict each other across **Decisions**, the plan's **Change log** and the task files (for example a Decision value that a task contradicts, a task acceptance that a later Change log row reversed, two tasks owning the same outcome with different values); each contradiction is one finding naming both locations |
 | C17 | **Acceptance commands verified** (**warn**) | Every command named in a task's **Acceptance** is run by that task's **Verification**, or is covered by the plan's verification gate that the task cites |
+| C18 | **Docs acceptance** | Tasks with code or durable product impact include **Docs impact** (updated paths or **N/A** with reason per **`documentation`** **When not to write files**); pure docs-only tasks may omit **Docs impact** |
 
 A vertical slice (one data query → props → UI path, tokens plus styles for one surface, a deletion sweep) is one outcome even across several files; unrelated packages or layers bundled without a single slice are not.
 

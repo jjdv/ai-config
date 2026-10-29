@@ -430,6 +430,10 @@ One paragraph — one concrete outcome.
 - Notes in: `../notes/<name>.md` (existing, or produced by an earlier task's Notes out)
 - Notes out: `../notes/<name>.md` (scout and analysis tasks only)
 
+## Docs impact
+
+Updated doc paths, or **N/A** with reason when **`documentation`** **When not to write files** applies (omit when the task is docs-only).
+
 ## Acceptance
 
 - [ ] … (all serving the goal)
@@ -444,7 +448,7 @@ Exact command or manual check and its expected result (e.g. the package's test c
 - Background: `../architecture.md`, `../brief.md`, or `../../.context/…` (long-term only)
 ```
 
-Omit a References line that has no entries. The `Decisions` line holds only comma-separated IDs from the plan's **Decisions** section, with no other text (check-plan parses it).
+Omit a References line that has no entries. The `Decisions` line holds only comma-separated IDs from the plan's **Decisions** section, with no other text (check-plan parses it). User-facing UI tasks: executor runs **`internal-ux-pass`** before the first product edit (see **`sequential-implementation`**).
 
 ## Workflow (new plan)
 

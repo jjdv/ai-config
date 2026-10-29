@@ -52,9 +52,9 @@ Repeat until a stop condition applies:
 
 1. **Pick** the first runnable task in **Implementation order**.
 2. **Read** its plan row and task file, the **Decisions** it references and the notes in its `Notes in`.
-3. **Write the spec** per **Delegation**: files, exact change, interfaces, out of scope, verification command, only the context needed. If you cannot write a spec the task's Agent can execute, it is a plan issue: go to **Replan flow**.
+3. **Write the spec** per **Delegation**: files, exact change, interfaces, out of scope, verification command, only the context needed. For **user-facing** UI work, require the task's Agent to run **`internal-ux-pass`** (internal pass before the first product edit) and name that skill in the spawn spec. If you cannot write a spec the task's Agent can execute, it is a plan issue: go to **Replan flow**.
 4. **Spawn** the task's Agent with the prompt below (complete the **Supervisor spawn checklist** first).
-5. **Verify** deliverables: paths touched, verification command result, diff free of redundant comments (have them removed), drive-by churn and rule violations; when `project-best-practices` exists, compliance with it; when source files changed, the **code** user rule checklist.
+5. **Verify** deliverables: paths touched, verification command result, diff free of redundant comments (have them removed), drive-by churn and rule violations; when `project-best-practices` exists, compliance with it; when source files changed, the **code** user rule checklist; when the task scope or diff matches **`documentation`** **Do persist**, updated doc paths or explicit **N/A** with reason per **Post-change sync (mandatory)**.
 6. **Update the plan** (Progress tracking), then decide the next action (After a task).
 
 Sequential only: one task at a time unless the user explicitly requests parallel runs. Only the supervisor edits the plan; subagents never do.
@@ -94,6 +94,7 @@ Allowed read/write roots:
 Forbidden: do not read, write, search, or glob outside allowed roots; do not discover plans by task id alone; do not search parent directories (e.g. ~/Projects/Development) for plans or task ids
 Goal: <one outcome>
 Spec: <the run-time spec: files, exact change, interfaces, out of scope>
+UX: <when user-facing UI: load internal-ux-pass; complete internal pass before first product edit; omit line when not user-facing>
 Verification: <command and expected result>
 Notes in: <paths to note files the task reads, omit when none>
 Notes out: <paths the task must write, omit when none>
@@ -209,7 +210,7 @@ Apply in order, from the result alone:
 1. **Pause affected work** when user input is required per the plan's § **User escalation required** (including an upgrade needing approval not already recorded), operator gate per **Operator gate relay**, or a question is relayed. Name the task by title (**User-facing reports**). Tell the user exactly what to do per **User actions** (concrete approval wording, operator **Steps**, or answer shape when you know it — not "update the plan" alone). On their next chat message that supplies it, **User-reported results** then continue at step 2 or 3 as appropriate.
 2. **Escalate or follow up** per **Delegation** step 4 for a failed task (never retried at the same tier) or `needs upgrade`; run a follow-up for the same task only for lint or typecheck fixes; a follow-up beyond that is a plan issue (**Replan flow**).
 3. **Next task**: otherwise delegate the next open task immediately; when none remains, go to step 4.
-4. **Final review**: spawn one `senior` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions and Conventions; it returns findings only. Fix accepted findings per step 2, then report.
+4. **Final review**: spawn one `senior` subagent (level 2, read-only, with an Authorization block) to review the combined diff of the run against the plan's Decisions, Conventions, and **project documentation set** consistency (agent `references/`, `docs/`, package READMEs — not code-vs-conventions alone); it returns findings only. Fix accepted findings per step 2, then report.
 
 ### Stop conditions
 
