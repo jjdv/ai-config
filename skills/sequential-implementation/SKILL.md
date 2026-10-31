@@ -175,33 +175,35 @@ When the plan marks **operator gates** (in `gates.md`, **Operator handoff**, or 
 
 ### Operator gate relay (mandatory)
 
-Emit the full gate packet in chat **proactively** whenever any of these is true — the user must not have to ask for "clear step-by-step instructions":
+**Chat format:** Read and follow `{{path:skills}}/give-instructions/SKILL.md` (**Staged gate relay** A → B → C + **Response shape**). Do not dump the full runbook in one message when **B** is agent-runnable.
 
-- A **stop condition** applies because operator input is required.
-- Agent work for the current slice is done and **Implementation order**, **Fresh chat handoff**, **Open questions**, or the gate catalog says the **next** milestone is operator-only (including after `/sequential-implementation` **continue**).
-- A replan or batch of agent tasks leaves the plan blocked on a gate before the next delegable agent task.
+| Set | Executor |
+| --- | --- |
+| **A** | Operator — **Your steps** only; wait for chat reply |
+| **B** | Supervisor (shell/delegate) — read-only verification, diffs, local scripts without secrets; **never** in **Your steps** |
+| **C** | Operator — **Your steps** in a **follow-up** message after **B**, adapted from B results |
 
-Delegate a read-only subagent to extract numbered commands from the linked runbook when needed; paste those commands (with repo roots and paths) into **Steps** below — do not substitute "see `runbooks/…`" or "follow the runbook" without the runnable commands.
+Emit a gate pause proactively when a stop condition applies, the next milestone is operator-only, or a replan leaves the queue blocked on a gate.
 
-For each gate pause, state in chat (title-first):
+**First message at a gate:** **Situation** (title, place, purpose per **User-facing reports**) + **Your steps** = **A** only (or **C** only when **B** already ran and there is no **A**). **Agent (after you paste …):** run **B**, then send **C** or record `gate-results.md` / resume the plan.
 
-1. **Gate title** (plain language; optional short code in brackets).
-2. **Place in the plan** — which strategic phase or milestone and what agent work it sits after/before (one sentence).
-3. **Purpose** — what it proves or unblocks (name unblocked work by **title**, not id list).
-4. **Steps** — numbered, runnable without opening the plan; include shell commands, absolute project roots, and secret-handling notes (stdin, redaction). Runbook path is a reference only, not a substitute for this list.
-5. **Paste back** — what shape to reply in chat; say **reply in chat only** — you update `gate-results.md` and the plan.
+**After user-reported results for A:** run **B** in the same turn before replying; then either (1) send **give-instructions** with **C** only, (2) record the gate and continue **Implementation order**, or (3) stop if still blocked.
 
-Group compatible gates into **one chat session** when the plan groups them (one runbook, one harness). Do not split one grouped gate into many separate "go do X" messages. Do not ask the user to edit plan files or gate-results for outcomes they paste in chat.
+Delegate a read-only subagent to extract runbook commands when needed — classify them into A/B/C; operator commands go under **Your steps**, agent commands execute in **B**.
+
+For metadata the user needs in **Situation** (not a substitute for **Your steps**): gate title, place in plan, purpose, what unblocks (by **title**).
+
+Group compatible gates into one session when the plan groups them. Do not ask the user to edit plan files or `gate-results.md`.
 
 ## User actions
 
-When user input or action is required (approval, answer, env secret, scope choice, operator gate, or unblocking a `⏸ Blocked` task), give **ready-to-use step-by-step instructions** in chat: what to do, in order, with enough context to execute without opening the plan. Say explicitly that they may **reply in chat only** — they are not required to edit the plan or linked task files; you update those from their reply per **User-reported results**. Include a short **why** (one line) per step or for the request overall. Do not ask the user to mirror progress, **Agent approvals**, **Open questions**, or task **Status** in the plan. Do not substitute "see the plan", "update Implementation order", or "fill Agent approvals in the plan" for a chat answer. If the plan holds the only copy of a value the user must choose, summarize the options and your recommendation in chat; plan paths are optional reference only.
+When user input or action is required (approval, answer, env secret, scope choice, operator gate, or unblocking a `⏸ Blocked` task), give **give-instructions** using **Staged gate relay** — **Your steps** for the **current operator set only** (A or C), not agent set **B**: what to do, in order, with enough context to execute without opening the plan. Say explicitly that they may **reply in chat only** — they are not required to edit the plan or linked task files; you update those from their reply per **User-reported results**. Include a short **why** (one line) per step or for the request overall. Do not ask the user to mirror progress, **Agent approvals**, **Open questions**, or task **Status** in the plan. Do not substitute "see the plan", "update Implementation order", or "fill Agent approvals in the plan" for a chat answer. If the plan holds the only copy of a value the user must choose, summarize the options and your recommendation in chat; plan paths are optional reference only.
 
 Batch independent questions already known into one input round and group compatible manual milestones. Do safe independent work while awaiting required input only when the plan's sequential order and dependencies permit it; do not start parallel tasks without authorization. Never guess an answer or bypass required approval. Confirmed scope and approvals persist, including specific shared paths/actions; ask again only for scope expansion, unapproved shared changes or a genuinely unresolved decision. Run locally available checks yourself and own all bookkeeping.
 
 ## User-reported results
 
-When the user reports an outcome in chat (approval, answer, scope choice, env or access ready, blocker cleared, or "done" on a manual step you requested), treat the message as authoritative. Parse what applies to the current pause (task by **title**, decision, **Agent approvals**, **Open questions**, or blocked status). Update the plan per **Progress tracking** and the plan's **Plan maintenance** (including linked task files' `**Status:**` lines when present). Then resume the loop from **After a task** — do not ask the user to duplicate the same information in the plan.
+When the user reports an outcome in chat (approval, answer, scope choice, env or access ready, blocker cleared, operator gate evidence, or "done" on a manual step you requested), treat the message as authoritative. For operator gates: that reply completes set **A** (or **C** when mid-cycle) — run set **B** before your next chat message when the runbook says verification follows operator action. Parse what applies to the current pause (task by **title**, decision, **Agent approvals**, **Open questions**, or blocked status). Update the plan per **Progress tracking** and the plan's **Plan maintenance** (including linked task files' `**Status:**` lines when present). Compose `gate-results.md` from chat when the gate is documentation-only. Then resume the loop from **After a task** — do not ask the user to duplicate the same information in the plan.
 
 ## After a task
 
@@ -240,7 +242,9 @@ Stop **only** when one of these is true:
 - Delegating plan progress without **Plan path** and allowed plan-directory roots (e.g. ".local only", "mark 3.1 complete")
 - Spawning plan-progress bookkeeping in parallel with the next implementation task
 - Interpreting numeric task ids without opening the anchored **Task file**
-- Pausing on an operator gate with only a gate title, runbook path, or "attempt N" summary — without numbered **Steps** and paste-back shape (**Operator gate relay**)
+- Pausing on an operator gate with only a gate title, runbook path, or "attempt N" summary — without **give-instructions** **Your steps**, fenced commands, and paste-back plus **Agent (after …)** (**Operator gate relay**)
+- Sending **A+B+C** in one **Your steps** list when **B** is agent-runnable (**Staged gate relay**)
+- Asking the user to run read-only gate verification that belongs in set **B** — without running **B** yourself first (**give-instructions**)
 - Waiting for the user to ask for step-by-step instructions when **Operator gate relay** already applies
 
 ## Plan templates

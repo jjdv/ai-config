@@ -46,7 +46,7 @@ Task execution later uses each task's **Agent**.
 
 - **Reports and questions:** name tasks, decisions, **gates**, sections and findings by title or short plain-language description; id or gate code in brackets only when titles need disambiguation (e.g. `Cache invalidation [D2]`, `OVH-G1 lock test [UG3]`), **never by id or code alone**. Question wording follows the `ask-questions` skill.
 - **Operator gates:** each gate has a **human title**, **place in the flow** (phase/milestone), **purpose**, **runbook or script**, **record in** (`gate-results` section), and **unblocks** (agent milestones named by title). Group gates that the operator runs in one session into **one gate row** (one harness, one relocation day) — do not scatter many ⏸ rows for the same milestone.
-- **When the user must act:** **Operator handoff**, **Operator gates**, and runbook text must be paste-ready for the executor as step-by-step chat instructions (what to do, in order, plus a one-line why). State that the user may **reply in chat only**; the executor updates the plan and `gate-results.md`. The user is never required to edit plan or task files or to mirror **Implementation order**, **Agent approvals**, **Open questions**, or task **Status**.
+- **When the user must act:** **Operator handoff**, **Operator gates**, and runbook text must be paste-ready for the executor: classify steps into operator sets **A** / **C** vs agent set **B** (see **give-instructions** **Staged gate relay**). Runbooks supply fenced commands for operator steps; label or order steps so the executor knows what is **B** (read-only verify, diffs — no secrets). At execution time the supervisor sends **A** first, runs **B** after user reply, then **C** adapted from **B** — **give-instructions** shape. State that the user may **reply in chat only**; the executor updates the plan and `gate-results.md`. The user is never required to edit plan or task files or to mirror **Implementation order**, **Agent approvals**, **Open questions**, or task **Status**.
 - **Authoring:** batch open product or policy choices into one `{{tool:ask-user}}` round when possible; do not structure the plan so the user must confirm each phase or approve `staff`/`standard` work task by task.
 
 **Migration planning** (website/page-group migration, "plan a migration of these pages"): read `references/migration-workflow.md` and follow it; it authors through this skill. Do not load it for other plans.
@@ -84,7 +84,7 @@ A plan is the **sole starting context** for a fresh chat and throughout executio
 | Plan issue | **Replan mode** | Reports the issue and stops the affected tasks |
 | Autonomy | § **Autonomy & authorization** (when present) | Pauses only on plan **User escalation** |
 | Scope | § **Scope boundary** | Agent respects; unapproved shared changes or scope expansion → escalate |
-| User manual work / gates | **Gate budget (authoring)**; minimal **Open questions**; **Operator handoff** for rare milestones; § **User escalation required** | **User-facing reports**, **User actions**, **User-reported results**; supervisor updates plan from chat |
+| User manual work / gates | **Gate budget (authoring)**; minimal **Open questions**; **Operator handoff** for rare milestones; § **User escalation required** | **User-facing reports**, **User actions**, **User-reported results**; staged **A → B → C** per **give-instructions**; supervisor updates plan from chat |
 
 ## Gate budget (authoring)
 
@@ -94,7 +94,7 @@ Minimize how often execution pauses for the user and how much they do outside th
 | --- | --- |
 | **Decisions + brief** | Resolve cross-task choices at authoring (scouts, brief, **Decisions**); split so `senior`/`standard` agents run without per-task approval. |
 | **Autonomy & authorization** | When multi-session work justifies it, pre-approve safe ops (dev server, read-only prod compare, plan-scoped edits) so routine environment use does not pause the run. |
-| **Operator handoff** | Explicit user steps only for rare milestones: deploy, prod credentials, irreversible external effects, only when authority, access or an unresolved product/policy decision prevents executor action; group compatible milestones and keep locally runnable checks with the executor. Each gate's runbook must include **Pre-steps** (or equivalent) as numbered, copy-paste shell blocks with paths — not narrative-only — so `sequential-implementation` can relay them without the user opening files. |
+| **Operator handoff** | Explicit user steps only for rare milestones: deploy, prod credentials, irreversible external effects, only when authority, access or an unresolved product/policy decision prevents executor action; group compatible milestones and keep **agent set B** (read-only verify, diffs, local scripts without secrets) with the executor — not in the operator checklist. Each gate runbook: fenced commands for **A**/**C**; optional **Agent verification (B)** section listing what the executor runs after operator **A**. So `sequential-implementation` can relay **A → B → C** per **give-instructions** without the user opening files. |
 | **Open questions** | Few rows; **Blocks** only tasks that truly cannot proceed; resolve at authoring when scouts or the brief can settle them. |
 | **Agent approvals** | Only `principal` or `expert`; no user gates for lower tiers. |
 | **Fresh chat handoff** | **Continue autonomously** through **Implementation order**; repair plan issues automatically; pause only for unresolved user input under § **User escalation required** or missing `principal`/`expert` approval. |
@@ -325,7 +325,7 @@ Blocks lists only task IDs that are `⏸` pending the answer, otherwise `—`. A
 
 ## Operator handoff (not plan tasks)
 
-Manual steps that are **not** plan tasks: deploy, credentials, one-off external console work, or other milestones execution cannot perform under **Autonomy & authorization** or **External environment boundary**. Group compatible milestones; justify each unavoidable gate by authority, access or an unresolved product/policy decision. Write numbered, chat-ready steps naming each milestone by **title**, with enough context and a one-line why; state the user may report outcomes in chat and the executor updates the plan and gate evidence. For each gate, the linked runbook must contain the same steps as fenced or inline shell commands (project roots, wheel pin, unlock, harness invocation, secret stdin patterns) — the plan may summarize, but must not be the only place with runnable commands. Do not duplicate **Phases** tasks; do not instruct the user to edit the plan for progress or **Agent approvals**.
+Manual steps that are **not** plan tasks: deploy, credentials, one-off external console work, or other milestones execution cannot perform under **Autonomy & authorization** or **External environment boundary**. Group compatible milestones; justify each unavoidable gate by authority, access or an unresolved product/policy decision. Write runbooks so operator steps (**A** / **C**) are numbered with fenced shell commands; separate **agent verification (B)** (read-only checks the executor runs after operator **A**) — see **give-instructions** **Staged gate relay**. State the user may report outcomes in chat and the executor updates the plan and gate evidence. Do not duplicate **Phases** tasks; do not instruct the user to edit the plan for progress or **Agent approvals**.
 
 ## Operator gates (execution gates)
 
@@ -402,8 +402,8 @@ When the supervisor delegates plan bookkeeping to an agent, the plan must name t
 7. Load task-specific skills listed in the task or phase (e.g. `{{path:skills}}/improve-parity/SKILL.md`, sibling skills named by project-best-practices).
 8. For each task, write its spec from the task, the **Decisions** it cites and its `Notes in`; delegate to its **Agent** with **Conventions** (project-best-practices + **code** rule) + plan **Authorization** when § Autonomy present; supervisor updates plan after each task.
 9. **Continue autonomously** through **Implementation order**; pause only on plan § **User escalation required**, a missing `principal`/`expert` approval or other user-dependent blocker; repair plan issues automatically via **Replan mode** — not after each phase or task by default.
-10. When pausing for user action, relay per **User-facing wording** (executor uses `sequential-implementation` **User actions**, **Operator gate relay**, and **User-reported results**).
-11. When **next** is operator-only (gate not yet recorded, or agent queue blocked on a gate): executor relays full numbered steps from the runbook in chat on the first stop — user does not need to ask for step-by-step instructions.
+10. When pausing for user action, relay per **User-facing wording** and **give-instructions** **Staged gate relay** (operator **A** → agent **B** → operator **C**): **User actions**, **Operator gate relay**, **User-reported results**.
+11. When **next** is operator-only: send **A** first, not the full runbook — user does not need to ask for step-by-step instructions.
 12. Prerequisites: …
 ```
 
