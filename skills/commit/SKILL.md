@@ -33,7 +33,7 @@ The supervisor may tighten wording in the proposal but must not invent clusters,
 
 ### Approval gate (hard)
 
-1. **Proposal must land in chat** — running `git status` / `git diff` in tools is not enough. The user must see the full **Commit proposal** block (message, includes, excludes) in an assistant message **before** any `git add` or `git commit`.
+1. **Proposal must land in chat** — running `git status` / `git diff` in tools is not enough. The user must see the full **Commit proposal** block (**Target repo**, message, includes, excludes) in an assistant message **before** any `git add` or `git commit`.
 2. **No commit in the analysis turn** — on `commit` or "commit changes", the first reply is **proposal only** (plus tool analysis if needed). Do not stage or commit in that same turn, even if analysis finished.
 3. **No proposal yet → no commit** — if the prior turn only ran git commands or was cut off before the proposal block, the next user message does **not** auto-approve. Present (or re-present) the proposal and wait again.
 
@@ -127,18 +127,32 @@ Split **only** when:
 
 Pick one primary `type` per commit.
 
+## Target repository (mandatory)
+
+Every commit proposal and every execute step names **one git root** explicitly. In a multi-root workspace, never assume cwd or “the project” from chat context alone.
+
+| Phase | Requirement |
+| --- | --- |
+| **Analysis** | `cd` to the intended root (or pass `--git-dir` / `-C`), then run all git commands there. Confirm with `git rev-parse --show-toplevel` and return that **absolute path** in the subagent report. |
+| **Proposal** | First field under **Commit proposal** (before Plan/Message): **`Target repo:`** `/absolute/path/to/git-root`. If the approved plan spans multiple repos, use one **Target repo** block per repo (each with its own commits listed under it). |
+| **Execute** | Same root as in the approved proposal; `cd` there before `git add` / `git commit`. |
+
+When several workspace folders are open but only one has changes, still show **Target repo** — ambiguity is the default failure mode.
+
 ## Scope analysis
 
 The **analysis subagent** runs before any proposal (supervisor does not substitute its own diff read):
 
 ```bash
+cd /absolute/path/to/git-root   # from user message, plan Project root, or rev-parse after explicit pick
+git rev-parse --show-toplevel
 git status
 git diff
 git diff --staged
 git log -5 --oneline
 ```
 
-Run `status`, `diff`, and `log` in parallel when possible. Return cluster list, planned commit count, subject line(s), includes/excludes, warnings, and notes for the supervisor.
+Run `status`, `diff`, and `log` in parallel when possible (all from **Target repo**). Return **target repo path**, cluster list, planned commit count, subject line(s), includes/excludes, warnings, and notes for the supervisor.
 
 ### Step 1 — Cluster changes (mandatory)
 
@@ -170,6 +184,8 @@ After analysis, present a **commit proposal** to the user. Do not stage or commi
 ```markdown
 ## Commit proposal
 
+**Target repo:** `/absolute/path/to/git-root`
+
 **Plan:** 1 commit (one initiative)
 
 **Message:** `feat(shell): context-defined features gating nav and paths`
@@ -191,12 +207,13 @@ Reply **go** to commit, or suggest changes (message, scope, split).
 
 ### Multiple commits — numbered list
 
-For each planned commit: **message**, **paths / summary**, brief **why separate**, and **commit order** when later commits depend on earlier ones (e.g. shared widget before views that import it).
+Under each **Target repo** heading (repeat per git root): numbered commits with **message**, **paths / summary**, brief **why separate**, and **commit order** when later commits depend on earlier ones (e.g. shared widget before views that import it).
 
 ### Proposal rules
 
+- **`Target repo`** absolute path is **required** on every proposal — including when only one repository has changes.
 - Show the exact **subject line(s)** the user will see in `git log`
-- When the workspace or project contains multiple repositories, group every proposed commit under a heading naming its repository, even when only one repository has proposed changes. Keep commits for the same repository together, and identify each commit within that group. When there is only one repository, keep the proposal format above.
+- When multiple repositories have changes, one **Commit proposal** section per repo (each starts with **Target repo**); never merge commits from different roots under one repo heading.
 - List **paths or areas** included — not a raw dump of every hunk unless the diff is tiny
 - Call out **exclusions**, **secrets**, and **split rationale**
 - **Warnings** lists only things that block or endanger the commit and need the reader's action or decision: secrets detected and excluded, secrets check not run, risky deletions, files that need isolation. When there are none, write exactly `none`
@@ -249,6 +266,7 @@ Rare — only when one file contains hunks for **unrelated** commits:
 Always pass the message via HEREDOC — subject line only:
 
 ```bash
+cd /absolute/path/to/git-root
 git add <paths>
 git commit -m "$(cat <<'EOF'
 feat(shell): context-defined features gating nav and paths
@@ -283,7 +301,7 @@ User: "split commits" → split at clear initiative boundaries (not per layer by
 
 - [ ] Analysis delegated to `junior`; clusters listed in proposal
 - [ ] Subagent ran full diff (`status`, `diff`, recent `log`)
-- [ ] **Commit proposal block sent in chat** (not only in tool output), with Warnings (blocking only) and Notes (max 3 bullets) separated
+- [ ] **Commit proposal block sent in chat** (not only in tool output), with **Target repo** path, Warnings (blocking only) and Notes (max 3 bullets) separated
 - [ ] **No `git add` / `git commit` in the same turn as first `commit`**
 - [ ] User used an **explicit approval phrase** (not `continue` / `ok` / `proceed` alone)
 - [ ] **Proposal presented and user approved** before any `git commit`
