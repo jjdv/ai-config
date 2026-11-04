@@ -56,7 +56,7 @@ A `block:*` value is multi-line text the adapting agent authors from the tool's 
 
 - `block:tool-note`: one paragraph placed under a skill title. It maps the generic terms the skill uses (spawn a subagent, ask the user, browser, skills location) to the tool's own names, and says how the tool selects a model when spawning.
 - `block:tool-mapping`: a table `| Term in this rule | <tool> |` with one row per term the rest of the rule text uses (subagent spawn, subagent (any tier), ask the user, context tools, harness sync, skill location, and any other term the rule defines), each cell the tool-native equivalent; the context-tools row lists the tool keys of the capabilities read, search, write, edit, delete, shell, browser, taken from the `tool:*` entries of `placeholders.json`. A term with no equivalent is not filled with a fallback: the cell states that the tool has no equivalent and the report names the term. A row must not contradict the rule's own sections; omit rows for terms the rule does not use.
-- `block:spawn-rule`: how to treat the model when spawning an agent in this tool: whether the agent definition pins the model (do not pass one) or the call must carry it, which model variants are never allowed, and what to do when a requested model is not permitted (stop and report). States that `spawn:tier-backend` in `placeholders.json` is the machine default for staff/principal/expert backend selection; includes chat-override policy from `profile.md` when the tool has one. Rendered in the base rule; delegation skills point at **Spawn policy** instead of repeating this block.
+- `block:spawn-rule`: how to treat the model when spawning an agent in this tool: whether the agent definition pins the model (do not pass one) or the call must carry it, which model variants are never allowed, and what to do when a requested model is not permitted (stop and report). Includes chat-override policy from `profile.md` when the tool has one. Rendered in the base rule; delegation skills point at **Spawn policy** instead of repeating this block.
 
 ### Degradation
 
@@ -67,7 +67,7 @@ A `block:*` value is multi-line text the adapting agent authors from the tool's 
 
 ## Authoring rules
 
-- Use a placeholder only when the text must change per tool. Plain agent names (`standard`) stay plain in prose, and capabilities stay plain wording unless the exact key must appear (capability vocabulary above).
+- Use a placeholder only when the text must change per tool. Plain agent names (`senior`) stay plain in prose, and capabilities stay plain wording unless the exact key must appear (capability vocabulary above).
 - Third-party products (for example a browser automation product, a design tool) may be named; their tool keys and ids may not.
 - `{{model:*}}` and `{{effort:*}}` never appear outside agent frontmatter.
 - Adaptation note: a line starting `> **Adapt for tool:** <instruction>` tells the adapting agent what to render at that spot (rules come from `profile.md`). The agent applies it and drops the line. Notes name no tool and no model.

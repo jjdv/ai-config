@@ -19,7 +19,7 @@ invocation: explicit
 
 Structured, **read-only** review of a git branch before merge. Produce a report the user can act on; do not implement fixes unless they ask separately.
 
-**Delegated execution (mandatory):** the whole review runs as delegated work per the base rule. Phase 0 triage and Phase 2 synthesis each run in one `senior` agent (the orchestrator); Phase 1 domain lanes run as `staff` agents with a decision-complete spec. The main thread only gates the invocation, asks the user and relays the single report.
+**Delegated execution (mandatory):** the whole review runs as delegated work per the base rule. Phase 0 triage and Phase 2 synthesis each run in one `senior` agent (the orchestrator); Phase 1 domain lanes run as `senior` execution agents with a decision-complete spec, each returning candidate findings. The main thread only gates the invocation, asks the user and relays the single report.
 
 ## Invocation
 
@@ -210,7 +210,7 @@ When a project skill exists, load **`references/code-review.md`** from that skil
 |---------------------|--------|
 | Load | Project skill + `code-review.md`; references selected by path matrix only |
 | Brief Domain 1 | Term mapping, parity extensions, selected reference paths, preprocessor/dual-registry notes from manifest |
-| Sub-lane | When manifest § Domain 1 sub-lane conditions match → spawn a **Domain 1 adapter sub-lane** (`staff`; decision-complete spec; candidate findings only) |
+| Sub-lane | When manifest § Domain 1 sub-lane conditions match → spawn a **Domain 1 adapter sub-lane** (`senior`; decision-complete spec; candidate findings only) |
 | Synthesis | Merge core `references/false-positives.md` with manifest § False-positive patterns |
 
 **When no adapter:** run Domain 1 from diff shape and generic checklists; record assumptions in internal scope briefing only (not the user report).
@@ -263,7 +263,7 @@ Do not drop verified wiring gaps or proven cross-boundary leaks to shorten the r
 
 ### Phase 1 — Domain lanes (subagents when scope warrants)
 
-Each lane returns **candidate findings** in the standard record format (§ Finding record). Lanes are **read-only**; cite branch-diff paths/lines only. Apply the § Scope revert test before emitting a candidate — checklist coverage is not a finding list. **Cap: max 2 candidates per lane** unless `pr_blocker: yes`; prefer dropping `evidence_strength: hypothetical`.
+Each lane returns **candidate findings** in the standard record format (§ Finding record). Lanes are **read-only**; cite branch-diff paths/lines only. A lane is level 3 and never spawns: for a specific hard question it cannot settle, it returns `needs upgrade: staff - <question and advisory brief>`, and the orchestrator spawns that advisory `staff` (Authorization per base). Apply the § Scope revert test before emitting a candidate — checklist coverage is not a finding list. **Cap: max 2 candidates per lane** unless `pr_blocker: yes`; prefer dropping `evidence_strength: hypothetical`.
 
 **Four lanes** — one per review domain. Activate every lane whose trigger matches; run **conditional sub-checklists** inside domain 1 when paths match (§ Conditional sub-checklists).
 
@@ -293,7 +293,7 @@ Split **before** spawning when a single domain lane would touch too many paths �
 | New domain block tree with ≥ 2 new block modules | Domain **1** subagent scoped to that domain block tree |
 | `transform` / mapper pipeline refactor | Domain **2** + **3** on transform diff; domain **1** if registry/query also changed |
 | Both editor schemas and query layer changed | Domain **1** with **content stack parity** sub-checklist |
-| Repo adapter manifest loaded; Domain 1 activated; manifest § Domain 1 sub-lane conditions met | Domain **1** adapter sub-lane (`staff`; manifest parity + path-matrix references only) |
+| Repo adapter manifest loaded; Domain 1 activated; manifest § Domain 1 sub-lane conditions met | Domain **1** adapter sub-lane (`senior`; manifest parity + path-matrix references only) |
 | > ~40 changed files on branch | Run **all four activated domain lanes** in parallel; split domains 2–4 by path bucket (below) |
 | **Any activated domain lane** with **≥ 8** changed files in its bucket **or** **≥ 3** top-level path prefixes (e.g. primitive, CMS-layer and theme directories) | **Mandatory sub-split** that domain — never one monolithic subagent for the whole bucket |
 | **Domain 4** (unnecessary global changes) activated and diff touches **both** shared primitives **and** transform/mapper/theme layers | **Two sub-lanes minimum:** (a) shared primitives + SCSS defaults, (b) transform/mapper/query pipeline — spawn in parallel |
@@ -305,7 +305,7 @@ Split **before** spawning when a single domain lane would touch too many paths �
 
 **Sub-lane time budget:** If a sub-lane cannot finish its allowlist, return partial candidates with `paths_not_reviewed: [...]` — orchestrator spawns a follow-up sub-lane for the remainder or a follow-up agent completes it before synthesis (§ Lane failure / abortion).
 
-Use `staff` for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
+Use `senior` for lane subagents. Orchestrator merges outputs — lanes do not write the final report.
 
 **Lane failure / abortion (mandatory):** If a domain lane subagent **times out, aborts, or returns incomplete output**, the orchestrator must either (a) finish that lane’s scope through a follow-up `senior` agent before synthesis, or (b) record the gap in **Open questions** (e.g. “Domain 4 incomplete — global-blast table not fully verified”). Do **not** publish a complete-looking report when an activated lane did not finish.
 

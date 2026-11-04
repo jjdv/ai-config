@@ -113,15 +113,15 @@ Do not update the plan; the supervisor does (including from user-reported result
 The user already approved this task. You may read and write only under these roots without asking for per-file permission. Do not edit outside them. Do not commit unless asked.
 ```
 
-Run the Agent with the spawn call `{{tool:spawn-agent}}({{agent:standard}})` (the task's Agent in place of `standard`). When the plan has § **Autonomy & authorization**, use that plan's **Authorization** block instead of the generic one. Follow **Spawn policy** in the mandatory **base** rule.
+Run the task with the spawn call `{{tool:spawn-agent}}({{agent:senior}})`, using the recorded Agent in place of `senior` when it is `junior` or `senior`. A recorded `staff` or `principal` Agent is advisory-only and the supervisor never spawns it: spawn `senior` instead, with the recorded tier and any recorded **Agent approvals** in its prompt, and it spawns that tier per the base rule. When the plan has § **Autonomy & authorization**, use that plan's **Authorization** block instead of the generic one. Follow **Spawn policy** in the mandatory **base** rule.
 
 Task Agents run as level 2 (this supervisor is level 1): per **Delegation** they may spawn subtasks, or return `needs split` / `needs upgrade`.
 
-Use the recorded Agent; escalation per **Delegation** step 4 may select the lowest fitting higher tier. Update the recorded **Agent** before execution and re-audit structural plan changes; `junior` through `senior` upgrades do not require user approval.
+Use the recorded Agent; escalation per **Delegation** step 4 may select the lowest fitting higher tier, routed the same way. Update the recorded **Agent** before execution and re-audit structural plan changes; `junior` through `senior` upgrades do not require user approval.
 
 ## Returns from an executing agent
 
-- `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a `principal` or `expert` Agent needs user approval only when not already covered by the plan's recorded **Agent approvals**, and only for a criterion in the Delegation scope table, never for size: an oversized task is split instead). When approval is missing, request it with **User actions** (what to approve and why). On approval in chat, apply **User-reported results** (write **Agent approvals** in the plan); do not ask the user to edit the plan.
+- `needs upgrade: <tier> - <reason>`: handle per **Delegation** step 4 (a `principal` Agent needs user approval only when not already covered by the plan's recorded **Agent approvals**, and only for a criterion in the task-to-tier mapping, never for size: an oversized task is split instead). When approval is missing, request it with **User actions** (what to approve and why). On approval in chat, apply **User-reported results** (write **Agent approvals** in the plan); do not ask the user to edit the plan.
 - `needs split: <subtasks>`: the task is oversized; **Replan flow**.
 - `plan issue: <description>`: **Replan flow**.
 - `question: <question>`: relay per **Delegation**, worded per the **ask-questions** skill; name the task by title (optional id in brackets only to disambiguate). Give the user **User actions** steps to answer. Mark the task `⏸ Blocked` with the question in **Open questions** until answered; on the user's chat reply, apply **User-reported results** and resume with the answer in the spec.
@@ -138,7 +138,7 @@ Triggered by a `plan issue:` result, an oversized task, a task whose spec cannot
 2. Re-run the `check-plan` audit (Pre-flight step 1); repair remaining findings automatically within the replan limits and resume only on `READY`. If an unchanged failure repeats with no progress, stop and explain the concrete blocker instead of looping.
 3. Report the replan to the user in 1-2 lines (what changed and why, by task or decision **title**), even when no approval was needed — **unless** the next work is an operator gate; then append the full **Operator gate relay** packet in the same message. If the user must approve or act before you resume, follow **User actions** — do not send them to the plan alone.
 
-Replan limits (defined in `create-plan`): edits only unfinished tasks, within the original goal and scope, no reversal of user-approved Decisions, no `principal` or `expert` assignment without recorded user approval. Anything beyond needs the user's approval before the plan changes; spell out what you need in chat per **User actions**.
+Replan limits (defined in `create-plan`): edits only unfinished tasks, within the original goal and scope, no reversal of user-approved Decisions, no `principal` assignment without recorded user approval. Anything beyond needs the user's approval before the plan changes; spell out what you need in chat per **User actions**.
 
 ## Progress tracking
 
@@ -231,7 +231,7 @@ Stop **only** when one of these is true:
 - Asking whether to continue, or phrasing that puts continuation on the user ("say if you want…", "I can keep going through 8.5…", "want me to continue?") — after one task or after many
 - Ending the turn after a successful task when the next ID in **Implementation order** is runnable and no stop condition applies
 - Starting the next task in the parent context instead of delegating
-- Executing with an Agent before recording an approved escalation in the plan, or with a `principal` or `expert` Agent lacking applicable recorded **Agent approvals**
+- Executing with an Agent before recording an approved escalation in the plan, or with a `principal` Agent lacking applicable recorded **Agent approvals**
 - Passing the full plan or chat history into a task prompt
 - Omitting the Conventions block when `project-best-practices` exists, or accepting code that ignores it
 - Delegating a task you cannot write a spec for, instead of replanning
@@ -258,8 +258,8 @@ For pasted plans missing progress tracking; use the smallest that fits.
 
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T01 | … | standard | [x] |
-| T02 | … | standard | [ ] |
+| T01 | … | junior | [x] |
+| T02 | … | senior | [ ] |
 ```
 
 For a single task, a `## Current task` block with `**ID:** T01 · **Status:** [ ]`, `### Goal` and `### Acceptance`; migrate to the table before starting a second task.

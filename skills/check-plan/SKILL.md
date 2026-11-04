@@ -6,7 +6,7 @@ description: >-
   handoff-ready for sequential-implementation in a fresh chat — structure,
   Decisions and Change log sections, open-only implementation order, linked task
   and note files, small tasks with acceptance checks and bounded scope, agents
-  (principal/expert user-agreed), autonomy/scope when claimed. Invoke with the plan
+  (principal user-agreed), autonomy/scope when claimed. Invoke with the plan
   file path. Read-only audit; use create-plan to fix gaps.
 ---
 
@@ -72,7 +72,7 @@ Name checks, findings, tasks, decisions and sections by title or short plain-lan
 | A7 | **Phase table vs order** | Every ID in **Implementation order** appears in **Phases** with non-complete status (or ⏸ with documented block); completed tasks stay in **Phases** with `✅` |
 | A8 | **Decisions section** | `## Decisions` exists holding cross-task decisions (interfaces, data shapes, ordering, naming) with IDs; it may be empty only if no task references a decision |
 | A9 | **Change log section** | `## Change log` exists, recording replans (what changed, why); may be empty on a never-replanned plan |
-| A10 | **Agent approvals table** | `## Agent approvals` exists with columns Task ID, Agent, Justification, Agreed by user (rows only for `principal`/`expert` tasks; empty otherwise) |
+| A10 | **Agent approvals table** | `## Agent approvals` exists with columns Task ID, Agent, Justification, Agreed by user (rows only for `principal` tasks; empty otherwise) |
 | A11 | **Plan maintenance** | Section present with per-task update rules |
 | A12 | **Fresh chat handoff** | `### Fresh chat handoff` (or equivalent) with numbered steps naming the next task by title (optional ID in brackets) and skills to load |
 | A13 | **Single entry point** | Handoff includes the exact `{{tool:skill-prefix}}sequential-implementation <plan-path>` invocation matching this file |
@@ -110,8 +110,8 @@ Read each open task (plan row and linked task file). A task is **small**: one ou
 | C9 | **Decision references** | Where a task depends on cross-task decisions (interfaces, data shapes, ordering, naming), it references them by ID and every referenced ID exists in **Decisions**; design choices are not left to the executor |
 | C10 | **Notes in** | Every `Notes in` entry refers to a note that exists on disk or is listed in the `Notes out` of an **earlier** task in **Implementation order** |
 | C11 | **Notes out** | Every `Notes out` path lies in the plan's `notes/` folder; no scout or analysis task omits `Notes out` |
-| C12 | **Agent field** | Every task row in **Phases** has an **Agent** value that follows the Delegation scope table (lowest tier that fits) |
-| C13 | **Agent approvals** | Every task with a `principal` or `expert` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a Delegation scope table criterion (highest-complexity recommendation, or critical high-impact recommendation among options); a justification citing size or breadth alone fails; none are unapproved |
+| C12 | **Agent field** | Every task row in **Phases** has an **Agent** value that follows the task-to-tier mapping (lowest tier that fits) |
+| C13 | **Agent approvals** | Every task with a `principal` Agent has a row in `## Agent approvals` with a user-agreed date and a justification citing a task-to-tier mapping criterion (highest-complexity bounded slice, critical high-impact choice among options, or hardest bounded root-cause diagnosis); a justification citing size or breadth alone fails; none are unapproved |
 | C14 | **Blocked tasks** | Any ⏸ task has its reason in **Open questions** or the phase row, and is not listed in **Implementation order** ahead of its unblock |
 | C15 | **Runnable next task** | At least one delegable open task passes C1–C18, or the plan is legitimately `complete` |
 | C16 | **No contradictions** | No two statements contradict each other across **Decisions**, the plan's **Change log** and the task files (for example a Decision value that a task contradicts, a task acceptance that a later Change log row reversed, two tasks owning the same outcome with different values); each contradiction is one finding naming both locations |

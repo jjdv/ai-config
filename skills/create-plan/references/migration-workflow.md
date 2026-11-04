@@ -8,7 +8,7 @@ Loaded by `create-plan` for a website/page-group migration (routes or domains fr
 
 ## Execution
 
-Phases 1 and 2 run on `staff` (advisory only); Phase 4 follows `create-plan` § Execution (scouts write to `notes/`, `senior` authors, then the `check-plan` audit). Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `senior` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
+Phases 1 and 2 run as a `senior` that spawns `staff` (advisory only); Phase 4 follows `create-plan` § Execution (scouts write to `notes/`, `senior` authors, then the `check-plan` audit). Phase 3 is the supervisor's: it presents the Phase 2 proposal, iterates with `{{tool:ask-user}}`, and spawns `senior` for Phase 4 only after explicit agreement, passing the locked summary. Track the phase in chat.
 
 ## Required skills (load before Phase 1)
 
@@ -33,7 +33,7 @@ Inventory source → target mapping and candidate architecture **before** propos
 
 **1.2 Conventions.** With `project-best-practices`, read its `SKILL.md`, then the project's own placement, structure and migration references (`.agents/skills/project-best-practices/references/<topic>.md`, or the router) when they exist. Also check the project's block inventory and domain foundation docs when present, and existing `.local/` plans for the domain.
 
-**1.3 Source investigation.** Survey for the scoped routes: route manifest, page templates, MDX/component sequences; reusable patterns vs one-off sections; CMS shapes, images/assets, redirects; production vs source-repo inconsistencies (flag for parity policy). When scope spans **>3 routes** or multiple source files, spawn one `{{tool:spawn-agent}}({{agent:standard}})` read-only scout (`{{agent:senior}}` when synthesis is needed) — **one** investigation spawn per domain slug.
+**1.3 Source investigation.** Survey for the scoped routes: route manifest, page templates, MDX/component sequences; reusable patterns vs one-off sections; CMS shapes, images/assets, redirects; production vs source-repo inconsistencies (flag for parity policy). When scope spans **>3 routes** or multiple source files, spawn one `{{tool:spawn-agent}}({{agent:junior}})` read-only scout (`{{agent:senior}}` when synthesis is needed) — **one** investigation spawn per domain slug.
 
 **1.4 Architecture dimensions.** Per route group, decide **candidates** (Phase 2 proposes):
 
@@ -86,7 +86,7 @@ Plan sections (patterns in `create-plan` § Optional sections; **Target vs code*
 | **4 — Parity** | One task per coherent URL batch (e.g. listing + one story; whole domain only if ≤3 URLs) |
 | **5 — Closure** | Scoreboard sign-off, docs update, parent index link |
 
-Investigation-only work is a separate report-only scout task (lowest tier per the Delegation scope table) with `Notes out` in `notes/`, read by the later tasks (`Notes in`). Every parity task includes:
+Investigation-only work is a separate report-only scout task (lowest tier per the task-to-tier mapping) with `Notes out` in `notes/`, read by the later tasks (`Notes in`). Every parity task includes:
 
 ```markdown
 ## Parity invocation

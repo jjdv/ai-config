@@ -48,11 +48,11 @@ Roles, tier selection, gather/think splitting, parallelism and spawning follow `
 
 1. Restate the scope in one paragraph and fix the **project root**.
 2. Ask only what blocks the assessment with `ask-questions`: what the scope is, what prompted the assessment, what is out of scope.
-3. Spawn one `standard` per area of the scope for a read-only survey (Authorization block: project root, read-only, no writes, no commit): project conventions, prior decisions.
+3. Spawn one `junior` per area of the scope for a read-only survey (Authorization block: project root, read-only, no writes, no commit): project conventions, prior decisions.
 
 ### 2. As-built recovery
 
-1. Spawn `standard` scouts in parallel, one per area, returning a fact sheet: what it does, boundaries, components, data, interfaces, flows, tests, with `file:line` paths. Facts only, no judgment.
+1. Spawn `junior` scouts in parallel, one per area, returning a fact sheet: what it does, boundaries, components, data, interfaces, flows, tests, with `file:line` paths. Facts only, no judgment.
 2. A failed or thin sheet is re-gathered, not guessed.
 3. Spawn one `senior` to merge the sheets into a single as-built picture. No assessment starts before it exists.
 
@@ -66,8 +66,8 @@ Roles, tier selection, gather/think splitting, parallelism and spawning follow `
 
 Repeat per level, top-down.
 
-1. Spawn `standard` gather tasks for the level's aspects in parallel (extra evidence beyond the as-built picture only).
-2. Spawn one thinker per aspect with items at this level (parallel where independent), passing: scope, project root, as-built picture, fact sheets, findings and decisions from higher levels, the aspect's scope limited to this level. A `minor` aspect is folded into the closest related aspect's thinker.
+1. Spawn `junior` gather tasks for the level's aspects in parallel (extra evidence beyond the as-built picture only).
+2. Spawn a `senior` sub-supervisor for the level's thinking wave. It spawns one `staff` thinker per aspect with items at this level (parallel where independent), passing: scope, project root, as-built picture, fact sheets, findings and decisions from higher levels, the aspect's scope limited to this level. A `minor` aspect is folded into the closest related aspect's thinker.
 3. Each thinker returns findings in the **finding format** below. A finding with no problem is not reported; a problem with one clearly dominant improvement records it as **proposed**, not asked.
 4. A new aspect reported by a thinker goes through phase 3 step 2 and is assessed at its levels.
 5. Genuine forks in the improvement direction (directions of similar value) are asked with `ask-questions` following the `propose-plan` rules: one level at a time, aspect by aspect, upstream first, up to 4 related questions per call, a recommended option listed first with its reason. Level 3 improvements default to proposed.
@@ -94,7 +94,7 @@ Gather requests: <what is missing>
 ### 5. Consolidation
 
 1. Spawn `senior` to merge findings into the report content and run a consistency pass: duplicates, contradictions, findings without evidence, severity ranking, uncovered aspects, open questions left.
-2. Spawn `staff` (granted the sub-supervisor exception, so it may use `expert` only for a specific critical, high-impact decision in the scope, never because the scope is large) to review the consolidated report against the checklist below; its findings go back through phase 4.
+2. Spawn a `senior` sub-supervisor (granted the sub-supervisor exception) that spawns a `staff` reviewer for the consolidated report against the checklist below. The reviewer is level 3 and returns `needs upgrade: principal - <reason>` only for a specific critical, high-impact decision in the scope; the sub-supervisor obtains user approval (`propose-plan` Roles) before spawning `principal`, never because the scope is large. Its findings go back through phase 4.
 3. Present the findings report in chat, with a short summary of the main findings and agreed improvements. Wait for approval or changes.
 
 ### 6. Handoff

@@ -503,10 +503,10 @@ One coherent chunk per spawn (~15min). **Do not bundle multiple full invocations
 
 | Step | Subagent |
 | --- | --- |
-| A1 CSS compare + inconsistency cross-check | `{{agent:playwright}}` or `standard` |
-| A2 CSS fix | `standard` |
+| A1 CSS compare + inconsistency cross-check | `{{agent:playwright}}` or `{{agent:senior}}` |
+| A2 CSS fix | `{{agent:senior}}` |
 | B1 Visual compare | `{{agent:playwright}}` (prefer headless script) |
-| B2 Visual fix | `standard` |
+| B2 Visual fix | `{{agent:senior}}` |
 | Structural report synthesis | supervisor or `senior` read-only |
 
 `playwright` is a special agent, not a tier. Spawn prompts follow base Delegation step 5: the agent's level, the comments constraint, the naming-references constraint and an authorization block, plus a decision-complete spec for the step.
