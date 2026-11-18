@@ -104,6 +104,31 @@ When the user invokes or attaches a harness skill whose procedure includes **rep
 - Applies equally to subagent output meant for the user: the supervisor restates id-only items by title before relaying.
 - Delegated prompts include this constraint, like the comments constraint.
 
+### Plan and gate naming in chat (mandatory)
+
+Applies to every user-facing message (main thread and relayed subagent output), including plan reviews, gate handoffs, and alignment summaries. Plan files and `gate-results.md` may keep ids; **chat must not require opening the plan to understand what you mean.**
+
+**Lead with a human label.** The first words name the **task title**, **gate title** (as recorded in the plan), **decision title** or short description, or a plain-language milestone (e.g. “prod application mail settings deferred until first real production use”).
+
+**Forbidden as the main label (chat):**
+
+- Bare plan task numbers (`22.1`, `next is 17.8`).
+- Bare decision ids (`D311`, `D309`) or phase codes (`S3a`, `R4a`, `P7`) without the title in the same sentence.
+- Bare operator-gate codes (`OP-S3c-ALERT`, `OP-R4a`, `UG8`) without the gate **title** from the plan.
+- Tables or bullet lists whose first column is only codes or ids.
+- Strings that are only a code in bold (e.g. “do **OP-R4a** next” with no title).
+
+**Allowed:** title first; optional bracketed disambiguator after (e.g. **First real production uses gate** [operator milestone]; **prod application SMTP and OAuth** [decision record]).
+
+| Bad (chat) | Good (chat) |
+| --- | --- |
+| “D311 blocks launch” | “**Prod application SMTP and OAuth** defers until **first real production uses**” |
+| “Finish R4a then 18.1” | “After **guard and probe gate** passes, run **Ansible plan_hash callback plugin**” |
+| “OP-S3c-ALERT is optional” | “**Observability alerting rollout** (optional epilogue) does not block launch” |
+| “See S3a / D237” | “**Slim backup-and-restore gate** already recorded; mesh alerting still off” |
+
+Skills that drive plan execution (e.g. **sequential-implementation**) follow this section in chat; they do not duplicate it.
+
 ## Comments (mandatory)
 
 Applies to **all** edits — code, types, config, docs, rules — in the main thread and in delegated work.

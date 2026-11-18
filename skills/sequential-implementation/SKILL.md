@@ -61,15 +61,7 @@ Sequential only: one task at a time unless the user explicitly requests parallel
 
 **Reporting:** Per-task status lives in the plan file. In chat, give a **full** summary only when the **whole run** stops (all tasks done plus final review, or a stop condition). While the run continues, chat messages may be omitted or limited to blockers and escalations — never a "done for now" recap that invites the user to opt in to more work. **Exception:** when the next work is an **operator gate** (see **Operator gate relay** below), the chat message must include the full gate packet even if that exceeds the supervisor's usual brevity limit — do not wait for the user to ask for "step-by-step" instructions.
 
-**User-facing reports (mandatory in chat):** Whenever you report to the user (blockers, escalations, final summary, replan notices, relayed questions, operator gate instructions, or why a stop condition applied), name tasks, decisions, **gates**, sections, and findings by **title or short plain-language description** — whichever reads clearest. **Never** use a bare plan id, gate code, or decision id as the main label (for example do not write "do UG8" or "next is 22.1" without the title).
-
-| Bad (chat) | Good (chat) |
-| --- | --- |
-| "UG3 blocks 12.3" | "**OVH-G1 lock test** is recorded; **Lease core** can run" |
-| "Run OP-S3c for 13.18" | "Run **Observability stack install** — unblocks obs wheel tasks" |
-| "After 14.4" | "After **Retire tofu.auto.tfvars and hosts jq merge**" |
-
-Optional bracketed id **only** when two similar titles need disambiguation (e.g. `Lease core [12.3]`). The plan file may still use ids for progress tracking; this rule applies to **chat only** (and to relaying subagent output to the user).
+**User-facing reports (mandatory in chat):** Follow **base** — **Naming references** and **Plan and gate naming in chat** (titles and short descriptions first; never bare task numbers, decision ids, phase codes, or operator-gate codes as the main label). Relayed subagent output is restated to that standard before it reaches the user.
 
 ### Supervisor spawn checklist
 
